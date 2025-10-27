@@ -1,0 +1,239 @@
+import { Box, Typography, Grid, Card, CardContent, Button, Stack, Chip } from '@mui/material';
+import { motion } from 'framer-motion';
+import {
+  People as PeopleIcon,
+  LibraryBooks as MaterialsIcon,
+  Assignment as ProgramsIcon,
+  Add as AddIcon,
+  TrendingUp as TrendingUpIcon,
+} from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { getCurrentUser, getMaterials, getPrograms, getClientsByCoachId } from '../../utils/storage';
+import { formatDate, formatRelativeTime } from '@shared/utils/helpers';
+import { staggerContainer, staggerItem } from '../../utils/animations';
+import BORDER_RADIUS from '@styles/borderRadius';
+
+const DashboardOverview = () => {
+  const navigate = useNavigate();
+  const currentUser = getCurrentUser();
+  const materials = getMaterials(currentUser?.id);
+  const programs = getPrograms(currentUser?.id);
+  const clients = getClientsByCoachId(currentUser?.id);
+
+  // Statistiky
+  const activeClients = clients.filter(c => !c.completedAt).length;
+  const completedThisMonth = clients.filter(c => {
+    if (!c.completedAt) return false;
+    const completedDate = new Date(c.completedAt);
+    const now = new Date();
+    return completedDate.getMonth() === now.getMonth() &&
+           completedDate.getFullYear() === now.getFullYear();
+  }).length;
+
+  // Stats karty
+  const stats = [
+    {
+      id: 'clients',
+      label: 'Aktivní klientky',
+      value: activeClients,
+      icon: <PeopleIcon sx={{ fontSize: 40 }} />,
+      color: '#556B2F',
+      bgColor: 'rgba(85, 107, 47, 0.1)',
+    },
+    {
+      id: 'completed',
+      label: 'Dokončeno tento měsíc',
+      value: completedThisMonth,
+      icon: <TrendingUpIcon sx={{ fontSize: 40 }} />,
+      color: '#228B22',
+      bgColor: 'rgba(34, 139, 34, 0.1)',
+    },
+    {
+      id: 'materials',
+      label: 'Celkem materiálů',
+      value: materials.length,
+      icon: <MaterialsIcon sx={{ fontSize: 40 }} />,
+      color: '#8FBC8F',
+      bgColor: 'rgba(143, 188, 143, 0.1)',
+    },
+  ];
+
+  // Poslední aktivita
+  const recentActivities = clients
+    .filter(c => c.completedDays.length > 0)
+    .map(c => {
+      const program = programs.find(p => p.id === c.programId);
+      const lastCompletedDay = Math.max(...c.completedDays);
+      return {
+        clientName: c.name || 'Klientka',
+        action: `dokončila Den ${lastCompletedDay}`,
+        program: program?.title || 'Program',
+        timestamp: c.completedAt || c.startedAt,
+      };
+    })
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    .slice(0, 5);
+
+  return (
+    <Box>
+      {/* Uvítání */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Box mb={4}>
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
+            Ahoj {currentUser?.name || 'Koučko'}, vítej zpět! 🌿
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {formatDate(new Date().toISOString(), {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
+            {activeClients > 0 && ` • ${activeClients} aktivních klientek`}
+          </Typography>
+        </Box>
+      </motion.div>
+
+      {/* Stats karty */}
+      <motion.div
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+      >
+        <Grid container spacing={3} mb={4}>
+          {stats.map((stat) => (
+            <Grid item xs={12} sm={6} md={4} key={stat.id}>
+              <motion.div variants={staggerItem}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    transition: 'all 0.3s ease-in-out',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: (theme) => theme.shadows[4],
+                    },
+                  }}
+                >
+                  <CardContent>
+                    <Box
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="space-between"
+                      mb={2}
+                    >
+                      <Box
+                        sx={{
+                          p: 1.5,
+                          borderRadius: BORDER_RADIUS.compact,
+                          backgroundColor: stat.bgColor,
+                          color: stat.color,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {stat.icon}
+                      </Box>
+                    </Box>
+                    <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5 }}>
+                      {stat.value}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {stat.label}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Grid>
+          ))}
+        </Grid>
+      </motion.div>
+
+      <Grid container spacing={3}>
+        {/* Quick actions */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                Rychlé akce
+              </Typography>
+              <Stack spacing={1.5} mt={2} alignItems="flex-start">
+                <Button
+                  variant="contained"
+                  size="medium"
+                  startIcon={<AddIcon />}
+                  onClick={() => navigate('/coach/materials')}
+                  sx={{ py: 1 }}
+                >
+                  Přidat materiál
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="medium"
+                  startIcon={<AddIcon />}
+                  onClick={() => navigate('/coach/programs')}
+                  sx={{ py: 1 }}
+                >
+                  Vytvořit program
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Poslední aktivita */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                Poslední aktivita
+              </Typography>
+
+              {recentActivities.length === 0 ? (
+                <Box py={3} textAlign="center">
+                  <Typography variant="body2" color="text.secondary">
+                    Zatím žádná aktivita klientek
+                  </Typography>
+                </Box>
+              ) : (
+                <Stack spacing={2} mt={2}>
+                  {recentActivities.map((activity, index) => (
+                    <Box
+                      key={index}
+                      sx={{
+                        p: 2,
+                        borderRadius: BORDER_RADIUS.small,
+                        backgroundColor: (theme) =>
+                          theme.palette.mode === 'dark'
+                            ? 'rgba(255, 255, 255, 0.05)'
+                            : 'rgba(0, 0, 0, 0.02)',
+                      }}
+                    >
+                      <Box display="flex" alignItems="center" gap={1} mb={0.5}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {activity.clientName}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {activity.action}
+                        </Typography>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        {activity.program} • {formatRelativeTime(activity.timestamp)}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
+  );
+};
+
+export default DashboardOverview;

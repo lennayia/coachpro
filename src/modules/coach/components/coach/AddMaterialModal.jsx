@@ -1,0 +1,704 @@
+import { useState, useRef, useEffect } from 'react';
+import {
+  Drawer,
+  Box,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  TextField,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Alert,
+  CircularProgress,
+  Chip,
+} from '@mui/material';
+import {
+  Headphones as AudioIcon,
+  PictureAsPdf as PdfIcon,
+  TextFields as TextIcon,
+  Link as LinkIcon,
+  CloudUpload as CloudUploadIcon,
+  Description as DocumentIcon,
+  Image as ImageIcon,
+  Videocam as VideoIcon,
+} from '@mui/icons-material';
+import { getCurrentUser, saveMaterial } from '../../utils/storage';
+import { generateUUID } from '../../utils/generateCode';
+import {
+  fileToBase64,
+  getAudioDuration,
+  getVideoDuration,
+  getPdfPageCount,
+  estimateTextPageCount,
+  getAcceptString,
+  getFileTypeHint,
+} from '@shared/utils/helpers';
+import { detectLinkType, getEmbedUrl, isValidUrl, getThumbnailUrl, getYouTubeMetadata } from '../../utils/linkDetection';
+import { uploadFileToSupabase, isSupabaseConfigured } from '../../utils/supabaseStorage';
+
+const MATERIAL_TYPES = [
+  { value: 'audio', label: 'Audio', icon: <AudioIcon sx={{ fontSize: 40 }} /> },
+  { value: 'video', label: 'Video', icon: <VideoIcon sx={{ fontSize: 40 }} /> },
+  { value: 'pdf', label: 'PDF', icon: <PdfIcon sx={{ fontSize: 40 }} /> },
+  { value: 'image', label: 'Obrázek', icon: <ImageIcon sx={{ fontSize: 40 }} /> },
+  { value: 'document', label: 'Dokument', icon: <DocumentIcon sx={{ fontSize: 40 }} /> },
+  { value: 'text', label: 'Text', icon: <TextIcon sx={{ fontSize: 40 }} /> },
+  { value: 'link', label: 'Odkaz', icon: <LinkIcon sx={{ fontSize: 40 }} /> },
+];
+
+const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => {
+  const currentUser = getCurrentUser();
+  const fileInputRef = useRef(null);
+  const isEditMode = Boolean(editMaterial);
+
+  const [selectedType, setSelectedType] = useState('');
+  const [file, setFile] = useState(null);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('meditation');
+  const [linkUrl, setLinkUrl] = useState('');
+  const [textContent, setTextContent] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [dragActive, setDragActive] = useState(false);
+  const [detectedService, setDetectedService] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  // Prevent default drag behavior on entire window
+  useEffect(() => {
+    const preventDefaults = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    if (open) {
+      window.addEventListener('dragover', preventDefaults);
+      window.addEventListener('drop', preventDefaults);
+    }
+
+    return () => {
+      window.removeEventListener('dragover', preventDefaults);
+      window.removeEventListener('drop', preventDefaults);
+    };
+  }, [open]);
+
+  // Předvyplnění formuláře při editaci
+  useEffect(() => {
+    if (editMaterial && open) {
+      setSelectedType(editMaterial.type);
+      setTitle(editMaterial.title);
+      setDescription(editMaterial.description || '');
+      setCategory(editMaterial.category);
+
+      if (editMaterial.type === 'link') {
+        setLinkUrl(editMaterial.content);
+        // Detekce služby pro preview
+        const detected = detectLinkType(editMaterial.content);
+        setDetectedService(detected);
+        if (detected.embedSupport) {
+          const embedUrl = getEmbedUrl(editMaterial.content, detected.type);
+          setPreviewUrl(embedUrl);
+        }
+      } else if (editMaterial.type === 'text') {
+        setTextContent(editMaterial.content);
+      }
+      // Pro file-based typy (audio, pdf, document) zobrazíme info, že je již nahraný
+    }
+  }, [editMaterial, open]);
+
+  const handleReset = () => {
+    setDragActive(false);
+    setSelectedType('');
+    setFile(null);
+    setTitle('');
+    setDescription('');
+    setCategory('meditation');
+    setLinkUrl('');
+    setTextContent('');
+    setError('');
+    setDetectedService(null);
+    setPreviewUrl(null);
+  };
+
+  const handleClose = () => {
+    handleReset();
+    onClose();
+  };
+
+  const handleFileSelect = (event) => {
+    const selectedFile = event.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+    }
+  };
+
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const droppedFile = e.dataTransfer.files[0];
+      setFile(droppedFile);
+    }
+  };
+
+  const handleSave = async () => {
+    setError('');
+    setLoading(true);
+
+    try {
+      let content = '';
+      let duration = null;
+      let fileSize = null;
+      let fileName = null;
+      let pageCount = null;
+      let linkType = null;
+      let linkMeta = null;
+      let thumbnail = null;
+      let storagePath = null;
+
+      // Validace
+      if (!title) {
+        throw new Error('Název materiálu je povinný');
+      }
+
+      // Zpracování podle typu
+      if (selectedType === 'link') {
+        if (!linkUrl) {
+          throw new Error('URL je povinná');
+        }
+
+        // Validace URL
+        if (!isValidUrl(linkUrl)) {
+          throw new Error('Zadej platnou URL adresu');
+        }
+
+        content = linkUrl;
+
+        // Detekuj typ a metadata
+        const detected = detectLinkType(linkUrl);
+        linkType = detected.type;
+        linkMeta = {
+          icon: detected.icon,
+          label: detected.label,
+          color: detected.color,
+          embedSupport: detected.embedSupport,
+        };
+
+        // Pokus se získat metadata (jen pro YouTube)
+        if (detected.type === 'youtube') {
+          thumbnail = getThumbnailUrl(linkUrl, detected.type);
+
+          // Získej duration z YouTube API (pokud je nakonfigurován)
+          try {
+            const metadata = await getYouTubeMetadata(linkUrl);
+            if (metadata.duration) {
+              duration = metadata.duration;
+            }
+          } catch (error) {
+            console.warn('Failed to fetch YouTube metadata:', error);
+            // Pokračovat bez duration
+          }
+        }
+      } else if (selectedType === 'text') {
+        if (!textContent) {
+          throw new Error('Text je povinný');
+        }
+        content = textContent;
+        // Odhadni počet stran
+        pageCount = estimateTextPageCount(textContent);
+      } else {
+        // File-based types (audio, video, pdf, image, document)
+        if (file) {
+          // Nový soubor byl nahrán
+          fileSize = file.size;
+          fileName = file.name;
+
+          // Get audio duration
+          if (selectedType === 'audio') {
+            duration = await getAudioDuration(file);
+          }
+
+          // Get video duration
+          if (selectedType === 'video') {
+            duration = await getVideoDuration(file);
+          }
+
+          // Get PDF page count
+          if (selectedType === 'pdf') {
+            pageCount = await getPdfPageCount(file);
+          }
+
+          // Upload to Supabase if configured, otherwise use base64
+          if (isSupabaseConfigured()) {
+            try {
+              const { url, path } = await uploadFileToSupabase(file, currentUser.id, selectedType);
+              content = url; // Store Supabase URL
+              storagePath = path; // Store path for potential deletion later
+            } catch (uploadError) {
+              console.error('Supabase upload failed, falling back to base64:', uploadError);
+              content = await fileToBase64(file);
+            }
+          } else {
+            // Fallback to base64 (localStorage)
+            content = await fileToBase64(file);
+          }
+        } else if (isEditMode) {
+          // Editace - použij existující soubor
+          content = editMaterial.content;
+          fileSize = editMaterial.fileSize || null;
+          fileName = editMaterial.fileName || null;
+          duration = editMaterial.duration || null;
+          pageCount = editMaterial.pageCount || null;
+        } else {
+          // Nový materiál - soubor je povinný
+          throw new Error('Soubor je povinný');
+        }
+      }
+
+      // Create material object
+      const materialData = {
+        id: isEditMode ? editMaterial.id : generateUUID(),
+        coachId: currentUser.id,
+        type: selectedType,
+        title,
+        description,
+        content,
+        category,
+        duration,
+        fileSize,
+        fileName,
+        pageCount,
+        storagePath, // Supabase storage path (if uploaded)
+        createdAt: isEditMode ? editMaterial.createdAt : new Date().toISOString(),
+        updatedAt: isEditMode ? new Date().toISOString() : undefined,
+      };
+
+      // Přidej link-specific fields pokud je to link
+      if (selectedType === 'link') {
+        materialData.linkType = linkType;
+        materialData.linkMeta = linkMeta;
+        if (thumbnail) {
+          materialData.thumbnail = thumbnail;
+        }
+      }
+
+      // Save to localStorage
+      saveMaterial(materialData);
+
+      // Success
+      onSuccess();
+      handleClose();
+    } catch (err) {
+      setError(err.message || 'Něco se pokazilo. Zkus to znovu.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const canSave = () => {
+    if (!title) return false;
+    if (selectedType === 'link') return linkUrl;
+    if (selectedType === 'text') return textContent;
+    // Pro file-based typy: při editaci nemusí být nový soubor
+    if (isEditMode && (selectedType === 'audio' || selectedType === 'video' || selectedType === 'pdf' || selectedType === 'image' || selectedType === 'document')) {
+      return true; // Už má uložený soubor
+    }
+    return file;
+  };
+
+  return (
+    <Drawer
+      anchor="right"
+      open={open}
+      onClose={handleClose}
+      PaperProps={{
+        sx: {
+          width: { xs: '100%', sm: 500 },
+        },
+      }}
+    >
+      <Box p={3} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Typography variant="h5" mb={3} sx={{ fontWeight: 700 }}>
+          {isEditMode ? 'Upravit materiál' : 'Přidat nový materiál'}
+        </Typography>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+            {error}
+          </Alert>
+        )}
+
+        <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
+          {/* Krok 1: Výběr typu */}
+          <Typography variant="subtitle2" mb={2} sx={{ fontWeight: 600 }}>
+            Typ materiálu
+          </Typography>
+          <Grid container spacing={2} mb={3}>
+            {MATERIAL_TYPES.map((type) => (
+              <Grid item xs={6} key={type.value}>
+                <Card
+                  onClick={() => setSelectedType(type.value)}
+                  sx={{
+                    cursor: 'pointer',
+                    border: selectedType === type.value ? 2 : 1,
+                    borderColor:
+                      selectedType === type.value ? 'primary.main' : 'divider',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      transform: 'translateY(-2px)',
+                    },
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center' }}>
+                    <Box color={selectedType === type.value ? 'primary.main' : 'text.secondary'}>
+                      {type.icon}
+                    </Box>
+                    <Typography
+                      variant="body2"
+                      mt={1}
+                      sx={{
+                        fontWeight: selectedType === type.value ? 600 : 400,
+                        color: selectedType === type.value ? 'primary.main' : 'text.primary',
+                      }}
+                    >
+                      {type.label}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+
+          {/* Krok 2: Upload/Input podle typu */}
+          {selectedType && (
+            <>
+              {/* File upload (audio, video, pdf, image, document) */}
+              {(selectedType === 'audio' || selectedType === 'video' || selectedType === 'pdf' || selectedType === 'image' || selectedType === 'document') && (
+                <>
+                  <Typography variant="subtitle2" mb={2} sx={{ fontWeight: 600 }}>
+                    {isEditMode && !file ? 'Nahraný soubor' : 'Nahrát soubor'}
+                  </Typography>
+
+                  {/* Info o existujícím souboru při editaci */}
+                  {isEditMode && !file && (
+                    <Box
+                      p={2}
+                      mb={2}
+                      sx={{
+                        backgroundColor: (theme) =>
+                          theme.palette.mode === 'dark'
+                            ? 'rgba(143, 188, 143, 0.1)'
+                            : 'rgba(85, 107, 47, 0.05)',
+                        borderRadius: 1,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                      }}
+                    >
+                      <Typography variant="body2" color="text.secondary" mb={1}>
+                        ✓ Soubor je již nahraný
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Pokud chceš nahradit soubor, přetáhni sem nový nebo klikni níže
+                      </Typography>
+                    </Box>
+                  )}
+
+                  <Box
+                    sx={{
+                      border: '2px dashed',
+                      borderColor: dragActive ? 'primary.main' : 'divider',
+                      borderRadius: 2,
+                      p: 4,
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      backgroundColor: (theme) =>
+                        dragActive
+                          ? theme.palette.mode === 'dark'
+                            ? 'rgba(143, 188, 143, 0.1)'
+                            : 'rgba(85, 107, 47, 0.05)'
+                          : 'transparent',
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                        backgroundColor: (theme) =>
+                          theme.palette.mode === 'dark'
+                            ? 'rgba(143, 188, 143, 0.05)'
+                            : 'rgba(85, 107, 47, 0.02)',
+                      },
+                      mb: 2,
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      hidden
+                      accept={getAcceptString(selectedType)}
+                      onChange={handleFileSelect}
+                    />
+                    <CloudUploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                    <Typography variant="body1" gutterBottom>
+                      Přetáhni soubor sem nebo klikni pro výběr
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {getFileTypeHint(selectedType)}
+                    </Typography>
+                  </Box>
+
+                  {file && (
+                    <Box
+                      p={2}
+                      mb={3}
+                      sx={{
+                        backgroundColor: (theme) =>
+                          theme.palette.mode === 'dark'
+                            ? 'rgba(143, 188, 143, 0.1)'
+                            : 'rgba(85, 107, 47, 0.05)',
+                        borderRadius: 1,
+                      }}
+                    >
+                      <Typography variant="body2">
+                        ✓ {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                      </Typography>
+                    </Box>
+                  )}
+                </>
+              )}
+
+              {/* Link input */}
+              {selectedType === 'link' && (
+                <>
+                  <Typography variant="subtitle2" mb={2} sx={{ fontWeight: 600 }}>
+                    Odkaz na materiál
+                  </Typography>
+
+                  <TextField
+                    fullWidth
+                    label="URL adresa"
+                    placeholder="https://youtube.com/watch?v=..."
+                    value={linkUrl}
+                    onChange={(e) => {
+                      const url = e.target.value;
+                      setLinkUrl(url);
+
+                      // Auto-detect typ služby
+                      if (isValidUrl(url)) {
+                        const detected = detectLinkType(url);
+                        setDetectedService(detected);
+
+                        // Pokud má embed support, načti náhled
+                        if (detected.embedSupport) {
+                          const embedUrl = getEmbedUrl(url, detected.type);
+                          setPreviewUrl(embedUrl);
+                        } else {
+                          setPreviewUrl(null);
+                        }
+                      } else {
+                        setDetectedService(null);
+                        setPreviewUrl(null);
+                      }
+                    }}
+                    margin="normal"
+                    error={linkUrl && !isValidUrl(linkUrl)}
+                    helperText={
+                      linkUrl && !isValidUrl(linkUrl)
+                        ? 'Zadej platnou URL adresu'
+                        : 'Podporuje YouTube, Spotify, Google Drive, iCloud a další'
+                    }
+                    InputProps={{
+                      startAdornment: <LinkIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+                    }}
+                  />
+
+                  {/* Detected service badge */}
+                  {detectedService && (
+                    <Box
+                      sx={{
+                        mt: 3,
+                        p: 3,
+                        borderRadius: 3,
+                        background: `linear-gradient(135deg, ${detectedService.color}15, ${detectedService.color}05)`,
+                        border: `2px solid ${detectedService.color}40`,
+                      }}
+                    >
+                      <Box display="flex" alignItems="center" gap={2} mb={2}>
+                        <Box
+                          sx={{
+                            fontSize: 40,
+                            width: 60,
+                            height: 60,
+                            borderRadius: 2,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: `${detectedService.color}20`,
+                          }}
+                        >
+                          {detectedService.icon}
+                        </Box>
+                        <Box flexGrow={1}>
+                          <Typography variant="h6" sx={{ fontWeight: 700, color: detectedService.color }}>
+                            {detectedService.label}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Služba byla automaticky rozpoznána
+                          </Typography>
+                        </Box>
+                        {detectedService.embedSupport && (
+                          <Chip
+                            label="Náhled podporován"
+                            size="small"
+                            sx={{
+                              bgcolor: `${detectedService.color}30`,
+                              color: detectedService.color,
+                              fontWeight: 600,
+                            }}
+                          />
+                        )}
+                      </Box>
+
+                      {/* Preview pro embed-podporované služby */}
+                      {previewUrl && detectedService.embedSupport && (
+                        <Box
+                          sx={{
+                            position: 'relative',
+                            aspectRatio: detectedService.type === 'spotify' ? 'auto' : '16/9',
+                            borderRadius: 2,
+                            overflow: 'hidden',
+                            boxShadow: 3,
+                            background: '#000',
+                          }}
+                        >
+                          <iframe
+                            width="100%"
+                            height={detectedService.type === 'spotify' ? '352px' : '100%'}
+                            src={previewUrl}
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            style={{ display: 'block' }}
+                            title="Link preview"
+                          />
+                        </Box>
+                      )}
+
+                      {/* Info pro služby bez embed supportu */}
+                      {!detectedService.embedSupport && (
+                        <Alert
+                          severity="info"
+                          sx={{
+                            bgcolor: 'transparent',
+                            border: `1px solid ${detectedService.color}30`,
+                            '& .MuiAlert-icon': {
+                              color: detectedService.color,
+                            },
+                          }}
+                        >
+                          <Typography variant="body2">
+                            Klientky budou přesměrovány na {detectedService.label} po kliknutí na odkaz.
+                          </Typography>
+                        </Alert>
+                      )}
+                    </Box>
+                  )}
+                </>
+              )}
+
+              {/* Text input */}
+              {selectedType === 'text' && (
+                <TextField
+                  fullWidth
+                  label="Textový obsah"
+                  value={textContent}
+                  onChange={(e) => setTextContent(e.target.value)}
+                  multiline
+                  rows={6}
+                  margin="normal"
+                  required
+                />
+              )}
+
+              {/* Krok 3: Metadata */}
+              <TextField
+                fullWidth
+                label="Název materiálu"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                margin="normal"
+                required
+              />
+
+              <TextField
+                fullWidth
+                label="Popis"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                margin="normal"
+                multiline
+                rows={3}
+                placeholder="Krátký popis materiálu..."
+              />
+
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Kategorie</InputLabel>
+                <Select value={category} label="Kategorie" onChange={(e) => setCategory(e.target.value)}>
+                  <MenuItem value="meditation">🧘‍♀️ Meditace</MenuItem>
+                  <MenuItem value="affirmation">💫 Afirmace</MenuItem>
+                  <MenuItem value="exercise">💪 Cvičení</MenuItem>
+                  <MenuItem value="reflection">📝 Reflexe</MenuItem>
+                  <MenuItem value="other">📦 Ostatní</MenuItem>
+                </Select>
+              </FormControl>
+            </>
+          )}
+        </Box>
+
+        {/* Action buttons */}
+        <Box display="flex" gap={2} mt={3}>
+          <Button onClick={handleClose} fullWidth disabled={loading}>
+            Zrušit
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            fullWidth
+            disabled={!canSave() || loading}
+            startIcon={loading && <CircularProgress size={20} />}
+          >
+            {loading ? 'Ukládám...' : (isEditMode ? 'Uložit změny' : 'Uložit materiál')}
+          </Button>
+        </Box>
+      </Box>
+    </Drawer>
+  );
+};
+
+export default AddMaterialModal;
