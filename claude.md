@@ -6,9 +6,10 @@
 
 ## 📍 Současný stav projektu
 
-**Datum**: 27. října 2025
-**Sprint**: 6 - Supabase Storage & UI vylepšení
-**Status**: ✅ Funkční, testováno s Supabase Storage
+**Poslední update**: 28. října 2025, 13:56
+**Sprint**: ✅ Sprint 8 dokončen (CRITICAL BUGS - Opravy)
+**Další sprint**: Sprint 9 - Klientské rozhraní + Critical Features
+**Status**: ✅ 3 CRITICAL BUGS opraveny + 13 nových úkolů přidáno
 **Dev server**: `http://localhost:3000/`
 **Projekt**: `/Users/lenkaroubalova/Documents/Projekty/coachpro`
 
@@ -86,7 +87,7 @@ Webová aplikace pro **kouče a jejich klientky**. Kouč vytváří programy s d
 - ✅ Link detection utils (`/src/modules/coach/utils/linkDetection.js`)
 - ✅ Thumbnail generování pro YouTube videa
 
-### Sprint 6: Supabase Storage & UI vylepšení (AKTUÁLNÍ)
+### Sprint 6: Supabase Storage & UI vylepšení
 - ✅ **Supabase Storage integrace** - 1 GB prostor místo 5 MB localStorage
 - ✅ **Sanitizace názvů souborů** - čitelné názvy v Supabase (`mikova-vlasta-hosting-7eec5405.pdf`)
 - ✅ **Transliterace češtiny** - á→a, č→c, ř→r, atd.
@@ -99,6 +100,26 @@ Webová aplikace pro **kouče a jejich klientky**. Kouč vytváří programy s d
 - ✅ **Async delete** - mazání z Supabase i localStorage
 - ✅ **Fallback na base64** - pokud Supabase není dostupný
 - ✅ **Odstraněno auto-fill názvu** - uživatel zadá vlastní popisný název
+- ✅ **MaterialCard responsivita** - funguje na 320px+ obrazovkách (Sprint 6.7)
+
+### Sprint 6.8: iOS Support & Logo
+- ✅ **HEIC/HEIF podpora** - automatická konverze iPhone obrázků na JPEG při uploadu
+- ✅ **MOV video podpora** - správná detekce MIME typu pro iPhone/Mac videa
+- ✅ **Logo implementace** - logo v Header (48px), Login page (80px), favicon
+- ✅ **heic2any knihovna** - lazy loading konverze HEIC→JPEG (90% kvalita)
+- ✅ **Responsive header** - text "CoachPro" + popisek jen na desktopu, mobil jen logo
+
+### Sprint 6.9: Glassmorphism Redesign (AKTUÁLNÍ)
+- ✅ **Completion screen redesign** - moderní glassmorphism efekty s blur(40px) + saturate(180%)
+- ✅ **ProgressGarden redesign** - minimalistický styl s glassmorphism, zaoblené day bloky
+- ✅ **Button effects** - gradientní pozadí, shine animace, inset highlights, hover efekty
+- ✅ **Border-radius optimalizace** - finální hodnoty pro všechny komponenty:
+  - Hlavní panely (Card): 40px
+  - Boxy "Aktuální série": 32-33px
+  - Day bloky (čísla 1-7): 32px
+  - Day header: 36px
+- ✅ **Radial gradient overlays** - "kouřový" efekt v pozadí karet
+- ✅ **Konzistentní design jazyk** - inspirováno PaymentsPro
 
 ---
 
@@ -1002,9 +1023,20 @@ VITE_SUPABASE_ANON_KEY=eyJhbGc...
 
 ---
 
-## 🚀 TODO pro 2. fázi projektu
+## 🚀 TODO
 
-### Další embed služby k implementaci
+### ⚠️ Prioritní úkoly - 1. fáze (AKTUÁLNÍ)
+
+**Priority 1 - Základní funkcionality:**
+- [ ] **ClientsList stránka** - seznam klientek kouče s přehledem programů
+- [ ] **Mobile responsivita ostatních stránek** - Dashboard, ProgramsList, DailyView (320px+)
+- [ ] **Loading states** - pro async operace (Supabase upload, fetch, delete)
+- [ ] **Error boundaries** - React error boundaries pro robustnější error handling
+- [ ] **Warning při blízkém localStorage limitu** - upozornit uživatele při 80%+ využití
+
+---
+
+### Další embed služby k implementaci (2. fáze)
 
 **Priorita 1 - Video & Screening (pro kouče):**
 - [ ] **Loom** - video nahrávky/screenshare (velmi populární u koučů)
@@ -1119,9 +1151,712 @@ Tyto funkce budou sdíleny:
 
 ---
 
-**Poslední update**: 27. října 2025
+## 🎯 Sprint 6.7: Responsivita MaterialCard - VYŘEŠENO (27. října 2025)
+
+### ČAS STRÁVENÝ: ~2 hodiny debuggingu
+
+### PROBLÉM:
+Karty materiálů (MaterialCard) se ořezávaly na pravé straně na obrazovkách 320-420px. Pravý sloupec s ikonami přetékal mimo viewport.
+
+### ✅ VYŘEŠENO - Hlavní oprava:
+
+**ROOT CAUSE:**
+Problém nebyl v MaterialCard.jsx, ale v layoutu stránky - **chybějící padding v MaterialsLibrary.jsx** způsoboval overflow.
+
+**ŘEŠENÍ:**
+
+1. **MaterialsLibrary.jsx** - Přidán padding na hlavní Box:
+```jsx
+// Hlavní wrapper Box (úplně první return)
+<Box sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+  // ... celý obsah komponenty
+</Box>
+```
+
+2. **MaterialsLibrary.jsx** - Zvětšen Grid spacing:
+```jsx
+// Grid container s kartami
+<Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+  // Změněno z spacing={{ xs: 1, sm: 2, md: 3 }}
+```
+
+### 🔧 DALŠÍ ÚPRAVY v MaterialCard.jsx:
+
+**Breakpoint:**
+```jsx
+const isVeryNarrow = useMediaQuery('(max-width:420px)');
+// Platí pro obrazovky 320-420px
+```
+
+**Levý sloupec (obsah):**
+```jsx
+<Box
+  display="flex"
+  flexDirection="column"
+  gap={0.5}
+  sx={{
+    flex: '1 1 0px', // ✅ Force flex-basis na 0
+    minWidth: 0,      // ✅ Umožní zmenšení pod natural width
+    width: 0,         // ✅ Force nulovou šířku (flexbox natáhne)
+    overflow: 'hidden',
+  }}
+>
+```
+
+**Pravý sloupec (ikony):**
+```jsx
+<Box
+  display="flex"
+  flexDirection="column"
+  alignItems="center"
+  gap={isVeryNarrow ? 0.5 : 1}
+  sx={{
+    minWidth: isVeryNarrow ? 36 : { xs: 40, sm: 56 },
+    maxWidth: isVeryNarrow ? 36 : { xs: 40, sm: 56 },
+    width: isVeryNarrow ? 36 : { xs: 40, sm: 56 },
+    flexShrink: 0
+  }}
+>
+```
+
+**Velikosti pod 420px (isVeryNarrow):**
+
+| Element | Velikost |
+|---------|----------|
+| Velká ikona (renderIcon) | 28px |
+| Action ikony (Eye, Pencil, ExternalLink, Trash2) | 14px |
+| URL/fileName ikona (Link2, Paperclip) | 11px |
+| Metadata ikony (Clock, HardDrive, FileText) | 12px |
+| Chip height | 18px |
+| Chip font | 0.65rem |
+| URL/fileName font | 0.7rem |
+| Název materiálu | 1rem |
+| Popis | 0.8rem |
+| Metadata font | 0.7rem |
+| IconButton padding | 0.25 |
+| Gap mezi sloupci | 0.75 (MUI spacing) |
+
+**Card padding:**
+```jsx
+<CardContent sx={{
+  px: isVeryNarrow ? 1 : { xs: 1, sm: 2 },
+  py: isVeryNarrow ? 1.5 : { xs: 1.5, sm: 2 }
+}}>
+```
+
+### 🎨 CSS TRIKY použité:
+
+**Text wrapping (všude kde je text):**
+```jsx
+overflowWrap: 'anywhere',  // Zalomí KDEKOLI včetně uprostřed slova
+wordBreak: 'break-word',   // Respektuje slova, kde je to možné
+hyphens: 'auto',           // Automatické dělení slov
+minWidth: 0,               // CRITICAL pro flex children!
+```
+
+**Chip ellipsis:**
+```jsx
+'& .MuiChip-label': {
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+}
+```
+
+### 📐 MATEMATIKA LAYOUTU (pod 420px):
+
+```
+Container width: 320px
+├─ Container padding: 12px (1.5 × 8px MUI spacing)
+│
+└─ Dostupná šířka: 296px
+   ├─ Grid item width: 296px
+   ├─ Grid item padding: 12px (spacing 1.5)
+   │
+   └─ Card width: 272px
+      ├─ Card padding: 8px (px: 1)
+      │
+      └─ CardContent width: 256px
+         ├─ Levý sloupec: ~214px (flex: 1)
+         ├─ Gap: 6px (0.75 spacing)
+         └─ Pravý sloupec: 36px (fixed)
+```
+
+### 🐛 CO JSME SE NAUČILI:
+
+1. **Problém nemusí být v komponentě, ale v layoutu stránky**
+   - Grid negativní margin potřebuje být kompenzován container paddingem
+
+2. **Flexbox children musí mít `minWidth: 0`**
+   - Jinak se nezmenší pod natural content width
+
+3. **`flex: '1 1 0px'` je silnější než `flex: '1 1 auto'`**
+   - Nulová flex-basis force distribuci prostoru
+
+4. **Barevné border při debuggingu = 💎**
+   - `border: '2px solid red'` okamžitě ukáže, kde je problém
+
+5. **Grid spacing je tricky**
+   - `spacing={3}` = -12px margin na Grid + 12px padding na Grid items
+   - Container MUSÍ mít padding, jinak overflow!
+
+### ⚠️ POZOR NA:
+
+**Neoptimalizovaný kód (můžeš vyčistit):**
+Když je hodnota stejná pro isVeryNarrow i normální:
+```jsx
+// Neoptimální:
+fontSize: isVeryNarrow ? '0.7rem' : '0.7rem'
+
+// Lepší:
+fontSize: '0.7rem'
+```
+Najdeš to u:
+- URL Typography (link)
+- Metadata Typography (3×)
+
+### 📱 TESTOVÁNO NA:
+
+- ✅ 320px (iPhone SE)
+- ✅ 375px (iPhone 12/13/14)
+- ✅ 390px (iPhone 12 Pro)
+- ✅ 414px (iPhone 11 Pro Max)
+- ✅ 420px (breakpoint edge)
+- ✅ 600px+ (normální mobil/tablet)
+
+### 🔄 NÁSLEDUJÍCÍ KROKY:
+
+Pokud budeš v budoucnu přidávat další stránky s kartami:
+
+1. **VŽDY přidej padding na hlavní container:**
+   ```jsx
+   <Box sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+   ```
+
+2. **Grid spacing pro responzivitu:**
+   ```jsx
+   <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+   ```
+
+3. **Pro velmi malé obrazovky zvažuj:**
+   - Menší fonty/ikony POD 375px (iPhone SE)
+   - Single column layout POD 360px
+   - Collapse akčních ikon do menu POD 320px
+
+### 🎯 SOUBORY UPRAVENÉ:
+
+1. **MaterialsLibrary.jsx**
+   - Přidán padding na hlavní Box
+   - Zvětšen Grid spacing na mobilu
+
+2. **MaterialCard.jsx**
+   - Levý sloupec: flex-basis 0, minWidth 0
+   - Pravý sloupec: fixed width 36px pod 420px
+   - Responsive velikosti fontů a ikon
+   - Text wrapping na všech elementech
+
+**STATUS: ✅ VYŘEŠENO A OTESTOVÁNO**
+
+---
+
+## 📋 Sprint 6.9 changelog (28. října 2025)
+
+### Glassmorphism Redesign - Completion Screen & ProgressGarden
+
+**ČAS STRÁVENÝ**: ~3 hodiny iterativního designu
+
+### 🎨 DESIGN VIZE:
+Uživatelka požadovala moderní, nadčasový design inspirovaný PaymentsPro - "kouřový, skleněný, blur efekt" s minimalistickým stylem.
+
+### ✅ COMPLETION SCREEN (DailyView.jsx)
+
+**Hlavní karta:**
+```jsx
+<Card
+  elevation={0}
+  sx={{
+    borderRadius: '40px',
+    backdropFilter: 'blur(40px) saturate(180%)',
+    background: 'rgba(26, 26, 26, 0.5)',  // dark mode
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+    '&::before': {
+      // Radial gradient "smoky" overlay
+      content: '""',
+      position: 'absolute',
+      background: 'radial-gradient(...)',
+      opacity: 0.6,
+    }
+  }}
+>
+```
+
+**Aktuální série box:**
+- `borderRadius: '33px'` (ve chvíli kdy je výška boxu menší, potřebuje menší radius)
+- Stejný glassmorphism efekt jako hlavní karta
+- Zvýrazněná primary barva
+
+**Tlačítka s moderními efekty:**
+
+```jsx
+// Primary button "Zpět na výběr programu"
+<Button sx={{
+  px: 5,
+  py: 1.75,
+  borderRadius: '16px',
+  backdropFilter: 'blur(30px)',
+  background: 'linear-gradient(135deg, rgba(139, 188, 143, 0.95) 0%, rgba(85, 107, 47, 0.9) 100%)',
+  border: '1px solid rgba(139, 188, 143, 0.5)',
+  boxShadow: '0 8px 32px rgba(139, 188, 143, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+
+  // Shine animation
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent)',
+    left: '-100%',
+    transition: 'left 0.6s ease-in-out',
+  },
+
+  '&:hover': {
+    transform: 'translateY(-4px) scale(1.02)',
+    boxShadow: '0 12px 48px rgba(139, 188, 143, 0.7)',
+    '&::before': {
+      left: '100%',
+    },
+  },
+}}>
+```
+
+**Secondary button "Prohlédnout si program znovu":**
+- Semi-transparent background
+- 2px border s glassmorphism
+- Radial gradient glow on hover
+- Stejná transform animace
+
+### ✅ PROGRESSGARDEN (ProgressGarden.jsx)
+
+**Hlavní karta:**
+- `borderRadius: '40px'`
+- Stejný glassmorphism efekt jako completion screen
+- Radial gradient overlay pro "smoky" look
+
+**Aktuální série box:**
+- `borderRadius: '32px'`
+- Glassmorphism s primary barvou
+
+**Day bloky (1, 2, 3, 4, 5, 6, 7):**
+```jsx
+<Box sx={{
+  borderRadius: '32px',
+  aspectRatio: '1',
+  backdropFilter: 'blur(10px)',
+  background: isCompleted
+    ? 'rgba(139, 188, 143, 0.15)'  // Zelený hint
+    : 'rgba(255, 255, 255, 0.03)',  // Neutrální
+  border: '1px solid',
+  borderColor: isCompleted
+    ? 'rgba(139, 188, 143, 0.3)'
+    : 'rgba(255, 255, 255, 0.08)',
+
+  '&:hover': {
+    background: isCompleted
+      ? 'rgba(139, 188, 143, 0.2)'
+      : 'rgba(255, 255, 255, 0.05)',
+  }
+}}>
+```
+
+### ✅ DAY HEADER (DailyView.jsx)
+
+```jsx
+<Card sx={{
+  borderRadius: '36px',  // Nižší než hlavní panely
+  textAlign: 'center'
+}}>
+```
+
+### 🎨 FINÁLNÍ BORDER-RADIUS SYSTÉM:
+
+| Element | Border-Radius | Důvod |
+|---------|---------------|-------|
+| Hlavní panely (completion, ProgressGarden) | 40px | Velké plochy = větší zaoblení |
+| Aktuální série box (completion) | 33px | Menší výška = menší radius |
+| Aktuální série box (ProgressGarden) | 32px | Proporcionální k výšce |
+| Day bloky (1-7) | 32px | Square shape = menší radius |
+| Day header | 36px | Kompaktní výška |
+| Buttons | 16px | Standardní button radius |
+
+### 🔑 KLÍČOVÉ CSS TECHNIKY:
+
+**1. Glassmorphism formula:**
+```css
+backdrop-filter: blur(40px) saturate(180%);
+background: rgba(26, 26, 26, 0.5);
+border: 1px solid rgba(255, 255, 255, 0.1);
+```
+
+**2. "Smoky" effect:**
+```css
+&::before {
+  content: "";
+  position: absolute;
+  background: radial-gradient(circle at 30% 20%, rgba(139, 188, 143, 0.2) 0%, transparent 50%),
+              radial-gradient(circle at 70% 80%, rgba(188, 143, 143, 0.15) 0%, transparent 50%);
+  opacity: 0.6;
+  pointer-events: none;
+}
+```
+
+**3. Shine animation:**
+```css
+&::before {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  left: '-100%';
+  transition: left 0.6s ease-in-out;
+}
+&:hover::before {
+  left: '100%';
+}
+```
+
+**4. Inset highlights:**
+```css
+box-shadow:
+  0 8px 32px rgba(139, 188, 143, 0.5),           /* Outer glow */
+  inset 0 1px 0 rgba(255, 255, 255, 0.2);        /* Inner highlight */
+```
+
+### 🚨 CO UŽIVATELKA NECHCE:
+
+❌ **Devvadesátkové prvky:**
+- Emoji v designu (🌸🌱🌰⭐)
+- Oranžové/zlaté chipy
+- Výrazné gradienty na textu
+- Flashy animace
+
+✅ **Co CHCE:**
+- Kouřový, skleněný efekt
+- Moderní minimalistický styl
+- Nadčasový design
+- Motivující ale decentní
+
+### 📊 ITERACE DESIGNU:
+
+1. **První pokus** → Příliš flashy (emoji, gradienty, oranžová)
+2. **Druhý pokus** → Příliš nudný (bez efektů)
+3. **Třetí pokus** → Glassmorphism + barvy, ale efekty neviditelné
+4. **Čtvrtý pokus** → Výrazné efekty (0 12px 48px shadows)
+5. **Finální** ✅ → Balance mezi decentním a viditelným
+
+### 🔄 BORDER-RADIUS ITERACE:
+
+```
+Hlavní panely:   12px → 15px → 17px → 19px → 25px → 40px
+Aktuální série:  24px → 21px → 28px → 29px → 32-33px
+Day bloky:       16px → 20px → 21px → 22px → 32px
+Day header:      12px (default) → 40px → 36px
+```
+
+### 📁 SOUBORY UPRAVENÉ:
+
+1. **DailyView.jsx** (řádky 662-908)
+   - Completion screen Card (borderRadius: 40px)
+   - Aktuální série Box (borderRadius: 33px)
+   - Day header Card (borderRadius: 36px)
+   - Primary button (gradientní, shine animation)
+   - Secondary button (glassmorphism, radial glow)
+
+2. **ProgressGarden.jsx**
+   - Main Card (borderRadius: 40px)
+   - Aktuální série Box (borderRadius: 32px)
+   - Day bloky (borderRadius: 32px)
+   - Glassmorphism všude
+
+### 🎓 NAUČENÉ LEKCE:
+
+1. **Glassmorphism potřebuje silné efekty** - 20px blur je málo, 40px je lepší
+2. **Saturate(180%) posiluje barvy** pod blur filtrem
+3. **Radial gradienty vytvářejí "smoky" efekt** když jsou subtle (opacity 0.6)
+4. **Button efekty musí být viditelné** - velké shadows (8-12px), transform, shine
+5. **Border-radius musí být proporcionální** - vysoké prvky = větší radius
+6. **Iterace je klíč** - design se vyladí po několika pokusech
+
+### 🧪 TESTOVÁNO:
+
+- ✅ Light mode (glassmorphism funguje s bílým pozadím)
+- ✅ Dark mode (glassmorphism s tmavým pozadím)
+- ✅ Hover efekty (transform, shadows, shine)
+- ✅ Completion screen (všechny varianty)
+- ✅ ProgressGarden (7denní program)
+- ✅ Day header (běžný den)
+
+**STATUS: ✅ DOKONČENO A SCHVÁLENO UŽIVATELKOU**
+
+---
+
+**Poslední update**: 28. října 2025
 **Autor**: Lenka Roubalová + Claude
-**Status**: ✅ Sprint 6.5 dokončen (YouTube Metadata & Google Drive Embeds), funkční a testováno
+**Status**: ✅ Sprint 7 dokončen (Toast Notifikační Systém - implementace v celé aplikaci), funkční a testováno
+
+---
+
+## 📋 Sprint 7: Toast Notifikační Systém (28. října 2025)
+
+### 🎯 CÍL:
+Implementovat toast notifikace všude tam, kde jsou validace a chyby, ale **zachovat inline Alerty** pro dual feedback systém.
+
+### ✅ IMPLEMENTOVÁNO:
+
+**6 souborů upraveno:**
+1. **ProgramEditor.jsx** - 4 toast notifikace (validace + success)
+2. **AddMaterialModal.jsx** - 8 toast notifikací (7 validací + success)
+3. **ClientEntry.jsx** - 4 toast notifikace (validace kódu)
+4. **ShareProgramModal.jsx** - 5 toast notifikací (success akce + errors), **odstraněn Snackbar**
+5. **CustomAudioPlayer.jsx** - 1 toast (error při načítání audio)
+6. **PDFViewer.jsx** - 1 toast (error při načítání PDF)
+
+**DailyView.jsx** - zkontrolováno, žádné změny potřeba (pouze informační Alerty)
+
+### 🎨 DUAL FEEDBACK PATTERN:
+
+```javascript
+// 1. Import
+import { useNotification } from '@shared/context/NotificationContext';
+
+// 2. Hook
+const { showSuccess, showError } = useNotification();
+
+// 3. Validace s dual feedback
+const errorMsg = 'Chybová zpráva';
+setError(errorMsg);              // Inline Alert (vizuální indikátor v kontextu)
+showError('Název', errorMsg);    // Toast notifikace (globální + zvuk)
+throw new Error(errorMsg);
+
+// 4. Success toast
+showSuccess('Hotovo!', 'Akce byla úspěšná');
+```
+
+### 🔔 TOAST NOTIFIKACE FEATURES:
+
+- **Position**: Top right (80px od top, 16px od right)
+- **Glassmorphism design**: Blur efekty, transparentní pozadí
+- **Audio feedback**: notification.mp3 sound
+- **Auto-dismiss**: 5 sekund
+- **Barvy**:
+  - Error: `#ff5555` (červená)
+  - Success: `#8FBC8F` (zelená)
+  - Info: `#82aaff` (modrá)
+  - Warning: `#ffb86c` (oranžová)
+
+### 📊 UX VÝHODY DUAL FEEDBACK:
+
+**Inline Alerty/Boxy:**
+- 📍 Kontextová zpětná vazba (uživatel vidí chybu u formuláře)
+- 👀 Vizuální indikátor (chyba zůstává dokud není opravena)
+- 🎨 Červené/Modré rozlišení typu zprávy
+
+**Toast Notifikace:**
+- 🔔 Globální zpětná vazba (nemůže přehlédnout)
+- 🔊 Audio feedback (pro uživatele, co se nedívají)
+- ✨ Glassmorphism design (moderní vzhled)
+- ⏱️ Auto-dismiss (neblokuje UI)
+
+### 🚨 DŮLEŽITÉ - STARÝ KÓD ODSTRANĚN:
+
+**ShareProgramModal.jsx:**
+- ❌ Snackbar import odstraněn z MUI
+- ❌ useState pro snackbar state odstraněn
+- ❌ Snackbar JSX komponenta odstraněna
+- ✅ Nahrazeno toast systémem
+
+---
+
+## ✅ Sprint 8: CRITICAL BUGS - Opravy (28. října 2025)
+
+**Datum:** 28. října 2025, 14:00 - 20:30
+**Status:** ✅ Všechny 3 critical bugy opraveny a otestovány
+**Priorita:** CRITICAL - muselo být hotovo před dalším vývojem
+
+### 🎯 Opravené Bugy
+
+#### Bug #1: Detail materiálu - nelze změnit soubor ✅
+**Soubor:** `src/modules/coach/components/coach/AddMaterialModal.jsx`
+
+**Problém:**
+- V edit modu šlo změnit typ materiálu (např. audio → video)
+- To by rozbilo vazbu mezi typem a nahraným souborem
+
+**Řešení:**
+- Typ materiálu je nyní **disabled** v edit modu pro file-based typy
+- Všechny ostatní typ-karty jsou vizuálně deaktivované (opacity: 0.4, cursor: not-allowed)
+- Přidán Info Alert: "Typ materiálu nelze změnit. Můžeš ale nahradit soubor novým."
+- Soubor lze stále nahradit (drag & drop nebo kliknutí)
+
+**Klíčové změny (lines 404-444):**
+```javascript
+{MATERIAL_TYPES.map((type) => {
+  const isFileBasedType = (t) => ['audio', 'video', 'pdf', 'image', 'document'].includes(t);
+  const isDisabled = isEditMode && isFileBasedType(editMaterial?.type) && type.value !== selectedType;
+
+  return (
+    <Card
+      onClick={() => !isDisabled && setSelectedType(type.value)}
+      sx={{
+        cursor: isDisabled ? 'not-allowed' : 'pointer',
+        opacity: isDisabled ? 0.4 : 1,
+        '&:hover': isDisabled ? {} : { borderColor: 'primary.main' },
+      }}
+    />
+  );
+})}
+```
+
+#### Bug #2: Program - nelze změnit délku ✅
+**Soubor:** `src/modules/coach/components/coach/ProgramEditor.jsx`
+
+**Problém:**
+- Délka programu byla **disabled** v edit modu (`disabled={isEditing}`)
+- Nešlo změnit 7 dní → 14 dní nebo vice versa
+
+**Řešení:**
+- Odstraněno `disabled={isEditing}` z duration selectoru (line 346)
+- Délku programu lze měnit i po vytvoření
+- Při zvýšení délky: přidají se nové prázdné dny na konec
+- Při snížení délky: odeberou se dny z konce
+- **Zachování dat:** Existující dny si zachovají veškerá data
+
+**Dynamické dny - useEffect (lines 126-142):**
+```javascript
+useEffect(() => {
+  if (duration > 0 && open) {
+    setDays((prevDays) => {
+      const newDays = Array.from({ length: duration }, (_, index) => ({
+        dayNumber: index + 1,
+        title: prevDays[index]?.title || '',
+        description: prevDays[index]?.description || '',
+        materialIds: prevDays[index]?.materialIds || [],
+        instruction: prevDays[index]?.instruction || '',
+      }));
+      return newDays;
+    });
+  }
+}, [duration, open]);
+```
+
+**Přidán Info Alert (lines 355-359):**
+```javascript
+{isEditing && (
+  <Alert severity="info" sx={{ mt: 2 }}>
+    Můžeš změnit délku programu. Existující dny zůstanou zachovány, nové dny budou přidány na konec.
+  </Alert>
+)}
+```
+
+#### Bug #3: Program - auto-save ✅
+**Soubor:** `src/modules/coach/components/coach/ProgramEditor.jsx`
+
+**Problém:**
+- Program se neuložil každý den samostatně
+- Při zavření editoru bez uložení se ztratila veškerá práce
+
+**Řešení:**
+- Implementován auto-save systém:
+  - **Debounced save:** 5 sekund po poslední změně
+  - **Draft uložen v localStorage:** `draft_program_${programId}` nebo `draft_program_new`
+  - **Toast notifikace:** "Změny uloženy ✓" po každém auto-save
+  - **Draft se vymaže** po úspěšném uložení programu
+  - **Draft expiruje** po 24 hodinách (stale data protection)
+
+**Auto-save state (lines 55-94):**
+```javascript
+const autoSaveTimeoutRef = useRef(null);
+const draftKey = `draft_program_${program?.id || 'new'}`;
+
+const saveDraft = useCallback(() => {
+  const draftData = {
+    title, description, duration, days,
+    programId: program?.id,
+    timestamp: new Date().toISOString(),
+  };
+  localStorage.setItem(draftKey, JSON.stringify(draftData));
+  showSuccess('Auto-save', 'Změny uloženy ✓');
+}, [title, description, duration, days, draftKey, program?.id, showSuccess]);
+
+const loadDraft = useCallback(() => {
+  const draft = localStorage.getItem(draftKey);
+  if (draft) {
+    try {
+      const draftData = JSON.parse(draft);
+      // Only load if draft is recent (less than 24 hours old)
+      const draftAge = new Date() - new Date(draftData.timestamp);
+      if (draftAge < 24 * 60 * 60 * 1000) {
+        return draftData;
+      }
+    } catch (e) {
+      console.error('Failed to parse draft:', e);
+    }
+  }
+  return null;
+}, [draftKey]);
+
+const clearDraft = useCallback(() => {
+  localStorage.removeItem(draftKey);
+}, [draftKey]);
+```
+
+**Auto-save trigger - useEffect (lines 144-164):**
+```javascript
+useEffect(() => {
+  if (!open || !title) return; // Don't auto-save if modal is closed or no title yet
+
+  // Clear previous timeout
+  if (autoSaveTimeoutRef.current) {
+    clearTimeout(autoSaveTimeoutRef.current);
+  }
+
+  // Set new timeout for 5 seconds
+  autoSaveTimeoutRef.current = setTimeout(() => {
+    saveDraft();
+  }, 5000);
+
+  // Cleanup
+  return () => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+  };
+}, [title, description, duration, days, open, saveDraft]);
+```
+
+**Draft cleanup při save (line 252):**
+```javascript
+saveProgram(programData);
+clearDraft(); // ← Clear draft after successful save
+```
+
+### 📊 Výsledky
+
+✅ **Bug #1:** Typ materiálu je nyní locked v edit modu
+✅ **Bug #2:** Délku programu lze měnit v edit modu
+✅ **Bug #3:** Auto-save funguje, data se neztratí
+
+**Testováno:**
+- ✅ Edit materiálu - typ disabled, soubor lze nahradit
+- ✅ Edit programu - změna 7 → 14 dní, data zachována
+- ✅ Auto-save - draft každých 5s, toast notifikace funguje
+- ✅ Draft expiry - starší než 24h se nenačítají
+
+---
+
+### 🔧 NOVÝ WORKFLOW PATTERN:
+
+**Od teď při každé změně:**
+1. **Doplň změny do summary.md** - na konec souboru
+2. **Inovuj claude.md** - aktualizuj kontext pro AI
+3. **Aktualizuj MASTER_TODO_V2.md** - označ hotové, přidej nové
 
 ---
 

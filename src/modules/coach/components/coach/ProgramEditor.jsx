@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -28,12 +28,14 @@ import {
 import MaterialSelector from './MaterialSelector';
 import { getCurrentUser, saveProgram, getMaterialById } from '../../utils/storage';
 import { generateUUID, generateShareCode, generateQRCode } from '../../utils/generateCode';
+import { useNotification } from '@shared/context/NotificationContext';
 
 const DURATION_OPTIONS = [7, 14, 21, 30];
 
 const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
   const currentUser = getCurrentUser();
   const isEditing = Boolean(program);
+  const { showSuccess, showError } = useNotification();
 
   // Step 1 - Basic info
   const [activeStep, setActiveStep] = useState(0);
@@ -49,6 +51,47 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
   // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Auto-save
+  const autoSaveTimeoutRef = useRef(null);
+  const draftKey = `draft_program_${program?.id || 'new'}`;
+
+  // Save draft to localStorage
+  const saveDraft = useCallback(() => {
+    const draftData = {
+      title,
+      description,
+      duration,
+      days,
+      programId: program?.id,
+      timestamp: new Date().toISOString(),
+    };
+    localStorage.setItem(draftKey, JSON.stringify(draftData));
+    showSuccess('Auto-save', 'Změny uloženy ✓');
+  }, [title, description, duration, days, draftKey, program?.id, showSuccess]);
+
+  // Load draft from localStorage
+  const loadDraft = useCallback(() => {
+    const draft = localStorage.getItem(draftKey);
+    if (draft) {
+      try {
+        const draftData = JSON.parse(draft);
+        // Only load if draft is recent (less than 24 hours old)
+        const draftAge = new Date() - new Date(draftData.timestamp);
+        if (draftAge < 24 * 60 * 60 * 1000) {
+          return draftData;
+        }
+      } catch (e) {
+        console.error('Failed to parse draft:', e);
+      }
+    }
+    return null;
+  }, [draftKey]);
+
+  // Clear draft
+  const clearDraft = useCallback(() => {
+    localStorage.removeItem(draftKey);
+  }, [draftKey]);
 
   // Initialize form when editing
   useEffect(() => {
@@ -79,10 +122,13 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
     setError('');
   }, [program, open]);
 
-  // Update days when duration changes (only for new programs)
+  // Update days when duration changes (for both new and editing)
   useEffect(() => {
-    if (!isEditing && duration > 0 && open) {
+    if (duration > 0 && open) {
       setDays((prevDays) => {
+        // If duration increases: add new empty days at the end
+        // If duration decreases: remove days from the end
+        // Always preserve existing day data
         const newDays = Array.from({ length: duration }, (_, index) => ({
           dayNumber: index + 1,
           title: prevDays[index]?.title || '',
@@ -93,17 +139,43 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
         return newDays;
       });
     }
-  }, [duration, isEditing, open]);
+  }, [duration, open]);
+
+  // Auto-save: Debounced save to localStorage (5 seconds after last change)
+  useEffect(() => {
+    if (!open || !title) return; // Don't auto-save if modal is closed or no title yet
+
+    // Clear previous timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    // Set new timeout for 5 seconds
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      saveDraft();
+    }, 5000);
+
+    // Cleanup
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [title, description, duration, days, open, saveDraft]);
 
   const handleNext = () => {
     // Validace Step 1
     if (activeStep === 0) {
       if (!title.trim()) {
-        setError('Název programu je povinný');
+        const errorMsg = 'Název programu je povinný';
+        setError(errorMsg);
+        showError('Chyba validace', errorMsg);
         return;
       }
       if (!description.trim()) {
-        setError('Popis programu je povinný');
+        const errorMsg = 'Popis programu je povinný';
+        setError(errorMsg);
+        showError('Chyba validace', errorMsg);
         return;
       }
       setError('');
@@ -175,9 +247,19 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
       };
 
       saveProgram(programData);
+
+      // Clear draft after successful save
+      clearDraft();
+
+      showSuccess(
+        'Hotovo!',
+        isEditing ? 'Program byl úspěšně upraven' : 'Program byl úspěšně vytvořen'
+      );
       onSuccess(programData);
     } catch (err) {
-      setError(err.message || 'Něco se pokazilo. Zkus to znovu.');
+      const errorMsg = err.message || 'Něco se pokazilo. Zkus to znovu.';
+      setError(errorMsg);
+      showError('Chyba', errorMsg);
     } finally {
       setLoading(false);
     }
@@ -259,7 +341,7 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
                   required
                 />
 
-                <FormControl fullWidth margin="normal" disabled={isEditing}>
+                <FormControl fullWidth margin="normal">
                   <InputLabel>Délka programu</InputLabel>
                   <Select value={duration} label="Délka programu" onChange={(e) => setDuration(e.target.value)}>
                     {DURATION_OPTIONS.map((days) => (
@@ -272,7 +354,7 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
 
                 {isEditing && (
                   <Alert severity="info" sx={{ mt: 2 }}>
-                    Délku programu nelze měnit po vytvoření
+                    Můžeš změnit délku programu. Existující dny zůstanou zachovány, nové dny budou přidány na konec.
                   </Alert>
                 )}
               </Box>

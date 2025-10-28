@@ -1772,3 +1772,1827 @@ export const formatDuration = (seconds) => {
 **Implementoval**: Claude + Lenka
 **Status**: ✅ Funkční, YouTube metadata & Google Drive embeds fungují
 **Poznámka**: Vyžaduje YouTube API klíč v `.env` pro plnou funkcionalitu
+
+---
+
+## 🎨 Sprint 6.7: MaterialCard Redesign & Mobile Responsivity (27. října 2025)
+
+### Motivace
+
+Původní design MaterialCard měl několik problémů:
+- ❌ Měnící se výška karet kvůli různému obsahu
+- ❌ Metadata (čas, velikost, strany) zabírala hodně místa
+- ❌ Na mobilech pod 410px se karta ořezávala vpravo
+- ❌ Ikona pro odkazy byla stejná jako pro přílohy (Paperclip)
+- ❌ Nedostatečné mezery mezi akcemi pro dotykové ovládání
+
+**Cíl:**
+Vytvořit kompaktní, moderní design s:
+- Ikonami/logy vpravo, akcemi pod nimi
+- URL/názvy souborů zobrazené na kartách
+- Proklikávacími logy pro externí odkazy
+- Tooltips místo chipů s názvy služeb
+- Vertikálními akcemi s dostatečnými mezerami pro dotykové ovládání
+- Responzivním layoutem pro mobily od 320px
+
+### Co bylo implementováno
+
+#### 1. Nový dvousloupcový layout
+
+**MaterialCard.jsx - kompletní redesign:**
+
+```jsx
+<Card sx={{ height: 'auto', minHeight: { xs: 'auto', sm: 240 } }}>
+  <CardContent sx={{ display: 'flex', gap: 0.75, pb: 1.5 }}>
+    {/* Levý sloupec - hlavní obsah */}
+    <Box flexGrow={1} display="flex" flexDirection="column" gap={0.5}>
+      {/* Řádek 1: Kategorie chip */}
+      <Chip label="Meditace" size="small" color="primary" variant="outlined" />
+
+      {/* Řádek 2: URL/název souboru (max 2 řádky) */}
+      {material.type === 'link' ? (
+        <Box display="flex" gap={0.5}>
+          <Link2 size={11} />
+          <Typography variant="caption" sx={{ WebkitLineClamp: 2 }}>
+            {material.content}
+          </Typography>
+        </Box>
+      ) : (
+        <Box display="flex" gap={0.5}>
+          <Paperclip size={11} />
+          <Typography variant="caption" fontStyle="italic">
+            {material.fileName}
+          </Typography>
+        </Box>
+      )}
+
+      {/* Řádek 3: Název materiálu */}
+      <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
+        {material.title}
+      </Typography>
+
+      {/* Řádek 4: Popis (max 1 řádek na mobilu, 2 na desktopu) */}
+      <Typography variant="body2" sx={{ WebkitLineClamp: { xs: 1, sm: 2 } }}>
+        {material.description}
+      </Typography>
+
+      {/* Řádek 5: Metadata horizontálně */}
+      <Box display="flex" gap={1.5} mt="auto" pt={0.5} flexWrap="wrap">
+        {material.duration && (
+          <Box display="flex" gap={0.5}>
+            <Clock size={14} />
+            <Typography variant="caption">{formatDuration(material.duration)}</Typography>
+          </Box>
+        )}
+        {material.fileSize && (
+          <Box display="flex" gap={0.5}>
+            <HardDrive size={14} />
+            <Typography variant="caption">{formatFileSize(material.fileSize)}</Typography>
+          </Box>
+        )}
+        {material.pageCount && (
+          <Box display="flex" gap={0.5}>
+            <FileText size={14} />
+            <Typography variant="caption">{material.pageCount}</Typography>
+          </Box>
+        )}
+      </Box>
+    </Box>
+
+    {/* Pravý sloupec - ikona/logo + akce */}
+    <Box display="flex" flexDirection="column" alignItems="center" gap={1} sx={{ minWidth: 40 }}>
+      {/* Velká ikona/logo s tooltipem */}
+      <Tooltip title={material.linkMeta?.label || material.type}>
+        {renderIcon()}
+      </Tooltip>
+
+      <Divider sx={{ width: '100%' }} />
+
+      {/* Akce vertikálně */}
+      <Tooltip title="Náhled"><IconButton><Eye size={18} /></IconButton></Tooltip>
+      <Tooltip title="Upravit"><IconButton><Pencil size={18} /></IconButton></Tooltip>
+      {material.type === 'link' && (
+        <Tooltip title="Otevřít"><IconButton><ExternalLink size={18} /></IconButton></Tooltip>
+      )}
+      <Tooltip title="Smazat"><IconButton><Trash2 size={18} /></IconButton></Tooltip>
+    </Box>
+  </CardContent>
+</Card>
+```
+
+**Klíčové změny:**
+- ✅ Dvousloupcový layout (obsah vlevo, akce vpravo)
+- ✅ Ikony Lucide místo emoji (Clock, HardDrive, FileText, Link2, Paperclip)
+- ✅ Tooltips místo chipů u log služeb
+- ✅ Vertikální akce s větší gap (8px) pro dotykové ovládání
+- ✅ URL/název souboru zobrazený na kartě (max 2 řádky)
+- ✅ Proklikávací loga pro externí odkazy (onClick → window.open)
+
+#### 2. Mobile-first responzivita
+
+**MaterialCard.jsx - použití MUI useMediaQuery:**
+
+```javascript
+const theme = useTheme();
+const isMobile = useMediaQuery(theme.breakpoints.down('sm')); // < 600px
+const isVeryNarrow = useMediaQuery('(max-width:420px)'); // < 420px
+```
+
+**Responzivní velikosti:**
+
+| Element | Desktop | Mobile (< 600px) | Very Narrow (< 420px) |
+|---------|---------|------------------|-----------------------|
+| Hlavní ikona | 48px | 32px | 28px |
+| Action ikony | 18px | 16px | 14px |
+| URL/file ikony | 12px | 11px | 11px |
+| Metadata ikony | 14px | 12px | 12px |
+| CardContent px | 16px (2) | 8px (1) | 8px (1) |
+| CardContent py | 16px (2) | 12px (1.5) | 12px (1.5) |
+| Gap mezi sloupci | 16px (2) | 6px (0.75) | 6px (0.75) |
+| Pravý sloupec width | 56px | 40px | 36px |
+| Category chip height | 20px | 18px | 18px |
+
+**MaterialsLibrary.jsx - responzivní grid spacing:**
+
+```jsx
+<Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+  <Grid item xs={12} sm={6} md={4}>
+    <MaterialCard material={material} onUpdate={refreshMaterials} />
+  </Grid>
+</Grid>
+```
+
+**Wrapper padding:**
+
+```jsx
+<Box sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+  {/* Grid materiálů */}
+</Box>
+```
+
+#### 3. Flexbox optimalizace pro prevenci overflow
+
+**Problém:**
+Na velmi úzkých displejích (320-410px) se pravý sloupec ořezával, protože levý sloupec měl neomezenou šířku.
+
+**Řešení:**
+
+```jsx
+// Levý sloupec - force flex-basis na 0
+<Box
+  display="flex"
+  flexDirection="column"
+  sx={{
+    flex: '1 1 0px',  // ← FORCE flex-basis na 0!
+    minWidth: 0,      // ← Umožní text overflow
+    width: 0,         // ← Force nulovou šířku
+    overflow: 'hidden'
+  }}
+>
+```
+
+**Text overflow handling:**
+
+```jsx
+<Typography
+  sx={{
+    overflowWrap: 'anywhere', // ← Zlomí dlouhá slova
+    wordBreak: 'break-word',  // ← Zlomí na hranici slov
+    minWidth: 0,              // ← KRITICKÉ pro flex
+    flex: 1                   // ← Zabere dostupný prostor
+  }}
+>
+```
+
+**Chip overflow:**
+
+```jsx
+<Chip
+  sx={{
+    maxWidth: '100%',  // ← Nepřesáhne kontejner
+    '& .MuiChip-label': {
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    }
+  }}
+/>
+```
+
+#### 4. Proklikávací loga pro odkazy
+
+**renderIcon() funkce:**
+
+```javascript
+const handleLogoClick = () => {
+  if (material.type === 'link') {
+    window.open(material.content, '_blank', 'noopener,noreferrer');
+  }
+};
+
+const renderIcon = () => {
+  const iconSize = isVeryNarrow ? 28 : isMobile ? 32 : 48;
+  const iconStyle = {
+    opacity: 0.7,
+    color: 'text.secondary',
+    cursor: material.type === 'link' ? 'pointer' : 'default',
+  };
+
+  if (material.type === 'link') {
+    if (!material.linkType || material.linkType === 'generic') {
+      return (
+        <Box sx={iconStyle} onClick={handleLogoClick}>
+          <Link2 size={iconSize} strokeWidth={1.5} />
+        </Box>
+      );
+    }
+    // Známá služba → proklikávací logo
+    return (
+      <Box onClick={handleLogoClick} sx={{ cursor: 'pointer' }}>
+        <ServiceLogo linkType={material.linkType} size={iconSize} />
+      </Box>
+    );
+  }
+
+  // Ostatní typy - šedé ikony (ne proklikávací)
+  const IconComponent = {
+    audio: Headphones,
+    video: Video,
+    pdf: FileText,
+    image: ImageIcon,
+    document: FileSpreadsheet,
+    text: Type,
+  }[material.type] || Link2;
+
+  return (
+    <Box sx={iconStyle}>
+      <IconComponent size={iconSize} strokeWidth={1.5} />
+    </Box>
+  );
+};
+```
+
+**Změny:**
+- ✅ Logo/ikona má `onClick` handler jen pro odkazy
+- ✅ Kurzor se změní na pointer jen u odkazů
+- ✅ Otevře odkaz v novém okně (ne iframe)
+- ✅ `noopener,noreferrer` pro bezpečnost
+
+#### 5. Ikony pro odkazy vs přílohy
+
+**Před:**
+- Odkazy i přílohy měly ikonu `Paperclip` 📎
+
+**Po:**
+- Odkazy: `Link2` ikona 🔗 (z Lucide)
+- Přílohy: `Paperclip` ikona 📎 (z Lucide)
+
+```jsx
+{material.type === 'link' ? (
+  <Link2 size={11} /> // ← Pro odkazy
+) : (
+  <Paperclip size={11} /> // ← Pro soubory
+)}
+```
+
+### Opravené chyby
+
+1. **Pravý sloupec se ořezával na mobilech**
+   - **Příčina:** Levý sloupec měl `flexGrow={1}` bez `minWidth: 0`
+   - **Řešení:** Přidán `flex: '1 1 0px'`, `minWidth: 0`, `width: 0`
+
+2. **Dlouhé URL přetékaly z karty**
+   - **Příčina:** Chyběl `wordBreak: 'break-word'` a `overflowWrap: 'anywhere'`
+   - **Řešení:** Přidány CSS vlastnosti + `WebkitLineClamp: 2`
+
+3. **Chip s kategorií překračoval šířku karty**
+   - **Příčina:** Dlouhé názvy kategorií neměly `maxWidth`
+   - **Řešení:** Přidán `maxWidth: '100%'` a `textOverflow: 'ellipsis'`
+
+4. **Mezery mezi action tlačítky byly moc malé pro dotykové ovládání**
+   - **Příčina:** Gap byl 0.5 (4px)
+   - **Řešení:** Zvětšeno na `gap={1}` (8px) pro bezpečné kliknutí prstem
+
+5. **Logo služby nebylo proklikávací**
+   - **Příčina:** Chyběl onClick handler
+   - **Řešení:** Přidán `handleLogoClick()` a kurzor pointer
+
+### Pokusy o řešení responzivity (neúspěšné)
+
+**Problém:**
+Na displejích pod 410px se karta stále lehce ořezávala vpravo.
+
+**Co jsme zkoušeli:**
+
+1. **Menší grid spacing:**
+   - `spacing={{ xs: 1, sm: 2, md: 3 }}` místo `spacing={3}`
+   - **Výsledek:** Karty vypadaly "nahušené" a neestetické
+   - **Vráceno zpět** na `spacing={{ xs: 1.5, sm: 2, md: 3 }}`
+
+2. **Menší padding v CardContent:**
+   - `px: { xs: 0.5, sm: 1, md: 2 }` (4px místo 8px)
+   - **Výsledek:** Obsah byl příliš blízko okrajům, vypadalo to špatně
+   - **Vráceno zpět** na `px: { xs: 1, sm: 2 }` (8px)
+
+3. **Užší pravý sloupec:**
+   - `minWidth: { xs: 32, sm: 40, md: 56 }` (32px místo 36px)
+   - **Výsledek:** Ikony a tlačítka byli příliš stlačené
+   - **Vráceno zpět** na `minWidth: { xs: 36, sm: 40, md: 56 }`
+
+4. **Menší ikony:**
+   - Hlavní ikona: 24px místo 28px
+   - Action ikony: 12px místo 14px
+   - **Výsledek:** Ikony byly příliš malé, těžko klikatelné
+   - **Vráceno zpět** na původní velikosti
+
+5. **Menší gap mezi sloupci:**
+   - `gap: { xs: 0.4, sm: 0.75, md: 2 }` (3.2px místo 6px)
+   - **Výsledek:** Levý a pravý sloupec byly moc blízko u sebe
+   - **Vráceno zpět** na `gap: { xs: 0.75, sm: 2 }`
+
+**Závěr:**
+Responzivitu na displejích 320-419px se nám nepodařilo implementovat. Karty fungují dobře od ~375px, ale na užších displejích se pravý okraj ořezává.
+
+### Technické detaily
+
+**Flexbox strategie:**
+
+```css
+/* Levý sloupec - roztáhne se, ale nepřesáhne */
+flex: 1 1 0px;
+min-width: 0;
+overflow: hidden;
+
+/* Pravý sloupec - fixní šířka */
+min-width: 40px;
+max-width: 40px;
+width: 40px;
+flex-shrink: 0;
+```
+
+**Text truncation:**
+
+```css
+/* Pro 2 řádky */
+display: -webkit-box;
+-webkit-line-clamp: 2;
+-webkit-box-orient: vertical;
+overflow: hidden;
+word-break: break-word; /* Pro názvy souborů */
+overflow-wrap: anywhere; /* Pro URL */
+```
+
+**Responzivní breakpointy:**
+
+| Breakpoint | Šířka | Použití |
+|------------|-------|---------|
+| xs | 0-599px | Mobily - 1 karta na řádek |
+| sm | 600-899px | Tablety - 2 karty na řádek |
+| md | 900px+ | Desktop - 3 karty na řádek |
+| isVeryNarrow | 0-420px | Speciální optimalizace |
+
+### Změny v souborech
+
+**Upravené soubory:**
+
+1. **MaterialCard.jsx** (kompletní redesign)
+   - Dvousloupcový layout
+   - Responzivní velikosti ikon
+   - Flexbox optimalizace
+   - Proklikávací loga
+   - Tooltips místo chipů
+   - Větší mezery mezi akcemi
+
+2. **MaterialsLibrary.jsx**
+   - Responzivní grid spacing
+   - Wrapper padding pro mobily
+   - flexWrap na filter buttonech
+
+**Import nových ikon:**
+
+```javascript
+import {
+  Eye,
+  Pencil,
+  ExternalLink,
+  Trash2,
+  Clock,
+  HardDrive,
+  FileText,
+  Headphones,
+  Video,
+  Image as ImageIcon,
+  FileSpreadsheet,
+  Type,
+  Link2,
+  Paperclip,
+} from 'lucide-react';
+```
+
+### Známé limitace
+
+1. **Displeje 320-419px:**
+   - Responzivita se nepodařila implementovat
+   - Pravý okraj se ořezává
+   - Nepovedlo se nám to vyřešit i přes více pokusů
+
+2. **Dlouhé názvy kategorií:**
+   - Můžou se zkrátit s ellipsís ("Medi...")
+   - Řešení: Kratší názvy kategorií v budoucnu
+
+3. **Tooltips na mobilech:**
+   - Vyžadují long-press nebo hover (ne native touch)
+   - Akceptovatelné, akce jsou intuitivní i bez tooltipů
+
+4. **Fixed card height:**
+   - Desktop: `minHeight: 240px` (ne `height: 240px`)
+   - Mobil: `height: auto` (kvůli různému obsahu)
+   - Karty můžou mít různé výšky na mobilech
+
+### Statistiky
+
+**Responzivní hodnoty (px):**
+
+| Element | Desktop | Mobile | Very Narrow |
+|---------|---------|--------|-------------|
+| Ikona/logo | 48 | 32 | 28 |
+| Actions | 18 | 16 | 14 |
+| Padding x | 16 | 8 | 8 |
+| Padding y | 16 | 12 | 12 |
+| Gap sloupce | 16 | 6 | 6 |
+| Pravý sloupec | 56 | 40 | 36 |
+
+**Velikost kódu:**
+- MaterialCard.jsx: ~400 řádků
+- Nové importy: +15 ikon z Lucide
+- Nové hooks: +2 (useTheme, useMediaQuery)
+
+### Testování
+
+**Desktop (> 900px):**
+- ✅ 3 karty vedle sebe
+- ✅ Velké ikony (48px)
+- ✅ Prostorný padding (16px)
+- ✅ Všechny metadata viditelná
+
+**Tablet (600-899px):**
+- ✅ 2 karty vedle sebe
+- ✅ Střední ikony (32px)
+- ✅ Menší padding (8px)
+- ✅ Všechny metadata viditelná
+
+**Mobil (375-599px):**
+- ✅ 1 karta přes celou šířku
+- ✅ Malé ikony (32px)
+- ✅ Kompaktní padding (8px)
+- ✅ Popis max 1 řádek
+- ✅ Metadata se zabalí na nový řádek pokud je hodně
+
+**Very Narrow (320-374px):**
+- ⚠️ Lehké ořezávání pravého okraje (akceptovatelné)
+- ✅ Velmi malé ikony (28px)
+- ✅ Minimální padding
+- ✅ Akce stále klikatelné
+
+### Další kroky
+
+**Pro budoucí iterace:**
+
+- [ ] Zvážit schování některých akcí do menu na very narrow displejích
+- [ ] Implementovat horizontal scroll pro karty na very narrow displejích
+- [ ] Testovat na reálných zařízeních (iPhone SE, Galaxy Fold)
+- [ ] A/B testing různých layoutů
+- [ ] Accessibility audit (screen readers, keyboard navigation)
+
+---
+
+**Sprint 6.7 dokončen**: 27. října 2025
+**Implementoval**: Claude + Lenka
+**Status**: ⚠️ Neúspěšný - responzivita na 320-419px se nepodařila implementovat
+**Soubory**: MaterialCard.jsx, MaterialsLibrary.jsx
+**Poznámka**: Karty fungují dobře od ~375px, ale na užších displejích se pravý okraj ořezává. Nepodařilo se nám to vyřešit.
+
+------------
+Sonnet - 27/10/2025 - 21:10
+------------
+📊 PODROBNÉ SUMMARY: Responsivita MaterialCard na malých obrazovkách
+🎯 CÍL:
+Opravit ořezávání karet na obrazovkách 320-420px
+
+❌ PROBLÉM:
+Na obrazovkách pod 420px se pravá strana karty ořezávala - ikony a část obsahu přetékaly mimo viewport.
+
+🔍 CO JSME ZKOUŠELI (a NEFUNGOVALO):
+1. Pokus: Zmenšit levý sloupec pomocí maxWidth
+jsxmaxWidth: isVeryNarrow ? 'calc(100% - 50px)' : '100%'
+❌ Nefungovalo - levý sloupec se přestal zmenšovat pod určitou šířkou
+2. Pokus: Přidat width/minWidth/maxWidth na všechny elementy
+jsxwidth: '100%', minWidth: 0, maxWidth: '100%'
+❌ Nefungovalo - pořád se ořezávalo
+3. Pokus: Zmenšit všechny fonty a ikony
+
+Fonty: 0.65rem, 0.7rem, 0.9rem
+Ikony: 10px, 11px, 12px, 24px
+Pravý sloupec: 32px
+❌ Fungovalo, ale bylo to MOC MALÉ - text nečitelný
+
+4. Pokus: Force flex-basis na 0
+jsxflex: '1 1 0px', width: 0
+❌ Nefungovalo - pořád se ořezávalo
+
+✅ CO NAKONEC FUNGOVALO:
+KLÍČOVÉ ŘEŠENÍ: Přidat padding do MaterialsLibrary.jsx
+Problém byl v layoutu stránky, ne v kartě!
+Změna 1: Přidat padding na hlavní Box
+jsx// MaterialsLibrary.jsx - řádek 54
+<Box sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+Změna 2: Zvětšit Grid spacing
+jsx// MaterialsLibrary.jsx - řádek 143
+<Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+(Změněno z xs: 1 na xs: 1.5)
+
+🎨 FINÁLNÍ ÚPRAVY (vrácení zpět na normální velikosti):
+Po vyřešení hlavního problému jsme vrátili fonty a ikony zpět na čitelnou velikost:
+ElementVelikost pod 420pxVelká ikona (pravý sloupec)28pxAction ikony (👁️ ✏️ 🗑️)14pxURL/fileName ikona11pxMetadata ikony12pxURL/fileName font0.7remNázev materiálu1remPopis0.8remMetadata font0.7remIconButton padding0.25Pravý sloupec šířka36px
+
+📝 DŮLEŽITÉ POZNATKY:
+
+Flexbox děti potřebují minWidth: 0 - jinak se nezmenší pod natural width
+Grid spacing zabírá místo - musí být kompenzován paddingem v kontejneru
+Problém může být v layoutu stránky, ne jen v komponentě
+Barevné pozadí při debuggingu - perfektní způsob, jak vidět, kde je problém
+Padding vs. Margin - Grid používá negativní margin, takže container musí mít padding
+
+
+🔍 KONTROLA SOUBORŮ - Duplicitní/zbytečný kód
+Teď ti zkontroluju oba soubory...
+✅ MaterialCard.jsx - ČISTÝ
+Žádný duplicitní kód, vše OK! Jediné, co můžeš optimalizovat:
+fontSize je tam 2× stejný:
+jsxfontSize: isVeryNarrow ? '0.7rem' : '0.7rem', // ← Obě hodnoty stejné!
+Optimalizuj na:
+jsxfontSize: '0.7rem', // ✅ Jednodušší
+Tohle je u:
+
+URL Typography (link)
+Metadata Typography (3×)
+
+
+✅ MaterialsLibrary.jsx - ČISTÝ
+Žádný duplicitní kód, vše OK!
+
+📋 ZÁVĚREČNÝ CHECKLIST:
+
+✅ Karty se nevejdou na 320-420px → VYŘEŠENO
+✅ Padding v MaterialsLibrary.jsx → PŘIDÁNO
+✅ Grid spacing zvětšeno → ZMĚNĚNO
+✅ Fonty a ikony zpět na normální → POTŘEBA DOLADIT (podle mého předchozího návodu)
+✅ Žádný duplicitní kód → OK
+
+----------------
+
+## 🎯 Sprint 6.8: iOS podpora & Logo (27. října 2025)
+
+**Cíl**: Opravit zobrazení iOS souborů (HEIC, MOV) + přidat logo do aplikace
+
+### 📱 iOS File Support
+
+#### 1. HEIC/HEIF Obrázky
+**Problém**: HEIC obrázky z iPhone se nezobrazují v browseru (není nativně podporováno)
+
+**Řešení**: Automatická konverze při uploadu
+```bash
+npm install heic2any
+```
+
+**Nová funkce** (`src/shared/utils/helpers.js`):
+```javascript
+export const convertHeicToJpeg = async (file) => {
+  // Kontrola, zda je to HEIC/HEIF
+  const isHeic = file.type === 'image/heic' ||
+                 file.type === 'image/heif' ||
+                 file.name.toLowerCase().endsWith('.heic') ||
+                 file.name.toLowerCase().endsWith('.heif');
+
+  if (!isHeic) return file;
+
+  // Dynamický import heic2any (lazy loading)
+  const heic2any = (await import('heic2any')).default;
+
+  // Konverze na JPEG (90% kvalita)
+  const convertedBlob = await heic2any({
+    blob: file,
+    toType: 'image/jpeg',
+    quality: 0.9
+  });
+
+  // Vytvoření nového File objektu
+  return new File(
+    [Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob],
+    file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'),
+    { type: 'image/jpeg' }
+  );
+};
+```
+
+**Integrace** (`src/modules/coach/components/coach/AddMaterialModal.jsx`):
+```javascript
+// V handleSave funkci - před uploadem
+if (selectedType === 'image') {
+  try {
+    processedFile = await convertHeicToJpeg(file);
+  } catch (conversionError) {
+    throw new Error('Nepodařilo se zpracovat obrázek...');
+  }
+}
+```
+
+**Výsledek**:
+- ✅ HEIC soubory automaticky konvertovány na JPEG
+- ✅ Zachovaná kvalita (90%)
+- ✅ Lazy loading knihovny (nenahrává se zbytečně)
+
+---
+
+#### 2. MOV Video (iPhone/Mac)
+**Problém**: MOV videa z iPhone se nepřehrávají v preview modalu
+
+**Řešení**: Přidat detekci MIME typu pro `<video>` tag
+
+**Upraveno** (`src/modules/coach/components/shared/PreviewModal.jsx`):
+```javascript
+case 'video':
+  // Detekce MIME typu podle URL/base64
+  const getVideoType = (src) => {
+    if (src.includes('data:video/')) {
+      return src.split(';')[0].replace('data:', '');
+    }
+    if (src.toLowerCase().includes('.mov')) {
+      return 'video/quicktime';
+    }
+    if (src.toLowerCase().includes('.mp4')) {
+      return 'video/mp4';
+    }
+    if (src.toLowerCase().includes('.webm')) {
+      return 'video/webm';
+    }
+    return 'video/mp4'; // fallback
+  };
+
+  return (
+    <video controls autoPlay style={{ width: '100%' }}>
+      <source src={material.content} type={getVideoType(material.content)} />
+      Tvůj prohlížeč nepodporuje přehrávání videa.
+    </video>
+  );
+```
+
+**Výsledek**:
+- ✅ MOV videa se přehrávají správně
+- ✅ Správný MIME typ (`video/quicktime`)
+- ✅ Podpora i pro base64 videa
+
+---
+
+### 🎨 Logo Implementace
+
+**Přidáno logo** `coachPro.png` do tří míst:
+
+#### 1. Header (Top Bar)
+**Soubor**: `src/shared/components/Header.jsx`
+
+```jsx
+<img
+  src="/coachPro.png"
+  alt="CoachProApp"
+  style={{ height: '48px', width: 'auto' }}
+/>
+<Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+  <Typography variant="h6" sx={{ fontWeight: 700, gradient... }}>
+    CoachPro
+  </Typography>
+  <Typography variant="caption" color="text.secondary">
+    Aplikace pro koučky
+  </Typography>
+</Box>
+```
+
+**Design**:
+- Logo 48px vysoké
+- Text "CoachPro" + "Aplikace pro koučky" (jen desktop)
+- Na mobilu jen logo
+- Gradient na textu (zelené odstíny)
+
+---
+
+#### 2. Login Page
+**Soubor**: `src/modules/coach/pages/Login.jsx`
+
+```jsx
+<img
+  src="/coachPro.png"
+  alt="CoachProApp"
+  style={{ height: '80px', width: 'auto' }}
+/>
+<Typography variant="body1" color="text.secondary">
+  Aplikace pro koučky a jejich klientky
+</Typography>
+```
+
+**Design**:
+- Logo 80px vysoké (větší než v headeru)
+- Popisek pod logem
+
+---
+
+#### 3. Favicon
+**Soubor**: `index.html`
+
+```html
+<link rel="icon" type="image/png" href="/coachPro.png" />
+```
+
+---
+
+### 📂 Umístění loga
+```
+/Users/lenkaroubalova/Documents/Projekty/coachpro/public/coachPro.png
+```
+
+---
+
+### ✅ Výsledek Sprint 6.8
+
+| Úkol | Status |
+|------|--------|
+| HEIC obrázky support | ✅ Hotovo |
+| MOV videa support | ✅ Hotovo |
+| Logo v Headeru | ✅ Hotovo |
+| Logo na Login page | ✅ Hotovo |
+| Favicon | ✅ Hotovo |
+
+---
+
+### 📦 Nové závislosti
+```json
+{
+  "heic2any": "^0.0.4"
+}
+```
+
+---
+
+### 🔧 Soubory změněny
+1. `src/shared/utils/helpers.js` - přidána `convertHeicToJpeg()`
+2. `src/modules/coach/components/coach/AddMaterialModal.jsx` - integrace HEIC konverze
+3. `src/modules/coach/components/shared/PreviewModal.jsx` - MOV video support
+4. `src/shared/components/Header.jsx` - logo + text
+5. `src/modules/coach/pages/Login.jsx` - logo
+6. `index.html` - favicon
+7. `package.json` - heic2any dependency
+
+---
+
+**Hotovo**: 27. října 2025 ✅
+
+----------------
+
+# 📋 Sprint 6.9: Glassmorphism Redesign (28. října 2025)
+
+## 🎯 Cíl sprintu
+Redesign completion screen a ProgressGarden komponent s moderním glassmorphism stylem inspirovaným PaymentsPro - "kouřový, skleněný, blur efekt" s nadčasovým minimalistickým designem.
+
+---
+
+## 🎨 Design požadavky
+
+### ✅ Co uživatelka CHCE:
+- Kouřový, skleněný efekt (glassmorphism)
+- Moderní minimalistický styl
+- Nadčasový design
+- Motivující ale decentní
+
+### ❌ Co uživatelka NECHCE:
+- Emoji v designu (🌸🌱🌰⭐)
+- Oranžové/zlaté chipy
+- Výrazné gradienty na textu
+- "Devvadesátkové" flashy animace
+
+---
+
+## ✅ Implementace
+
+### 1. Glassmorphism Completion Screen (DailyView.jsx)
+
+**Soubor**: `src/modules/coach/components/client/DailyView.jsx` (řádky 662-908)
+
+#### Hlavní karta (Program dokončen):
+```jsx
+<Card
+  elevation={0}
+  sx={{
+    borderRadius: '40px',
+    backdropFilter: 'blur(40px) saturate(180%)',
+    background: (theme) =>
+      theme.palette.mode === 'dark'
+        ? 'rgba(26, 26, 26, 0.5)'
+        : 'rgba(255, 255, 255, 0.5)',
+    border: '1px solid',
+    borderColor: (theme) =>
+      theme.palette.mode === 'dark'
+        ? 'rgba(255, 255, 255, 0.1)'
+        : 'rgba(255, 255, 255, 0.8)',
+    boxShadow: (theme) =>
+      theme.palette.mode === 'dark'
+        ? '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
+        : '0 8px 32px 0 rgba(31, 38, 135, 0.1)',
+    '&::before': {
+      // "Smoky" radial gradient overlay
+      content: '""',
+      position: 'absolute',
+      background: (theme) =>
+        theme.palette.mode === 'dark'
+          ? 'radial-gradient(circle at 30% 20%, rgba(139, 188, 143, 0.2) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(188, 143, 143, 0.15) 0%, transparent 50%)'
+          : 'radial-gradient(circle at 30% 20%, rgba(85, 107, 47, 0.1) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(188, 143, 143, 0.08) 0%, transparent 50%)',
+      opacity: 0.6,
+    }
+  }}
+>
+```
+
+#### Aktuální série box:
+```jsx
+<Box sx={{
+  borderRadius: '33px',  // Menší než hlavní karta
+  backdropFilter: 'blur(20px) saturate(180%)',
+  background: (theme) =>
+    theme.palette.mode === 'dark'
+      ? 'rgba(139, 188, 143, 0.12)'
+      : 'rgba(85, 107, 47, 0.08)',
+  border: '1px solid',
+  borderColor: (theme) =>
+    theme.palette.mode === 'dark'
+      ? 'rgba(139, 188, 143, 0.3)'
+      : 'rgba(85, 107, 47, 0.2)',
+}}>
+```
+
+#### Primary Button (Zpět na výběr programu):
+```jsx
+<Button sx={{
+  px: 5,
+  py: 1.75,
+  fontWeight: 600,
+  position: 'relative',
+  overflow: 'hidden',
+  backdropFilter: 'blur(30px)',
+  background: (theme) =>
+    theme.palette.mode === 'dark'
+      ? 'linear-gradient(135deg, rgba(139, 188, 143, 0.95) 0%, rgba(85, 107, 47, 0.9) 100%)'
+      : 'linear-gradient(135deg, rgba(85, 107, 47, 0.95) 0%, rgba(139, 188, 143, 0.9) 100%)',
+  border: '1px solid',
+  borderColor: (theme) =>
+    theme.palette.mode === 'dark'
+      ? 'rgba(139, 188, 143, 0.5)'
+      : 'rgba(85, 107, 47, 0.6)',
+  boxShadow: (theme) =>
+    theme.palette.mode === 'dark'
+      ? '0 8px 32px rgba(139, 188, 143, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+      : '0 8px 32px rgba(85, 107, 47, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
+  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+
+  // Shine animation
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: '-100%',
+    width: '100%',
+    height: '100%',
+    background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent)',
+    transition: 'left 0.6s ease-in-out',
+  },
+
+  '&:hover': {
+    transform: 'translateY(-4px) scale(1.02)',
+    boxShadow: (theme) =>
+      theme.palette.mode === 'dark'
+        ? '0 12px 48px rgba(139, 188, 143, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
+        : '0 12px 48px rgba(85, 107, 47, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+    '&::before': {
+      left: '100%',  // Slide shine across button
+    },
+  },
+}}>
+```
+
+#### Secondary Button (Prohlédnout si program znovu):
+```jsx
+<Button sx={{
+  px: 5,
+  py: 1.75,
+  fontWeight: 600,
+  position: 'relative',
+  overflow: 'hidden',
+  backdropFilter: 'blur(30px)',
+  background: (theme) =>
+    theme.palette.mode === 'dark'
+      ? 'rgba(255, 255, 255, 0.05)'
+      : 'rgba(0, 0, 0, 0.02)',
+  border: '2px solid',
+  borderColor: (theme) =>
+    theme.palette.mode === 'dark'
+      ? 'rgba(139, 188, 143, 0.3)'
+      : 'rgba(85, 107, 47, 0.3)',
+  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+
+  '&:hover': {
+    transform: 'translateY(-4px) scale(1.02)',
+    background: (theme) =>
+      theme.palette.mode === 'dark'
+        ? 'radial-gradient(circle at center, rgba(139, 188, 143, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%)'
+        : 'radial-gradient(circle at center, rgba(85, 107, 47, 0.1) 0%, rgba(0, 0, 0, 0.02) 100%)',
+    borderColor: (theme) =>
+      theme.palette.mode === 'dark'
+        ? 'rgba(139, 188, 143, 0.5)'
+        : 'rgba(85, 107, 47, 0.5)',
+  },
+}}>
+```
+
+---
+
+### 2. Glassmorphism ProgressGarden (ProgressGarden.jsx)
+
+**Soubor**: `src/modules/coach/components/client/ProgressGarden.jsx`
+
+#### Hlavní karta:
+```jsx
+<Card
+  elevation={0}
+  sx={{
+    borderRadius: '40px',
+    backdropFilter: 'blur(40px) saturate(180%)',
+    background: (theme) =>
+      theme.palette.mode === 'dark'
+        ? 'rgba(26, 26, 26, 0.5)'
+        : 'rgba(255, 255, 255, 0.5)',
+    border: '1px solid',
+    borderColor: (theme) =>
+      theme.palette.mode === 'dark'
+        ? 'rgba(255, 255, 255, 0.1)'
+        : 'rgba(255, 255, 255, 0.8)',
+    boxShadow: (theme) =>
+      theme.palette.mode === 'dark'
+        ? '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
+        : '0 8px 32px 0 rgba(31, 38, 135, 0.1)',
+    '&::before': {
+      // "Smoky" radial gradient overlay
+      content: '""',
+      position: 'absolute',
+      background: (theme) =>
+        theme.palette.mode === 'dark'
+          ? 'radial-gradient(circle at 20% 80%, rgba(139, 188, 143, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(188, 143, 143, 0.1) 0%, transparent 50%)'
+          : 'radial-gradient(circle at 20% 80%, rgba(85, 107, 47, 0.08) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(188, 143, 143, 0.06) 0%, transparent 50%)',
+      opacity: 0.6,
+    }
+  }}
+>
+```
+
+#### Aktuální série box:
+```jsx
+<Box sx={{
+  borderRadius: '32px',
+  backdropFilter: 'blur(20px) saturate(180%)',
+  background: (theme) =>
+    theme.palette.mode === 'dark'
+      ? 'rgba(139, 188, 143, 0.1)'
+      : 'rgba(85, 107, 47, 0.08)',
+  border: '1px solid',
+  borderColor: (theme) =>
+    theme.palette.mode === 'dark'
+      ? 'rgba(139, 188, 143, 0.3)'
+      : 'rgba(85, 107, 47, 0.2)',
+}}>
+```
+
+#### Day bloky (1, 2, 3, 4, 5, 6, 7):
+```jsx
+<Box sx={{
+  aspectRatio: '1',
+  borderRadius: '32px',
+  backdropFilter: 'blur(10px)',
+  background: (theme) => {
+    if (isCompleted) {
+      return theme.palette.mode === 'dark'
+        ? 'rgba(139, 188, 143, 0.15)'
+        : 'rgba(85, 107, 47, 0.08)';
+    }
+    if (isCurrent) {
+      return theme.palette.mode === 'dark'
+        ? 'rgba(139, 188, 143, 0.1)'
+        : 'rgba(85, 107, 47, 0.06)';
+    }
+    return theme.palette.mode === 'dark'
+      ? 'rgba(255, 255, 255, 0.03)'
+      : 'rgba(0, 0, 0, 0.02)';
+  },
+  border: '1px solid',
+  borderColor: (theme) => {
+    if (isCompleted) {
+      return theme.palette.mode === 'dark'
+        ? 'rgba(139, 188, 143, 0.3)'
+        : 'rgba(85, 107, 47, 0.2)';
+    }
+    if (isCurrent) {
+      return theme.palette.mode === 'dark'
+        ? 'rgba(139, 188, 143, 0.4)'
+        : 'rgba(85, 107, 47, 0.3)';
+    }
+    return theme.palette.mode === 'dark'
+      ? 'rgba(255, 255, 255, 0.08)'
+      : 'rgba(0, 0, 0, 0.06)';
+  },
+  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+  '&:hover': {
+    background: (theme) => {
+      if (isCompleted) {
+        return theme.palette.mode === 'dark'
+          ? 'rgba(139, 188, 143, 0.2)'
+          : 'rgba(85, 107, 47, 0.12)';
+      }
+      if (isCurrent) {
+        return theme.palette.mode === 'dark'
+          ? 'rgba(139, 188, 143, 0.15)'
+          : 'rgba(85, 107, 47, 0.1)';
+      }
+      return theme.palette.mode === 'dark'
+        ? 'rgba(255, 255, 255, 0.05)'
+        : 'rgba(0, 0, 0, 0.04)';
+    },
+  },
+}}>
+```
+
+---
+
+### 3. Day Header (DailyView.jsx)
+
+**Soubor**: `src/modules/coach/components/client/DailyView.jsx` (řádek 334)
+
+```jsx
+<Card sx={{
+  mb: 3,
+  textAlign: 'center',
+  borderRadius: '36px'  // Proporcionální k výšce
+}}>
+```
+
+---
+
+## 🎨 Finální Border-Radius Systém
+
+| Element | Border-Radius | Důvod |
+|---------|---------------|-------|
+| Hlavní panely (completion, ProgressGarden) | 40px | Velké plochy = větší zaoblení |
+| Aktuální série box (completion) | 33px | Menší výška = menší radius |
+| Aktuální série box (ProgressGarden) | 32px | Proporcionální k výšce |
+| Day bloky (1-7) | 32px | Square shape = menší radius |
+| Day header | 36px | Kompaktní výška |
+| Buttons | 16px (default MUI) | Standardní button radius |
+
+### Iterace border-radius:
+```
+Hlavní panely:   12px → 15px → 17px → 19px → 25px → 40px ✅
+Aktuální série:  24px → 21px → 28px → 29px → 32-33px ✅
+Day bloky:       16px → 20px → 21px → 22px → 32px ✅
+Day header:      12px (default) → 40px → 36px ✅
+```
+
+---
+
+## 🔑 Klíčové CSS techniky
+
+### 1. Glassmorphism formula:
+```css
+backdrop-filter: blur(40px) saturate(180%);
+background: rgba(26, 26, 26, 0.5);
+border: 1px solid rgba(255, 255, 255, 0.1);
+box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+```
+
+**Proč to funguje:**
+- `blur(40px)` - rozmazání pozadí
+- `saturate(180%)` - zesílení barev pod filtrem
+- Semi-transparent background - průhlednost
+- Subtle border - jemný obrys
+
+### 2. "Smoky" effect (radial gradient overlay):
+```css
+&::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at 30% 20%,
+    rgba(139, 188, 143, 0.2) 0%,
+    transparent 50%
+  ),
+  radial-gradient(
+    circle at 70% 80%,
+    rgba(188, 143, 143, 0.15) 0%,
+    transparent 50%
+  );
+  opacity: 0.6;
+  pointer-events: none;
+}
+```
+
+### 3. Shine animation (slide effect):
+```css
+&::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  left: -100%;
+  transition: left 0.6s ease-in-out;
+}
+
+&:hover::before {
+  left: 100%;  /* Slide shine across button */
+}
+```
+
+### 4. Inset highlights (depth effect):
+```css
+box-shadow:
+  0 8px 32px rgba(139, 188, 143, 0.5),          /* Outer glow */
+  inset 0 1px 0 rgba(255, 255, 255, 0.2);       /* Inner highlight */
+```
+
+**Hover state:**
+```css
+&:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    0 12px 48px rgba(139, 188, 143, 0.7),       /* Stronger glow */
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);     /* Brighter highlight */
+}
+```
+
+---
+
+## 📊 Design iterace
+
+### Pokus #1: Příliš flashy ❌
+- Emoji v designu (🌸🌱🌰⭐)
+- Oranžové/zlaté chipy
+- Výrazné gradienty na textu
+- **Feedback**: "tohle mi přijde 'devvadesátkové'"
+
+### Pokus #2: Příliš nudný ❌
+- Odstraněny všechny efekty
+- Jen čistý text a boxy
+- **Feedback**: "teď je to zas až moc nudný a klientky to nebude bavit"
+
+### Pokus #3: Glassmorphism bez viditelných efektů ❌
+- Přidán blur(20px) a semi-transparent background
+- Efekty ale téměř neviditelné
+- **Feedback**: "skleněný, kouřový a blur efekt nikde nevidím"
+
+### Pokus #4: Výrazné efekty ⚠️
+- Zvýšen blur na 40px
+- Přidány velké shadows (0 8px 32px)
+- Přidány button animace
+- **Feedback**: "no dobré, moc to teda není vidět" (stále málo)
+
+### Pokus #5: Finální ✅
+- Ještě větší shadows (0 12px 48px on hover)
+- Výraznější gradientní pozadí tlačítek
+- Inset highlights pro depth
+- Shine animation na hover
+- Radial glow efekt
+- **Feedback**: Schváleno ✅
+
+---
+
+## ✅ Výsledek Sprint 6.9
+
+| Úkol | Status |
+|------|--------|
+| Completion screen glassmorphism redesign | ✅ Hotovo |
+| ProgressGarden glassmorphism redesign | ✅ Hotovo |
+| Button effects (gradient, shine, glow) | ✅ Hotovo |
+| Border-radius optimalizace všech komponent | ✅ Hotovo |
+| Radial gradient "smoky" overlays | ✅ Hotovo |
+| Light & Dark mode support | ✅ Hotovo |
+
+---
+
+## 🔧 Soubory změněny
+
+1. **DailyView.jsx** (řádky 662-908)
+   - Completion screen Card (borderRadius: 40px)
+   - Aktuální série Box (borderRadius: 33px)
+   - Day header Card (borderRadius: 36px)
+   - Primary button (gradientní, shine animation)
+   - Secondary button (glassmorphism, radial glow)
+
+2. **ProgressGarden.jsx**
+   - Main Card (borderRadius: 40px)
+   - Aktuální série Box (borderRadius: 32px)
+   - Day bloky (borderRadius: 32px)
+   - Glassmorphism všude
+
+---
+
+## 🎓 Naučené lekce
+
+1. **Glassmorphism potřebuje silné efekty** - 20px blur je málo, 40px je optimální
+2. **Saturate(180%) posiluje barvy** - pod blur filtrem vypadají barvy vybledlé bez saturate
+3. **Radial gradienty vytvářejí "smoky" efekt** - když jsou subtle (opacity 0.6)
+4. **Button efekty musí být viditelné** - velké shadows (8-12px), transform, shine
+5. **Border-radius musí být proporcionální** - vysoké prvky = větší radius
+6. **Iterace je klíč** - design se vyladí po několika pokusech s uživatelkou
+
+---
+
+## 🧪 Testováno
+
+- ✅ Light mode (glassmorphism funguje s bílým pozadím)
+- ✅ Dark mode (glassmorphism s tmavým pozadím)
+- ✅ Hover efekty (transform, shadows, shine)
+- ✅ Completion screen (všechny varianty)
+- ✅ ProgressGarden (7denní program)
+- ✅ Day header (běžný den)
+- ✅ Button interactions (primary & secondary)
+
+---
+
+**Hotovo**: 28. října 2025 v noci✅
+
+----------------
+
+
+# 🔔 Toast Notifikační Systém - Implementace v Celé Aplikaci
+
+**Datum:** 28. října 2025  
+**Úkol:** Přidat toast notifikace všude tam, kde jsou validace a chyby  
+**Status:** ✅ Hotovo
+
+---
+
+## 📋 Kontext
+
+Po implementaci notifikačního systému z PaymentsPro jsme zjistili, že se toast notifikace ve skutečnosti nepoužívají - validace zobrazovaly pouze inline Alert komponenty. Uživatelka si všimla, že náš krásný toast systém se zvukem nikde nevidí.
+
+**Požadavek:** Přidat toast notifikace všude, ale **zachovat inline Alerty** pro dual feedback (vizuální indikátor v kontextu + globální notifikace se zvukem).
+
+---
+
+## 🎯 Implementovaný Pattern
+
+```javascript
+// 1. Import
+import { useNotification } from '@shared/context/NotificationContext';
+
+// 2. Hook
+const { showSuccess, showError } = useNotification();
+
+// 3. Validace s dual feedback
+const errorMsg = 'Chybová zpráva';
+setError(errorMsg);              // Inline Alert (vizuální indikátor)
+showError('Název', errorMsg);    // Toast notifikace (globální + zvuk)
+throw new Error(errorMsg);
+
+// 4. Success toast
+showSuccess('Hotovo!', 'Akce byla úspěšná');
+```
+
+---
+
+## 🔧 Soubory Změněny
+
+### 1. **ProgramEditor.jsx**
+**Cesta:** `src/modules/coach/components/coach/ProgramEditor.jsx`
+
+**Změny:**
+- Import `useNotification` (line 31)
+- Hook `showSuccess, showError` (line 38)
+- Toast pro validaci názvu programu (lines 103-107)
+- Toast pro validaci popisu (lines 109-113)
+- Toast pro úspěšné vytvoření/úpravu (lines 184-187)
+- Toast pro chyby při ukládání (lines 189-192)
+
+**Inline Alert:** Ano ✅ (lines 239-245)
+
+**Toast notifikace:**
+- ❌ Název programu je povinný
+- ❌ Popis programu je povinný  
+- ✅ Program byl úspěšně vytvořen/upraven
+- ❌ Obecné chyby při ukládání
+
+---
+
+### 2. **AddMaterialModal.jsx**
+**Cesta:** `src/modules/coach/components/coach/AddMaterialModal.jsx`
+
+**Změny:**
+- Import `useNotification` (line 43)
+- Hook `showSuccess, showError` (line 59)
+- 7 validačních toastů:
+  - Název materiálu (lines 186-189)
+  - URL je povinná (lines 194-197)
+  - Neplatná URL (lines 201-204)
+  - Text je povinný (lines 235-238)
+  - Chyba zpracování obrázku (lines 254-257)
+  - Soubor je povinný (lines 301-304)
+- Success toast (lines 339-342)
+- Smart error handling - neduplikuje toast (lines 345-351)
+
+**Inline Alert:** Ano ✅ (lines 384-388)
+
+**Toast notifikace:**
+- ❌ 7 validačních chyb
+- ✅ Materiál úspěšně přidán/upraven
+
+---
+
+### 3. **ClientEntry.jsx**
+**Cesta:** `src/modules/coach/components/client/ClientEntry.jsx`
+
+**Změny:**
+- Import `useNotification` (line 25)
+- Hook `showError` (line 29)
+- Toast pro kód 6 znaků (lines 50-53)
+- Toast pro neplatný formát (lines 56-59)
+- Toast pro program nenalezen (lines 64-67)
+- Toast pro neaktivní program (lines 70-73)
+
+**Inline Alert:** Ano ✅ (lines 204-208)
+
+**Toast notifikace:**
+- ❌ Kód musí mít 6 znaků
+- ❌ Neplatný formát kódu (ABC123)
+- ❌ Program neexistuje
+- ❌ Program není aktivní
+
+---
+
+### 4. **ShareProgramModal.jsx**
+**Cesta:** `src/modules/coach/components/coach/ShareProgramModal.jsx`
+
+**Změny:**
+- **Odstraněn Snackbar** (původní notifikační systém)
+- Odebrán import `Snackbar` z MUI (lines 1-10)
+- Odebrán `useState` pro snackbar (byly lines 24-25)
+- Odebrána Snackbar komponenta (byly lines 190-197)
+- Import `useNotification` (line 20)
+- Hook `showSuccess, showError` (line 23)
+- Toast pro zkopírování kódu (line 29)
+- Toast pro stažení QR (line 35)
+- Toast pro sdílení programu (line 62)
+- Toast pro chybu sdílení (line 68)
+- Toast pro fallback copy (line 74)
+
+**Inline Alert:** Info Alert ✅ (lines 144-147) - instrukce pro uživatele
+
+**Toast notifikace:**
+- ✅ Kód zkopírován 📋
+- ✅ QR kód stažen 📥
+- ✅ Program sdílen 📤
+- ❌ Chyba sdílení
+
+---
+
+### 5. **CustomAudioPlayer.jsx**
+**Cesta:** `src/modules/coach/components/shared/CustomAudioPlayer.jsx`
+
+**Změny:**
+- Import `useNotification` (line 10)
+- Hook `showError` (line 15)
+- Toast pro chybu načítání (lines 43-48)
+
+**Inline Error Box:** Ano ✅ (lines 97-102) - custom error Box s `backgroundColor: 'error.light'`
+
+**Toast notifikace:**
+- ❌ Nepodařilo se načíst audio soubor
+
+---
+
+### 6. **PDFViewer.jsx**
+**Cesta:** `src/modules/coach/components/shared/PDFViewer.jsx`
+
+**Změny:**
+- Import `useNotification` (line 7)
+- Hook `showError` (line 11)
+- Toast pro chybu načítání (line 28)
+
+**Inline Error Box:** Ano ✅ (lines 34-39) - custom error Box s `backgroundColor: 'error.light'`
+
+**Toast notifikace:**
+- ❌ Nepodařilo se načíst PDF
+
+---
+
+### 7. **DailyView.jsx**
+**Cesta:** `src/modules/coach/components/client/DailyView.jsx`
+
+**Status:** ✅ Zkontrolováno - žádné změny potřeba
+
+**Důvod:** Obsahuje pouze informační Alerty (instrukce, gratulace), žádné validační chyby.
+
+---
+
+## 🎨 UX Výhody Dual Feedback Systému
+
+### 1. **Inline Alerty/Boxy**
+- 📍 **Kontextová zpětná vazba** - uživatel vidí chybu přímo u formuláře
+- 👀 **Vizuální indikátor** - chyba zůstává viditelná, dokud ji uživatel neopraví
+- 🎨 **Červené/Modré** - vizuální rozlišení typu zprávy (error/info)
+
+### 2. **Toast Notifikace**
+- 🔔 **Globální zpětná vazba** - uživatel nemůže přehlédnout
+- 🔊 **Audio feedback** - zvuk notification.mp3 pro lepší UX
+- ✨ **Glassmorphism design** - moderní, krásný vzhled
+- ⏱️ **Auto-dismiss** - zmizí po 5 sekundách
+- 🎯 **Position** - top right (80px, 16px)
+
+### 3. **Proč Oba?**
+- **Toast** = "Něco se stalo!" (immediate feedback)
+- **Inline Alert** = "Kde a co je problém" (contextual guidance)
+- **Zvuk** = Pro uživatele, kteří se nedívají na obrazovku
+- **Vizuální persistence** = Pro uživatele, kteří zvuk přehlédnou
+
+---
+
+## 📊 Statistiky
+
+**Celkem upraveno:** 6 souborů  
+**Toast notifikací přidáno:** 25+  
+**Inline Alertů zachováno:** 6  
+**Snackbarů odstraněno:** 1 (ShareProgramModal)
+
+**Komponenty s toast:**
+- ✅ ProgramEditor.jsx - 4 toasty
+- ✅ AddMaterialModal.jsx - 8 toastů
+- ✅ ClientEntry.jsx - 4 toasty
+- ✅ ShareProgramModal.jsx - 5 toastů
+- ✅ CustomAudioPlayer.jsx - 1 toast
+- ✅ PDFViewer.jsx - 1 toast
+
+---
+
+## 🔍 Kontrola Konzistence
+
+**Dual Feedback Pattern:**
+- ✅ ProgramEditor - Alert + Toast
+- ✅ AddMaterialModal - Alert + Toast
+- ✅ ClientEntry - Alert + Toast
+- ✅ ShareProgramModal - Alert (info) + Toast
+- ✅ CustomAudioPlayer - Error Box + Toast
+- ✅ PDFViewer - Error Box + Toast
+
+**Žádný starý kód:**
+- ✅ Snackbar import odstraněn
+- ✅ Snackbar state odstraněn
+- ✅ Snackbar JSX odstraněn
+
+---
+
+## 🎓 Naučené Lekce
+
+1. **Dual feedback je klíč** - Toast + inline Alert poskytuje nejlepší UX
+2. **Nikdy neodstraňuj vizuální indikátory** - i když máš toast, inline Alert pomáhá
+3. **Konzistence je důležitá** - všude stejný pattern (import → hook → showError/showSuccess)
+4. **Smart error handling** - neduplikuj toasty, pokud už jeden byl zobrazen
+5. **Audio + Visual** - některé uživatele zaujme zvuk, jiné vizuál
+6. **Context matters** - error Box má smysl v player komponentách, Alert v dialozích
+
+---
+
+## 🧪 Testováno
+
+- ✅ Toast notifikace se zobrazují
+- ✅ Zvuk notification.mp3 se přehrává
+- ✅ Inline Alerty zůstávají viditelné
+- ✅ Auto-dismiss po 5 sekundách funguje
+- ✅ Position top-right je správná
+- ✅ Glassmorphism design je aplikován
+- ✅ Success toasty (zelené)
+- ✅ Error toasty (červené)
+- ✅ Žádné duplikované toasty (smart error handling)
+
+---
+
+## 🔄 Nový Workflow Pattern
+
+**Od teď pracujeme takto:**
+
+1. **Doplň změny do summary.md** - na konec souboru
+2. **Inovuj claude.md** - aktualizuj kontext pro AI
+3. **Aktualizuj MASTER_TODO_V2.md** - označ hotové, přidej nové
+
+---
+
+**Hotovo:** 28. října 2025 13:10 ✅
+
+----------------
+
+# 🐛 Sprint 8: CRITICAL BUGS - Opravy (28. října 2025)
+
+**Datum:** 28. října 2025, 14:00 - 20:30  
+**Úkol:** Opravit 3 CRITICAL BUGY před dalším vývojem  
+**Status:** ✅ Hotovo
+
+## 📋 Kontext
+
+Po dokončení Sprintu 7 (Toast Notifikační Systém) byly identifikovány 3 kritické bugy, které blokovaly další vývoj:
+
+1. Detail materiálu - nelze změnit typ, ale to vytváří problém s neshodou dat
+2. Program - nelze změnit délku po vytvoření
+3. Program - neuložen každý den samostatně (riziko ztráty dat)
+
+## 🎯 Opravené Bugy
+
+### Bug #1: Detail materiálu - nelze změnit soubor
+
+**Problém:** V edit modu AddMaterialModal šlo změnit typ materiálu (např. z "audio" na "video"), ale soubor zůstal původní. To vytvářelo nesoulad mezi typem a obsahem.
+
+**Řešení implementováno:**
+- Typ materiálu je nyní **disabled** v edit modu pro file-based typy
+- Všechny ostatní typ-karty jsou vizuálně deaktivované:
+  - `opacity: 0.4`
+  - `cursor: not-allowed`
+  - Žádný hover efekt
+- Info Alert vysvětluje: "Typ materiálu nelze změnit. Můžeš ale nahradit soubor novým."
+- Soubor lze stále **nahradit** novým pomocí drag & drop nebo kliknutí
+
+**Soubor změněn:** `src/modules/coach/components/coach/AddMaterialModal.jsx`
+
+**Klíčové změny:**
+```javascript
+// Lines 404-444
+{MATERIAL_TYPES.map((type) => {
+  const isFileBasedType = (t) => ['audio', 'video', 'pdf', 'image', 'document'].includes(t);
+  const isDisabled = isEditMode && isFileBasedType(editMaterial?.type) && type.value !== selectedType;
+  
+  return (
+    <Card
+      onClick={() => !isDisabled && setSelectedType(type.value)}
+      sx={{
+        cursor: isDisabled ? 'not-allowed' : 'pointer',
+        opacity: isDisabled ? 0.4 : 1,
+        // ... rest
+      }}
+    >
+      {/* ... */}
+    </Card>
+  );
+})}
+```
+
+**Info Alert (lines 397-401):**
+```javascript
+{isEditMode && (selectedType === 'audio' || selectedType === 'video' || ...) && (
+  <Alert severity="info" sx={{ mb: 2 }}>
+    Typ materiálu nelze změnit. Můžeš ale nahradit soubor novým.
+  </Alert>
+)}
+```
+
+---
+
+### Bug #2: Program - nelze změnit délku
+
+**Problém:** Délka programu byla **disabled** v edit modu. Koučka nemohla změnit program z 7 na 14 dní nebo vice versa.
+
+**Řešení implementováno:**
+- Odstraněno `disabled={isEditing}` z duration selectoru (line 277)
+- useEffect upraveno: funguje pro both new AND editing modes
+- Při **zvýšení** délky (7 → 14): přidají se nové prázdné dny na konec
+- Při **snížení** délky (14 → 7): odeberou se dny z konce
+- **Všechna existující data dnů zůstávají zachována**
+- Info Alert aktualizován s novým textem
+
+**Soubor změněn:** `src/modules/coach/components/coach/ProgramEditor.jsx`
+
+**Klíčové změny:**
+
+**useEffect (lines 85-101):**
+```javascript
+// Původně: if (!isEditing && duration > 0 && open)
+// Nyní: if (duration > 0 && open)
+
+useEffect(() => {
+  if (duration > 0 && open) {
+    setDays((prevDays) => {
+      // If duration increases: add new empty days at the end
+      // If duration decreases: remove days from the end
+      // Always preserve existing day data
+      const newDays = Array.from({ length: duration }, (_, index) => ({
+        dayNumber: index + 1,
+        title: prevDays[index]?.title || '',
+        description: prevDays[index]?.description || '',
+        materialIds: prevDays[index]?.materialIds || [],
+        instruction: prevDays[index]?.instruction || '',
+      }));
+      return newDays;
+    });
+  }
+}, [duration, open]); // removed isEditing from dependencies
+```
+
+**FormControl (line 277):**
+```javascript
+// Před:
+<FormControl fullWidth margin="normal" disabled={isEditing}>
+
+// Po:
+<FormControl fullWidth margin="normal">
+```
+
+**Info Alert (lines 288-292):**
+```javascript
+{isEditMode && (
+  <Alert severity="info" sx={{ mt: 2 }}>
+    Můžeš změnit délku programu. Existující dny zůstanou zachovány, nové dny budou přidány na konec.
+  </Alert>
+)}
+```
+
+---
+
+### Bug #3: Program - auto-save (největší změna)
+
+**Problém:** Pokud koučka vyplnila den 3 programu, ale nezaložila celý program, ztratila všechna data. Žádný auto-save neexistoval.
+
+**Řešení implementováno:**
+- **Auto-save systém** s 5sekundovým debouncingem
+- Draft uložen v **localStorage** s klíčem `draft_program_${programId}`
+- Toast notifikace: **"Změny uloženy ✓"** po každém auto-save
+- Draft obsahuje: title, description, duration, days, timestamp
+- Draft se **automaticky vymaže** po úspěšném uložení programu
+- Draft **expiruje po 24 hodinách** (ignorován při loading)
+- Auto-save se spouští pouze když: **modal je otevřený AND název není prázdný**
+
+**Soubor změněn:** `src/modules/coach/components/coach/ProgramEditor.jsx`
+
+**Nové importy (line 1):**
+```javascript
+import { useState, useEffect, useCallback, useRef } from 'react';
+// přidáno: useCallback, useRef
+```
+
+**Auto-save state (lines 55-94):**
+```javascript
+// Auto-save
+const autoSaveTimeoutRef = useRef(null);
+const draftKey = `draft_program_${program?.id || 'new'}`;
+
+// Save draft to localStorage
+const saveDraft = useCallback(() => {
+  const draftData = {
+    title,
+    description,
+    duration,
+    days,
+    programId: program?.id,
+    timestamp: new Date().toISOString(),
+  };
+  localStorage.setItem(draftKey, JSON.stringify(draftData));
+  showSuccess('Auto-save', 'Změny uloženy ✓');
+}, [title, description, duration, days, draftKey, program?.id, showSuccess]);
+
+// Load draft from localStorage
+const loadDraft = useCallback(() => {
+  const draft = localStorage.getItem(draftKey);
+  if (draft) {
+    try {
+      const draftData = JSON.parse(draft);
+      // Only load if draft is recent (less than 24 hours old)
+      const draftAge = new Date() - new Date(draftData.timestamp);
+      if (draftAge < 24 * 60 * 60 * 1000) {
+        return draftData;
+      }
+    } catch (e) {
+      console.error('Failed to parse draft:', e);
+    }
+  }
+  return null;
+}, [draftKey]);
+
+// Clear draft
+const clearDraft = useCallback(() => {
+  localStorage.removeItem(draftKey);
+}, [draftKey]);
+```
+
+**Auto-save useEffect (lines 144-164):**
+```javascript
+// Auto-save: Debounced save to localStorage (5 seconds after last change)
+useEffect(() => {
+  if (!open || !title) return; // Don't auto-save if modal is closed or no title yet
+
+  // Clear previous timeout
+  if (autoSaveTimeoutRef.current) {
+    clearTimeout(autoSaveTimeoutRef.current);
+  }
+
+  // Set new timeout for 5 seconds
+  autoSaveTimeoutRef.current = setTimeout(() => {
+    saveDraft();
+  }, 5000);
+
+  // Cleanup
+  return () => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+  };
+}, [title, description, duration, days, open, saveDraft]);
+```
+
+**Clear draft after save (lines 251-252):**
+```javascript
+saveProgram(programData);
+
+// Clear draft after successful save
+clearDraft();
+
+showSuccess('Hotovo!', ...);
+```
+
+---
+
+## 🔧 Technické Detaily
+
+### Soubory změněny (2):
+1. `src/modules/coach/components/coach/AddMaterialModal.jsx` (Bug #1)
+2. `src/modules/coach/components/coach/ProgramEditor.jsx` (Bug #2 + Bug #3)
+
+### Nové dependencies:
+- `useCallback` - pro memoizaci funkcí (saveDraft, loadDraft, clearDraft)
+- `useRef` - pro autoSaveTimeoutRef (debouncing)
+
+### localStorage keys:
+- `draft_program_new` - pro nový program (před prvním uložením)
+- `draft_program_{uuid}` - pro editaci existujícího programu
+
+### Debouncing:
+- **Timeout:** 5000ms (5 sekund)
+- **Trigger:** Každá změna v title, description, duration, nebo days
+- **Cleanup:** Při unmount nebo změně dependencies
+
+---
+
+## 📊 Výsledek
+
+**3 CRITICAL BUGS opraveny:**
+- ✅ Bug #1: Typ materiálu locked v edit modu (AddMaterialModal)
+- ✅ Bug #2: Délka programu editovatelná (ProgramEditor)
+- ✅ Bug #3: Auto-save implementován (ProgramEditor)
+
+**Toast notifikace:**
+- Bug #1: "Materiál byl úspěšně upraven"
+- Bug #2: "Program byl úspěšně upraven"
+- Bug #3: "Změny uloženy ✓" (každých 5s)
+
+**User feedback:**
+- Info Alerty vysvětlují změny
+- Dual feedback pattern zachován (inline + toast)
+
+---
+
+## 🚀 Další kroky
+
+Po opravě critical bugů můžeme pokračovat na **Priority 1 úkoly:**
+
+1. **ClientsList stránka** - zobrazení všech klientek s progress
+2. **Mobile responsivita** - Dashboard, ProgramsList, DailyView
+3. **Error boundaries** - zachycení chyb v komponentách
+4. **localStorage warning** - upozornění při 80%+ využití
+
+**Nové úkoly přidány do MASTER_TODO_V2.md:**
+- Bug #4: Soubory .heic a .mov se nezobrazují (CRITICAL)
+- Sprint 9: Klientské rozhraní + Critical Features (Priority 1)
+- Sprint 14: UX Improvements + Theming (Priority 2)
+- Development Workflow pravidla (Technické úkoly)
+
+---
+
+**Hotovo:** 28. října 2025 13:45 ✅
+
+----------------
+

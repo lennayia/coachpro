@@ -36,9 +36,11 @@ import {
   estimateTextPageCount,
   getAcceptString,
   getFileTypeHint,
+  convertHeicToJpeg,
 } from '@shared/utils/helpers';
 import { detectLinkType, getEmbedUrl, isValidUrl, getThumbnailUrl, getYouTubeMetadata } from '../../utils/linkDetection';
 import { uploadFileToSupabase, isSupabaseConfigured } from '../../utils/supabaseStorage';
+import { useNotification } from '@shared/context/NotificationContext';
 
 const MATERIAL_TYPES = [
   { value: 'audio', label: 'Audio', icon: <AudioIcon sx={{ fontSize: 40 }} /> },
@@ -54,6 +56,7 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
   const currentUser = getCurrentUser();
   const fileInputRef = useRef(null);
   const isEditMode = Boolean(editMaterial);
+  const { showSuccess, showError } = useNotification();
 
   const [selectedType, setSelectedType] = useState('');
   const [file, setFile] = useState(null);
@@ -181,18 +184,24 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
 
       // Validace
       if (!title) {
-        throw new Error('Název materiálu je povinný');
+        const errorMsg = 'Název materiálu je povinný';
+        showError('Chyba validace', errorMsg);
+        throw new Error(errorMsg);
       }
 
       // Zpracování podle typu
       if (selectedType === 'link') {
         if (!linkUrl) {
-          throw new Error('URL je povinná');
+          const errorMsg = 'URL je povinná';
+          showError('Chyba validace', errorMsg);
+          throw new Error(errorMsg);
         }
 
         // Validace URL
         if (!isValidUrl(linkUrl)) {
-          throw new Error('Zadej platnou URL adresu');
+          const errorMsg = 'Zadej platnou URL adresu';
+          showError('Chyba validace', errorMsg);
+          throw new Error(errorMsg);
         }
 
         content = linkUrl;
@@ -224,7 +233,9 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
         }
       } else if (selectedType === 'text') {
         if (!textContent) {
-          throw new Error('Text je povinný');
+          const errorMsg = 'Text je povinný';
+          showError('Chyba validace', errorMsg);
+          throw new Error(errorMsg);
         }
         content = textContent;
         // Odhadni počet stran
@@ -233,37 +244,51 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
         // File-based types (audio, video, pdf, image, document)
         if (file) {
           // Nový soubor byl nahrán
-          fileSize = file.size;
-          fileName = file.name;
+
+          // Konverze HEIC → JPEG pro obrázky
+          let processedFile = file;
+          if (selectedType === 'image') {
+            try {
+              processedFile = await convertHeicToJpeg(file);
+              // Pokud byl konvertován, aktualizuj typ na 'image' (už to je)
+            } catch (conversionError) {
+              const errorMsg = 'Nepodařilo se zpracovat obrázek. Zkus použít jiný formát (JPG, PNG).';
+              showError('Chyba zpracování', errorMsg);
+              throw new Error(errorMsg);
+            }
+          }
+
+          fileSize = processedFile.size;
+          fileName = processedFile.name;
 
           // Get audio duration
           if (selectedType === 'audio') {
-            duration = await getAudioDuration(file);
+            duration = await getAudioDuration(processedFile);
           }
 
           // Get video duration
           if (selectedType === 'video') {
-            duration = await getVideoDuration(file);
+            duration = await getVideoDuration(processedFile);
           }
 
           // Get PDF page count
           if (selectedType === 'pdf') {
-            pageCount = await getPdfPageCount(file);
+            pageCount = await getPdfPageCount(processedFile);
           }
 
           // Upload to Supabase if configured, otherwise use base64
           if (isSupabaseConfigured()) {
             try {
-              const { url, path } = await uploadFileToSupabase(file, currentUser.id, selectedType);
+              const { url, path } = await uploadFileToSupabase(processedFile, currentUser.id, selectedType);
               content = url; // Store Supabase URL
               storagePath = path; // Store path for potential deletion later
             } catch (uploadError) {
               console.error('Supabase upload failed, falling back to base64:', uploadError);
-              content = await fileToBase64(file);
+              content = await fileToBase64(processedFile);
             }
           } else {
             // Fallback to base64 (localStorage)
-            content = await fileToBase64(file);
+            content = await fileToBase64(processedFile);
           }
         } else if (isEditMode) {
           // Editace - použij existující soubor
@@ -274,7 +299,9 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
           pageCount = editMaterial.pageCount || null;
         } else {
           // Nový materiál - soubor je povinný
-          throw new Error('Soubor je povinný');
+          const errorMsg = 'Soubor je povinný';
+          showError('Chyba validace', errorMsg);
+          throw new Error(errorMsg);
         }
       }
 
@@ -309,10 +336,19 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
       saveMaterial(materialData);
 
       // Success
+      showSuccess(
+        'Hotovo!',
+        isEditMode ? 'Materiál byl úspěšně upraven' : 'Materiál byl úspěšně přidán'
+      );
       onSuccess();
       handleClose();
     } catch (err) {
-      setError(err.message || 'Něco se pokazilo. Zkus to znovu.');
+      const errorMsg = err.message || 'Něco se pokazilo. Zkus to znovu.';
+      setError(errorMsg);
+      // Toast už byl zobrazen při throw new Error(), takže zobrazíme jen při obecné chybě
+      if (!err.message || err.message === 'Něco se pokazilo. Zkus to znovu.') {
+        showError('Chyba', errorMsg);
+      }
     } finally {
       setLoading(false);
     }
@@ -356,41 +392,56 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
           <Typography variant="subtitle2" mb={2} sx={{ fontWeight: 600 }}>
             Typ materiálu
           </Typography>
+
+          {/* Info při editaci file-based materiálů */}
+          {isEditMode && (selectedType === 'audio' || selectedType === 'video' || selectedType === 'pdf' || selectedType === 'image' || selectedType === 'document') && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Typ materiálu nelze změnit. Můžeš ale nahradit soubor novým.
+            </Alert>
+          )}
+
           <Grid container spacing={2} mb={3}>
-            {MATERIAL_TYPES.map((type) => (
-              <Grid item xs={6} key={type.value}>
-                <Card
-                  onClick={() => setSelectedType(type.value)}
-                  sx={{
-                    cursor: 'pointer',
-                    border: selectedType === type.value ? 2 : 1,
-                    borderColor:
-                      selectedType === type.value ? 'primary.main' : 'divider',
-                    transition: 'all 0.2s',
-                    '&:hover': {
-                      borderColor: 'primary.main',
-                      transform: 'translateY(-2px)',
-                    },
-                  }}
-                >
-                  <CardContent sx={{ textAlign: 'center' }}>
-                    <Box color={selectedType === type.value ? 'primary.main' : 'text.secondary'}>
-                      {type.icon}
-                    </Box>
-                    <Typography
-                      variant="body2"
-                      mt={1}
-                      sx={{
-                        fontWeight: selectedType === type.value ? 600 : 400,
-                        color: selectedType === type.value ? 'primary.main' : 'text.primary',
-                      }}
-                    >
-                      {type.label}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
+            {MATERIAL_TYPES.map((type) => {
+              // V edit modu pro file-based typy: disable všechny karty kromě aktuálního typu
+              const isFileBasedType = (t) => ['audio', 'video', 'pdf', 'image', 'document'].includes(t);
+              const isDisabled = isEditMode && isFileBasedType(editMaterial?.type) && type.value !== selectedType;
+
+              return (
+                <Grid item xs={6} key={type.value}>
+                  <Card
+                    onClick={() => !isDisabled && setSelectedType(type.value)}
+                    sx={{
+                      cursor: isDisabled ? 'not-allowed' : 'pointer',
+                      border: selectedType === type.value ? 2 : 1,
+                      borderColor:
+                        selectedType === type.value ? 'primary.main' : 'divider',
+                      opacity: isDisabled ? 0.4 : 1,
+                      transition: 'all 0.2s',
+                      '&:hover': !isDisabled ? {
+                        borderColor: 'primary.main',
+                        transform: 'translateY(-2px)',
+                      } : {},
+                    }}
+                  >
+                    <CardContent sx={{ textAlign: 'center' }}>
+                      <Box color={selectedType === type.value ? 'primary.main' : 'text.secondary'}>
+                        {type.icon}
+                      </Box>
+                      <Typography
+                        variant="body2"
+                        mt={1}
+                        sx={{
+                          fontWeight: selectedType === type.value ? 600 : 400,
+                          color: selectedType === type.value ? 'primary.main' : 'text.primary',
+                        }}
+                      >
+                        {type.label}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
           </Grid>
 
           {/* Krok 2: Upload/Input podle typu */}
