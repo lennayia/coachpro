@@ -7,7 +7,6 @@ import {
   Button,
   Stack,
   Alert,
-  Snackbar,
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
@@ -16,27 +15,24 @@ import {
   Share as ShareIcon,
   Download as DownloadIcon,
 } from '@mui/icons-material';
-import { useState } from 'react';
 import { downloadQRCode } from '@shared/utils/helpers';
 import BORDER_RADIUS from '@styles/borderRadius';
+import { useNotification } from '@shared/context/NotificationContext';
 
 const ShareProgramModal = ({ open, onClose, program }) => {
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const { showSuccess, showError } = useNotification();
 
   if (!program) return null;
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(program.shareCode);
-    setSnackbarMessage('Kód zkopírován do schránky! 📋');
-    setSnackbarOpen(true);
+    showSuccess('Hotovo!', 'Kód zkopírován do schránky! 📋');
   };
 
   const handleDownloadQR = () => {
     if (program.qrCode) {
       downloadQRCode(program.qrCode, `${program.title}-qr-code`);
-      setSnackbarMessage('QR kód stažen! 📥');
-      setSnackbarOpen(true);
+      showSuccess('Hotovo!', 'QR kód stažen! 📥');
     }
   };
 
@@ -63,26 +59,24 @@ Těším se na tvůj růst! 💚`;
           text: text,
         })
         .then(() => {
-          setSnackbarMessage('Program sdílen! 📤');
-          setSnackbarOpen(true);
+          showSuccess('Hotovo!', 'Program sdílen! 📤');
         })
         .catch((err) => {
           // User cancelled or error - ignore
           if (err.name !== 'AbortError') {
             console.error('Share error:', err);
+            showError('Chyba', 'Nepodařilo se sdílet program');
           }
         });
     } else {
       // Fallback - copy to clipboard
       navigator.clipboard.writeText(text);
-      setSnackbarMessage('Text zkopírován! Pošli ho klientce. 📋');
-      setSnackbarOpen(true);
+      showSuccess('Hotovo!', 'Text zkopírován! Pošli ho klientce. 📋');
     }
   };
 
   return (
-    <>
-      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
         <DialogContent sx={{ textAlign: 'center', p: 4 }}>
           {/* Success icon */}
           <CheckCircleIcon sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
@@ -186,16 +180,6 @@ Těším se na tvůj růst! 💚`;
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={() => setSnackbarOpen(false)}
-        message={snackbarMessage}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      />
-    </>
   );
 };
 

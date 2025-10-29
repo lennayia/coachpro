@@ -367,41 +367,56 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
 
   return (
     <Drawer
-      anchor="right"
-      open={open}
-      onClose={handleClose}
-      PaperProps={{
-        sx: {
-          width: { xs: '100%', sm: 500 },
-        },
-      }}
-    >
-      <Box p={3} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <Typography variant="h5" mb={3} sx={{ fontWeight: 700 }}>
-          {isEditMode ? 'Upravit materiál' : 'Přidat nový materiál'}
-        </Typography>
+  anchor="right"
+  open={open}
+  onClose={handleClose}
+  BackdropProps={{
+    sx: {
+      backdropFilter: 'blur(4px)',
+      WebkitBackdropFilter: 'blur(4px)',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    }
+  }}
+  PaperProps={{
+    sx: {
+      width: { xs: '100%', sm: 500 },
+      backdropFilter: 'blur(20px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+      backgroundColor: (theme) => theme.palette.mode === 'dark'
+        ? 'rgba(26, 26, 26, 0.85)'
+        : 'rgba(255, 255, 255, 0.85)',
+      boxShadow: (theme) => theme.palette.mode === 'dark'
+      ? '-4px 0 32px rgba(139, 188, 143, 0.15), 0 8px 32px rgba(0, 0, 0, 0.37)'
+      : '-4px 0 32px rgba(85, 107, 47, 0.1), 0 8px 32px rgba(0, 0, 0, 0.1)',
+    },
+  }}
+>
+      <Box px={2} py={3} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+  <Typography variant="h5" mb={3} sx={{ fontWeight: 700 }}>
+    {isEditMode ? 'Upravit materiál' : 'Přidat nový materiál'}
+  </Typography>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
-            {error}
-          </Alert>
-        )}
+  {error && (
+    <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+      {error}
+    </Alert>
+  )}
 
-        <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
-          {/* Krok 1: Výběr typu */}
-          <Typography variant="subtitle2" mb={2} sx={{ fontWeight: 600 }}>
-            Typ materiálu
-          </Typography>
+  <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 1 }}> 
+    {/* Krok 1: Výběr typu */}
+    <Typography variant="subtitle2" mb={2} sx={{ fontWeight: 600 }}>
+      Typ materiálu
+    </Typography>
 
-          {/* Info při editaci file-based materiálů */}
-          {isEditMode && (selectedType === 'audio' || selectedType === 'video' || selectedType === 'pdf' || selectedType === 'image' || selectedType === 'document') && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              Typ materiálu nelze změnit. Můžeš ale nahradit soubor novým.
-            </Alert>
-          )}
+    {/* Info při editaci file-based materiálů */}
+    {isEditMode && (selectedType === 'audio' || selectedType === 'video' || selectedType === 'pdf' || selectedType === 'image' || selectedType === 'document') && (
+      <Alert severity="info" sx={{ mb: 2 }}>
+        Typ materiálu nelze změnit. Můžeš ale nahradit soubor novým.
+      </Alert>
+    )}
 
-          <Grid container spacing={2} mb={3}>
-            {MATERIAL_TYPES.map((type) => {
+    <Grid container spacing={2} mb={3}>
+      {MATERIAL_TYPES.map((type) => {
               // V edit modu pro file-based typy: disable všechny karty kromě aktuálního typu
               const isFileBasedType = (t) => ['audio', 'video', 'pdf', 'image', 'document'].includes(t);
               const isDisabled = isEditMode && isFileBasedType(editMaterial?.type) && type.value !== selectedType;
@@ -409,20 +424,26 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
               return (
                 <Grid item xs={6} key={type.value}>
                   <Card
-                    onClick={() => !isDisabled && setSelectedType(type.value)}
-                    sx={{
-                      cursor: isDisabled ? 'not-allowed' : 'pointer',
-                      border: selectedType === type.value ? 2 : 1,
-                      borderColor:
-                        selectedType === type.value ? 'primary.main' : 'divider',
-                      opacity: isDisabled ? 0.4 : 1,
-                      transition: 'all 0.2s',
-                      '&:hover': !isDisabled ? {
-                        borderColor: 'primary.main',
-                        transform: 'translateY(-2px)',
-                      } : {},
-                    }}
-                  >
+                  elevation={0}
+  onClick={() => !isDisabled && setSelectedType(type.value)}
+  sx={{
+  cursor: isDisabled ? 'not-allowed' : 'pointer',
+  border: 'none !important',
+  outline: 'none !important',
+  margin: 0,
+  boxShadow: selectedType === type.value 
+  ? '0 0 12px 2px rgba(139, 188, 143, 0.6) !important'  // ← Glow kolem dokola
+  : '0 2px 8px rgba(0, 0, 0, 0.15) !important',
+    transition: 'all 0.2s',
+    opacity: isDisabled ? 0.4 : 1,
+    '&:hover': !isDisabled ? {
+      boxShadow: selectedType === type.value
+        ? '0 0 0 2px rgba(139, 188, 143, 0.6), 0 6px 16px rgba(139, 188, 143, 0.25)'
+        : '0 4px 12px rgba(0, 0, 0, 0.12)',
+      transform: 'translateY(-2px)',
+    } : {},
+  }}
+>
                     <CardContent sx={{ textAlign: 'center' }}>
                       <Box color={selectedType === type.value ? 'primary.main' : 'text.secondary'}>
                         {type.icon}
@@ -552,54 +573,70 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
                   </Typography>
 
                   <TextField
-                    fullWidth
-                    label="URL adresa"
-                    placeholder="https://youtube.com/watch?v=..."
-                    value={linkUrl}
-                    onChange={(e) => {
-                      const url = e.target.value;
-                      setLinkUrl(url);
+  fullWidth
+  label="URL adresa"
+  placeholder="https://youtube.com/watch?v=..."
+  value={linkUrl}
+  onChange={(e) => {
+    const url = e.target.value;
+    setLinkUrl(url);
 
-                      // Auto-detect typ služby
-                      if (isValidUrl(url)) {
-                        const detected = detectLinkType(url);
-                        setDetectedService(detected);
+    // Auto-detect typ služby
+    if (isValidUrl(url)) {
+      const detected = detectLinkType(url);
+      setDetectedService(detected);
 
-                        // Pokud má embed support, načti náhled
-                        if (detected.embedSupport) {
-                          const embedUrl = getEmbedUrl(url, detected.type);
-                          setPreviewUrl(embedUrl);
-                        } else {
-                          setPreviewUrl(null);
-                        }
-                      } else {
-                        setDetectedService(null);
-                        setPreviewUrl(null);
-                      }
-                    }}
-                    margin="normal"
-                    error={linkUrl && !isValidUrl(linkUrl)}
-                    helperText={
-                      linkUrl && !isValidUrl(linkUrl)
-                        ? 'Zadej platnou URL adresu'
-                        : 'Podporuje YouTube, Spotify, Google Drive, iCloud a další'
-                    }
-                    InputProps={{
-                      startAdornment: <LinkIcon sx={{ mr: 1, color: 'text.secondary' }} />,
-                    }}
-                  />
+      // Pokud má embed support, načti náhled
+      if (detected.embedSupport) {
+        const embedUrl = getEmbedUrl(url, detected.type);
+        setPreviewUrl(embedUrl);
+      } else {
+        setPreviewUrl(null);
+      }
+    } else {
+      setDetectedService(null);
+      setPreviewUrl(null);
+    }
+  }}
+  margin="normal"
+  error={linkUrl && !isValidUrl(linkUrl)}
+  helperText={
+    linkUrl && !isValidUrl(linkUrl)
+      ? 'Zadej platnou URL adresu'
+      : 'Podporuje YouTube, Spotify, Google Drive, iCloud a další'
+  }
+  sx={{
+    '& .MuiOutlinedInput-root': {
+      '& fieldset': {
+        borderWidth: '1px',
+        borderColor: 'divider',
+      },
+      '&:hover fieldset': {
+        borderColor: 'primary.main',
+        borderWidth: '1px',
+      },
+      '&.Mui-focused fieldset': {
+        borderWidth: '1px',
+        borderColor: 'primary.main',
+      },
+    },
+  }}
+  InputProps={{
+    startAdornment: <LinkIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+  }}
+/>
 
                   {/* Detected service badge */}
                   {detectedService && (
                     <Box
-                      sx={{
-                        mt: 3,
-                        p: 3,
-                        borderRadius: 3,
-                        background: `linear-gradient(135deg, ${detectedService.color}15, ${detectedService.color}05)`,
-                        border: `2px solid ${detectedService.color}40`,
-                      }}
-                    >
+  sx={{
+    mt: 3,
+    p: 3,
+    borderRadius: 3,
+    background: `linear-gradient(135deg, ${detectedService.color}15, ${detectedService.color}05)`,
+    boxShadow: `0 4px 16px ${detectedService.color}20, 0 0 0 1px ${detectedService.color}15`,  // ← Jemný glow
+  }}
+>
                       <Box display="flex" alignItems="center" gap={2} mb={2}>
                         <Box
                           sx={{
@@ -664,15 +701,16 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
                       {/* Info pro služby bez embed supportu */}
                       {!detectedService.embedSupport && (
                         <Alert
-                          severity="info"
-                          sx={{
-                            bgcolor: 'transparent',
-                            border: `1px solid ${detectedService.color}30`,
-                            '& .MuiAlert-icon': {
-                              color: detectedService.color,
-                            },
-                          }}
-                        >
+  severity="info"
+  sx={{
+    bgcolor: 'transparent',
+    border: 'none',
+    boxShadow: `0 2px 8px ${detectedService.color}15`,
+    '& .MuiAlert-icon': {
+      color: detectedService.color,
+    },
+  }}
+>
                           <Typography variant="body2">
                             Klientky budou přesměrovány na {detectedService.label} po kliknutí na odkaz.
                           </Typography>

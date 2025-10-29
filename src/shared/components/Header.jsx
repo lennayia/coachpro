@@ -14,23 +14,19 @@ import {
 } from '@mui/icons-material';
 import { useThemeMode } from '../../App';
 import { getCurrentUser } from '../../modules/coach/utils/storage';
+import { useHeader } from '../hooks/useModernEffects';
 
 const Header = ({ onMenuClick }) => {
   const { mode, toggleTheme } = useThemeMode();
   const currentUser = getCurrentUser();
+  const headerStyles = useHeader();
 
   return (
     <AppBar
       position="fixed"
       elevation={0}
       sx={{
-        backgroundColor: (theme) =>
-          theme.palette.mode === 'dark'
-            ? 'rgba(15, 15, 15, 0.95)'
-            : 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid',
-        borderColor: 'divider',
+        ...headerStyles,
         zIndex: (theme) => theme.zIndex.drawer + 1,
       }}
     >
@@ -49,22 +45,52 @@ const Header = ({ onMenuClick }) => {
         </IconButton>
 
         {/* Logo */}
-        <Typography
-          variant="h6"
+        <Box
           sx={{
             flexGrow: 1,
-            fontWeight: 700,
-            background: (theme) =>
-              theme.palette.mode === 'dark'
-                ? 'linear-gradient(135deg, #8FBC8F 0%, #556B2F 100%)'
-                : 'linear-gradient(135deg, #556B2F 0%, #228B22 100%)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
           }}
         >
-          CoachPro 🌿
-        </Typography>
+          <img
+            src="/coachPro.png"
+            alt="CoachProApp"
+            style={{
+              height: '48px',
+              width: 'auto',
+            }}
+          />
+          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 700,
+                lineHeight: 1.2,
+                background: (theme) =>
+                  theme.palette.mode === 'dark'
+                    ? 'linear-gradient(135deg, #8FBC8F 0%, #556B2F 100%)'
+                    : 'linear-gradient(135deg, #556B2F 0%, #228B22 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              CoachPro
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+                color: 'text.secondary',
+                fontSize: '0.7rem',
+                mt: -0.5,
+              }}
+            >
+              Aplikace pro koučky
+            </Typography>
+          </Box>
+        </Box>
 
         {/* Theme toggle */}
         <Tooltip title={mode === 'dark' ? 'Světlý režim' : 'Tmavý režim'}>

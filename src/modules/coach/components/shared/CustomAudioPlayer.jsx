@@ -7,10 +7,12 @@ import {
   Forward10 as Forward10Icon,
 } from '@mui/icons-material';
 import BORDER_RADIUS from '@styles/borderRadius';
+import { useNotification } from '@shared/context/NotificationContext';
 
 // Note: wavesurfer.js se použije později - zatím jednoduchý HTML5 audio player
 const CustomAudioPlayer = ({ src, title }) => {
   const audioRef = useRef(null);
+  const { showError } = useNotification();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -40,7 +42,9 @@ const CustomAudioPlayer = ({ src, title }) => {
 
     const handleError = (e) => {
       console.error('Audio error:', e);
-      setError('Nepodařilo se načíst audio soubor');
+      const errorMsg = 'Nepodařilo se načíst audio soubor';
+      setError(errorMsg);
+      showError('Chyba přehrávače', errorMsg);
       setLoading(false);
     };
 

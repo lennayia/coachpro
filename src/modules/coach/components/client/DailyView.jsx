@@ -15,6 +15,13 @@ import {
   Stack,
   Chip,
   IconButton,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  ListItemIcon,
+  Divider,
+  TextField,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -47,11 +54,13 @@ import {
   getMaterialById,
 } from '../../utils/storage';
 import { getIconByType } from '@shared/utils/helpers';
-import { fadeIn, fadeInUp } from '../../utils/animations';
+import { fadeIn, fadeInUp } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { getEmbedUrl } from '../../utils/linkDetection';
+import useModernEffects from '@shared/hooks/useModernEffects';
 
 const DailyView = () => {
+  const { presets, isDarkMode } = useModernEffects();
   const navigate = useNavigate();
   const { width, height } = useWindowSize();
 
@@ -63,6 +72,8 @@ const DailyView = () => {
   const [dayCompleted, setDayCompleted] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [celebrationOpen, setCelebrationOpen] = useState(false);
+  const [viewingDay, setViewingDay] = useState(null); // For reviewing past days
+  const [programNotes, setProgramNotes] = useState('');
 
   // Load data
   useEffect(() => {
@@ -81,11 +92,12 @@ const DailyView = () => {
     setClient(loadedClient);
     setProgram(loadedProgram);
 
-    // Get current day data
-    const dayData = loadedProgram.days?.[loadedClient.currentDay - 1];
+    // Get day data (either current day or viewing day)
+    const dayToShow = viewingDay || loadedClient.currentDay;
+    const dayData = loadedProgram.days?.[dayToShow - 1];
 
     if (!dayData) {
-      console.error('Day data not found for day', loadedClient.currentDay);
+      console.error('Day data not found for day', dayToShow);
       navigate('/client/entry');
       return;
     }
@@ -100,10 +112,10 @@ const DailyView = () => {
 
     // Check mood and completion status
     setMoodChecked(
-      loadedClient.moodLog.some((m) => m.day === loadedClient.currentDay)
+      loadedClient.moodLog.some((m) => m.day === dayToShow)
     );
-    setDayCompleted(loadedClient.completedDays.includes(loadedClient.currentDay));
-  }, [navigate]);
+    setDayCompleted(loadedClient.completedDays.includes(dayToShow));
+  }, [navigate, viewingDay]);
 
   const handleMoodSelected = (mood) => {
     const updatedClient = {
@@ -204,26 +216,65 @@ const DailyView = () => {
       )}
 
       {/* Header */}
-      <AppBar position="sticky" color="transparent" elevation={0}>
+      <AppBar
+        position="sticky"
+        elevation={0}
+        sx={{
+          ...presets.navbar(),
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
         <Toolbar>
           <IconButton edge="start" onClick={handleBack} sx={{ mr: 2 }}>
             <ArrowBackIcon />
           </IconButton>
 
-          <Box flexGrow={1}>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              CoachPro 🌿
-            </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1 }}>
+            <img
+              src="/coachPro.png"
+              alt="CoachPro"
+              style={{
+                height: '40px',
+                width: 'auto',
+              }}
+            />
+            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  lineHeight: 1.2,
+                  background: (theme) =>
+                    theme.palette.mode === 'dark'
+                      ? 'linear-gradient(135deg, #8FBC8F 0%, #556B2F 100%)'
+                      : 'linear-gradient(135deg, #556B2F 0%, #228B22 100%)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                CoachPro
+              </Typography>
+            </Box>
           </Box>
 
           <Box sx={{ minWidth: 150, textAlign: 'right' }}>
             <Typography variant="caption" color="text.secondary" display="block">
-              Den {client.currentDay} z {program.duration}
+              Den {viewingDay || client.currentDay} z {program.duration}
             </Typography>
             <LinearProgress
               variant="determinate"
               value={progressPercent}
-              sx={{ height: 6, borderRadius: BORDER_RADIUS.minimal, mt: 0.5 }}
+              sx={{
+                height: 6,
+                borderRadius: BORDER_RADIUS.minimal,
+                mt: 0.5,
+                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                '& .MuiLinearProgress-bar': {
+                  bgcolor: 'primary.main',
+                }
+              }}
             />
           </Box>
         </Toolbar>
@@ -231,14 +282,57 @@ const DailyView = () => {
 
       <Container maxWidth="md" sx={{ py: 4 }}>
         <motion.div variants={fadeIn} initial="hidden" animate="visible">
-          {/* Mood check */}
-          {!moodChecked && <MoodCheck onMoodSelected={handleMoodSelected} />}
+          {/* Viewing mode navigation */}
+          {viewingDay && (
+            <Card sx={{ mb: 3, bgcolor: 'primary.main', color: 'white' }}>
+              <CardContent>
+                <Stack spacing={2}>
+                  <Typography variant="body2" textAlign="center">
+                    Prohlížíš si den {viewingDay} z {program.duration}
+                  </Typography>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="center">
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={viewingDay === 1}
+                      onClick={() => setViewingDay(viewingDay - 1)}
+                      sx={{ color: 'white', borderColor: 'white', '&:disabled': { color: 'grey.400', borderColor: 'grey.400' } }}
+                    >
+                      Předchozí
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={viewingDay === program.duration}
+                      onClick={() => setViewingDay(viewingDay + 1)}
+                      sx={{ color: 'white', borderColor: 'white', '&:disabled': { color: 'grey.400', borderColor: 'grey.400' } }}
+                    >
+                      Další
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => setViewingDay(null)}
+                      sx={{ bgcolor: 'white', color: 'primary.main', '&:hover': { bgcolor: 'grey.100' } }}
+                    >
+                      Ukončit prohlížení
+                    </Button>
+                  </Stack>
+                </Stack>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Mood check - only if program not completed and not in viewing mode */}
+          {!moodChecked && !viewingDay && client.currentDay < program.duration && (
+            <MoodCheck onMoodSelected={handleMoodSelected} />
+          )}
 
           {/* Day header */}
-          <Card sx={{ mb: 3, textAlign: 'center' }}>
+          <Card sx={{ mb: 3, textAlign: 'center', borderRadius: '36px' }}>
             <CardContent sx={{ py: 4 }}>
               <Typography variant="overline" color="text.secondary">
-                Den {client.currentDay}
+                Den {viewingDay || client.currentDay}
               </Typography>
               <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
                 {currentDayData.title}
@@ -562,8 +656,211 @@ const DailyView = () => {
             ))}
           </Stack>
 
-          {/* Complete day button */}
-          {!dayCompleted ? (
+          {/* Complete day button / Program completion */}
+          {!viewingDay && client.currentDay === program.duration && dayCompleted ? (
+            // Program completed - show completion summary
+            <Card
+              elevation={0}
+              sx={{
+                mb: 4,
+                ...glassmorphismWithGradient(),
+              }}
+            >
+              <Box
+                sx={{
+                  position: 'relative',
+                  zIndex: 1,
+                  py: 6,
+                  px: 4,
+                  textAlign: 'center',
+                }}
+              >
+                <Typography
+                  variant="h3"
+                  gutterBottom
+                  sx={{
+                    fontWeight: 700,
+                    mb: 2,
+                    color: 'text.primary',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  Program dokončen
+                </Typography>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: 600,
+                    mb: 1,
+                    color: 'primary.main',
+                  }}
+                >
+                  {program.title}
+                </Typography>
+                <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto', mb: 4 }}>
+                  Prošla jsi celým {program.duration}-denním programem. Skvělá práce.
+                </Typography>
+
+                {client.streak > 1 && (
+                  <Box
+                    sx={{
+                      mt: 4,
+                      p: 3,
+                      ...glassmorphismLight({ borderRadius: '33px' }),
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.1em',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Aktuální série
+                    </Typography>
+                    <Typography
+                      variant="h2"
+                      sx={{
+                        fontWeight: 700,
+                        color: 'primary.main',
+                        mt: 1,
+                        letterSpacing: '-0.02em',
+                      }}
+                    >
+                      {client.streak}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {client.streak === 1 ? 'den' : client.streak < 5 ? 'dny' : 'dní'} v řadě
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+
+              <Box sx={{ p: 3, pt: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={handleBack}
+                  sx={{
+                    px: 5,
+                    py: 1.75,
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    backdropFilter: 'blur(30px)',
+                    background: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? 'linear-gradient(135deg, rgba(139, 188, 143, 0.95) 0%, rgba(85, 107, 47, 0.9) 100%)'
+                        : 'linear-gradient(135deg, rgba(85, 107, 47, 0.95) 0%, rgba(139, 188, 143, 0.9) 100%)',
+                    border: '1px solid',
+                    borderColor: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(139, 188, 143, 0.5)'
+                        : 'rgba(85, 107, 47, 0.6)',
+                    boxShadow: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? '0 8px 32px rgba(139, 188, 143, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                        : '0 8px 32px rgba(85, 107, 47, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
+                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: '-100%',
+                      width: '100%',
+                      height: '100%',
+                      background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent)',
+                      transition: 'left 0.6s ease-in-out',
+                    },
+                    '&:hover': {
+                      transform: 'translateY(-4px) scale(1.02)',
+                      boxShadow: (theme) =>
+                        theme.palette.mode === 'dark'
+                          ? '0 12px 48px rgba(139, 188, 143, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
+                          : '0 12px 48px rgba(85, 107, 47, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+                      borderColor: (theme) =>
+                        theme.palette.mode === 'dark'
+                          ? 'rgba(139, 188, 143, 0.8)'
+                          : 'rgba(85, 107, 47, 0.8)',
+                      '&::before': {
+                        left: '100%',
+                      },
+                    },
+                    '&:active': {
+                      transform: 'translateY(-2px) scale(0.98)',
+                    },
+                  }}
+                >
+                  Zpět na výběr programu
+                </Button>
+
+                <Button
+                  variant="outlined"
+                  size="large"
+                  onClick={() => setViewingDay(1)}
+                  sx={{
+                    px: 5,
+                    py: 1.75,
+                    fontWeight: 500,
+                    textTransform: 'none',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    backdropFilter: 'blur(30px)',
+                    background: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(255, 255, 255, 0.05)'
+                        : 'rgba(255, 255, 255, 0.6)',
+                    borderWidth: 2,
+                    borderColor: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(255, 255, 255, 0.2)'
+                        : 'rgba(0, 0, 0, 0.15)',
+                    color: 'text.primary',
+                    boxShadow: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? '0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                        : '0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      inset: 0,
+                      background: (theme) =>
+                        theme.palette.mode === 'dark'
+                          ? 'radial-gradient(circle at center, rgba(139, 188, 143, 0.15) 0%, transparent 70%)'
+                          : 'radial-gradient(circle at center, rgba(85, 107, 47, 0.1) 0%, transparent 70%)',
+                      opacity: 0,
+                      transition: 'opacity 0.4s',
+                    },
+                    '&:hover': {
+                      transform: 'translateY(-4px) scale(1.02)',
+                      borderWidth: 2,
+                      borderColor: 'primary.main',
+                      background: (theme) =>
+                        theme.palette.mode === 'dark'
+                          ? 'rgba(139, 188, 143, 0.15)'
+                          : 'rgba(85, 107, 47, 0.12)',
+                      boxShadow: (theme) =>
+                        theme.palette.mode === 'dark'
+                          ? '0 8px 32px rgba(139, 188, 143, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                          : '0 8px 32px rgba(85, 107, 47, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.9)',
+                      '&::before': {
+                        opacity: 1,
+                      },
+                    },
+                    '&:active': {
+                      transform: 'translateY(-2px) scale(0.98)',
+                    },
+                  }}
+                >
+                  Prohlédnout si program znovu
+                </Button>
+              </Box>
+            </Card>
+          ) : !viewingDay && !dayCompleted ? (
             <Button
               fullWidth
               variant="contained"
@@ -574,7 +871,7 @@ const DailyView = () => {
             >
               Označit den jako hotový
             </Button>
-          ) : (
+          ) : !viewingDay && dayCompleted ? (
             <Alert severity="success" sx={{ mb: 4 }}>
               <Box display="flex" justifyContent="space-between" alignItems="center">
                 <Box>
@@ -589,18 +886,16 @@ const DailyView = () => {
                     />
                   )}
                 </Box>
-                {client.currentDay < program.duration && (
-                  <Button
-                    variant="text"
-                    endIcon={<NextIcon />}
-                    onClick={handleNextDay}
-                  >
-                    Den {client.currentDay + 1}
-                  </Button>
-                )}
+                <Button
+                  variant="text"
+                  endIcon={<NextIcon />}
+                  onClick={handleNextDay}
+                >
+                  Den {client.currentDay + 1}
+                </Button>
               </Box>
             </Alert>
-          )}
+          ) : null}
 
           {/* Progress Garden */}
           <ProgressGarden

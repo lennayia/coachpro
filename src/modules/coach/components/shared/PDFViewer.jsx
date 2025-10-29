@@ -4,9 +4,11 @@ import {
   OpenInNew as OpenIcon,
   Download as DownloadIcon,
 } from '@mui/icons-material';
+import { useNotification } from '@shared/context/NotificationContext';
 
 const PDFViewer = ({ src, title }) => {
   const [error, setError] = useState(false);
+  const { showError } = useNotification();
 
   const handleDownload = () => {
     const link = document.createElement('a');
@@ -23,6 +25,7 @@ const PDFViewer = ({ src, title }) => {
 
   const handleIframeError = () => {
     setError(true);
+    showError('Chyba PDF', 'Nepodařilo se načíst PDF. Zkus stáhnout nebo otevřít v novém okně.');
   };
 
   return (

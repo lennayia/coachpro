@@ -14,6 +14,7 @@
     "@mui/material": "^6.1.0",
     "@supabase/supabase-js": "^2.76.1",
     "framer-motion": "^11.0.0",
+    "heic2any": "^0.0.4",
     "lucide-react": "^0.344.0",
     "pdfjs-dist": "^5.4.296",
     "qrcode": "^1.5.4",

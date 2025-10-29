@@ -31,7 +31,7 @@ import { useNavigate } from 'react-router-dom';
 import ProgramEditor from './ProgramEditor';
 import ShareProgramModal from './ShareProgramModal';
 import { getCurrentUser, getPrograms, deleteProgram, getClients } from '../../utils/storage';
-import { staggerContainer, staggerItem } from '../../utils/animations';
+import { staggerContainer, staggerItem } from '@shared/styles/animations';
 import { formatDate, pluralize } from '@shared/utils/helpers';
 import BORDER_RADIUS from '@styles/borderRadius';
 

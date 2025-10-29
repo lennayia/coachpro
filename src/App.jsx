@@ -11,6 +11,10 @@ import ClientView from '@modules/coach/pages/ClientView';
 // Context pro theme mode
 import { createContext, useContext } from 'react';
 
+// Notification system
+import { NotificationProvider } from '@shared/context/NotificationContext';
+import { NotificationContainer } from '@shared/components/NotificationContainer';
+
 export const ThemeModeContext = createContext({
   mode: 'light',
   toggleTheme: () => {},
@@ -28,15 +32,18 @@ function App() {
   return (
     <ThemeModeContext.Provider value={{ mode, toggleTheme }}>
       <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/coach/*" element={<CoachDashboard />} />
-            <Route path="/client/*" element={<ClientView />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
+        <NotificationProvider>
+          <CssBaseline />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Login />} />
+              <Route path="/coach/*" element={<CoachDashboard />} />
+              <Route path="/client/*" element={<ClientView />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+          <NotificationContainer />
+        </NotificationProvider>
       </ThemeProvider>
     </ThemeModeContext.Provider>
   );

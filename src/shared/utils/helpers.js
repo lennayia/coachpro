@@ -294,6 +294,46 @@ export const truncate = (text, maxLength = 100) => {
 };
 
 /**
+ * Konvertuje HEIC/HEIF obrázek na JPEG
+ * (HEIC není podporován většinou browserů)
+ */
+export const convertHeicToJpeg = async (file) => {
+  try {
+    // Kontrola, zda je to HEIC/HEIF
+    const isHeic = file.type === 'image/heic' ||
+                   file.type === 'image/heif' ||
+                   file.name.toLowerCase().endsWith('.heic') ||
+                   file.name.toLowerCase().endsWith('.heif');
+
+    if (!isHeic) {
+      return file; // Není HEIC, vrátíme původní soubor
+    }
+
+    // Dynamický import heic2any (lazy loading)
+    const heic2any = (await import('heic2any')).default;
+
+    // Konverze na JPEG
+    const convertedBlob = await heic2any({
+      blob: file,
+      toType: 'image/jpeg',
+      quality: 0.9 // 90% kvalita
+    });
+
+    // Vytvoření nového File objektu z Blob
+    const jpegFile = new File(
+      [Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob],
+      file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'),
+      { type: 'image/jpeg' }
+    );
+
+    return jpegFile;
+  } catch (error) {
+    console.error('Chyba při konverzi HEIC:', error);
+    throw new Error('Nepodařilo se převést HEIC obrázek. Zkus použít jiný formát (JPG, PNG).');
+  }
+};
+
+/**
  * Pluralizace (počet + slovo ve správném tvaru)
  */
 export const pluralize = (count, singular, few, many) => {
@@ -321,5 +361,6 @@ export default {
   downloadQRCode,
   isValidEmail,
   truncate,
+  convertHeicToJpeg,
   pluralize
 };

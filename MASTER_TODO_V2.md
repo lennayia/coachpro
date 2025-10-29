@@ -1,9 +1,10 @@
 # 🎯 COACHPRO - MASTER TODO V2.0
 
-**Datum aktualizace:** 28. října 2025, 20:30
-**Aktuální stav:** Sprint 8 dokončen (CRITICAL BUGS - Opravy)
-**Další sprint:** Sprint 9 - VEŘEJNÝ PROFIL + 2 ÚROVNĚ
+**Datum aktualizace:** 29. října 2025, 15:00
+**Aktuální stav:** Sprint 9 dokončen (Glassmorphism & UI Polish)
+**Další sprint:** Sprint 10 - MODULARITA + SPRÁVA KLIENTŮ + DATA PERSISTENCE
 **Hosting:** Vercel (frontend) + Supabase (database + storage)
+**AI asistenti:** Claude Code (Opus) + Claude Sonnet 4.5
 
 ---
 
@@ -140,7 +141,466 @@
 
 ---
 
-### **Sprint 10: KLIENTSKÉ ROZHRANÍ + CRITICAL FEATURES (4-5 dní)**
+### ✅ **Sprint 9: GLASSMORPHISM & UI POLISH (2 dny)** - HOTOVO!
+
+**Datum:** 28-29. října 2025
+**AI asistenti:** Claude Code (Opus) + Claude Sonnet 4.5
+**Status:** ✅ Kompletně implementováno a otestováno
+
+#### **9.1 Glassmorphism na modalech a dialozích**
+- ✅ **Vytvořeny utility soubory:**
+  - `/src/shared/styles/modernEffects.js` - Plain objekty pro glassmorphism (Opus)
+  - `/src/shared/hooks/useModernEffects.js` - React hook (Opus)
+  - `/src/shared/styles/modernEffects_FIXED.js` - Opravená verze (Sonnet)
+- ✅ **Aplikováno na všechny modaly:**
+  - PreviewModal - glassmorphism backdrop + paper
+  - AddMaterialModal - glassmorphism backdrop + paper
+  - Delete Dialogs - glassmorphism efekty
+  - ProgramEditor modals - glassmorphism
+- ✅ **BackdropProps pattern:**
+  ```javascript
+  BackdropProps={{
+    sx: {
+      backdropFilter: 'blur(4px)',
+      WebkitBackdropFilter: 'blur(4px)',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    }
+  }}
+  ```
+- ✅ **PaperProps pattern:**
+  ```javascript
+  PaperProps={{
+    sx: {
+      backdropFilter: 'blur(20px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+      backgroundColor: isDark
+        ? 'rgba(26, 26, 26, 0.7)'
+        : 'rgba(255, 255, 255, 0.7)',
+    }
+  }}
+  ```
+
+#### **9.2 Glow efekty místo borders**
+- ✅ **Nahrazeny ostré borders soft glow efekty:**
+  ```javascript
+  // ❌ BEFORE: border: '2px solid'
+  // ✅ AFTER: boxShadow: '0 0 30px rgba(139, 188, 143, 0.25)'
+  ```
+- ✅ Aplikováno na karty, tlačítka, focus states
+
+#### **9.3 TextField styling vylepšení**
+- ✅ **Focus efekty:**
+  ```javascript
+  '&.Mui-focused': {
+    boxShadow: '0 0 20px rgba(139, 188, 143, 0.15)',
+    backgroundColor: isDark
+      ? 'rgba(255, 255, 255, 0.08)'
+      : 'rgba(0, 0, 0, 0.04)',
+  }
+  ```
+- ✅ Hover states vylepšeny
+- ✅ Transition efekty na všech inputech
+
+#### **9.4 Grid Layout Fix**
+- ✅ **MaterialsLibrary.jsx opraveno:**
+  ```javascript
+  // Problem: Grid spacing vytváří negativní marginy
+  // Solution: Parent Box s padding
+  <Box sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+    <Grid spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+  ```
+- ✅ Aplikováno na všechny Grid layouts v aplikaci
+
+#### **9.5 MaterialCard.jsx obnova**
+- ✅ **Corrupted soubor opraven** (Sonnet, 29.10 ráno)
+- ✅ Odstraněny nefunkční glassmorphism experimenty z karet
+- ✅ Glassmorphism aplikován JEN na Delete Dialog
+- ✅ Karta samotná zachována s běžným glass efektem
+
+**Soubory upraveny:** 6+
+- `/src/shared/styles/modernEffects.js` (nový)
+- `/src/shared/hooks/useModernEffects.js` (nový)
+- `/src/shared/styles/modernEffects_FIXED.js` (nový)
+- `/src/modules/coach/components/coach/MaterialCard.jsx` (opraven + glassmorphism)
+- `/src/modules/coach/components/coach/MaterialsLibrary.jsx` (grid fix)
+- Všechny modaly v aplikaci (glassmorphism aplikován)
+
+**Kritická zjištění:**
+- ❌ **Glassmorphism NEFUNGUJE na běžných kartách na stránce!** (backdrop-filter potřebuje vrstvu "za")
+- ❌ **Spread operator nefunguje s backdrop-filter v MUI sx prop**
+- ⚠️ **ServiceLogo size MUSÍ BÝT numeric**, ne responsive object
+- ✅ **Glassmorphism JEN na modaly** s BackdropProps + PaperProps
+- ✅ **Grid spacing vyžaduje parent padding** (kvůli negativním marginům)
+
+**Dokumentace:** Vše zdokumentováno v `claude.md` (4 sessions, lessons learned, patterns)
+
+---
+
+### 🚨 **Sprint 10: MODULARITA + DATA PERSISTENCE + SPRÁVA KLIENTŮ (5-7 dní)** - PRIORITY 1!
+
+**Důležitost:** 🔥 CRITICAL - Základ pro celý ekosystém DigiPro
+**Datum zahájení:** 29. října 2025
+
+#### **10.1 🚨 DATA PERSISTENCE - Oprava LocalStorage problému**
+**Problém:** Vymazání localStorage = ztráta všech dat koučky (NESMÍ SE STÁT!)
+
+- [ ] **🔴 CRITICAL: Supabase Storage - aktivovat a debugovat**
+  - **Proč to nefunguje?** Zjistit root cause
+  - Ověřit Supabase credentials v `.env`
+  - Testovat upload/download funkcionalitu
+  - Zkontrolovat `supabaseStorage.js` integraci
+  - **Debug checklist:**
+    - [ ] Supabase projekt existuje a je aktivní
+    - [ ] API keys jsou správné
+    - [ ] Storage bucket je vytvořený
+    - [ ] RLS (Row Level Security) je správně nastaveno
+    - [ ] Upload funkce nemá errors v console
+    - [ ] Network tab ukazuje úspěšné requesty
+
+- [ ] **Auto-sync do Supabase** (localStorage → cloud)
+  - Každá změna v materiálech → auto-upload do Supabase
+  - Každá změna v programech → auto-upload
+  - Každá změna v klientkách → auto-upload
+  - Debounced (5 sekund) aby se nespamovalo
+  - Toast notifikace: "Změny uloženy do cloudu ✓"
+
+- [ ] **Obnovení dat z cloudu**
+  - Při prvním načtení: zkontrolovat Supabase
+  - Pokud cloud má novější data → načíst odtud
+  - Pokud localStorage má novější → merge
+  - **Conflict resolution:** Timestamp-based (newer wins)
+
+- [ ] **Backup & Recovery systém**
+  - Denní automatický backup do Supabase
+  - Export dat jako JSON (manual backup)
+  - Import dat z JSON (manual restore)
+  - **Recovery flow:**
+    - Koučka klikne "Obnovit data z cloudu"
+    - Zobrazit dostupné backupy (datum, čas)
+    - Vybrat backup → restore
+    - Potvrzení před přepsáním
+
+- [ ] **Varování před vymazáním localStorage**
+  - Pokud někdo řekne "vymaž localStorage", VŽDY varovat:
+    - ⚠️ "Pozor! Vymazáním ztratíš veškerá data pokud nejsou v cloudu."
+    - Tlačítko "Nejdřív zálohovat do cloudu"
+    - Tlačítko "Exportovat jako JSON"
+    - Teprve pak "Ano, vymazat vše"
+
+**Status data recovery:**
+- ❌ Data z vymazaného localStorage NELZE vrátit (konstatování)
+- ✅ Od teď: Auto-sync do Supabase = ochrana proti ztrátě
+
+---
+
+#### **10.2 🎯 MODULARITA - DigiPro Ekosystém Foundation**
+**Cíl:** Vytvořit sdílené komponenty pro celý ekosystém (CoachPro, PaymentsPro, další moduly)
+
+- [ ] **Analýza: Co z PaymentsPro můžeme znovupoužít?**
+  - [ ] Profil komponenta (Coach + Client) - **PRIORITA!**
+  - [ ] Upload fotky systém - **PRIORITA!**
+  - [ ] Administrační systém pro správu uživatelů
+  - [ ] Toast notifikační systém (už máme)
+  - [ ] Theme systém (color schemes)
+  - [ ] Auth komponenty (login, register)
+  - [ ] Settings stránka
+  - [ ] Forms komponenty (TextField, Select, atd.)
+  - [ ] Layout komponenty (Header, Sidebar, Footer)
+  - [ ] Modal komponenty (glassmorphism ready)
+  - [ ] Card komponenty (glassmorphism ready)
+
+- [ ] **Vytvořit @digipro/shared package** (nebo folder)
+  - Struktura:
+    ```
+    /src/shared/digipro/
+      /components/
+        /Profile/
+          ProfileCard.jsx
+          ProfileEditor.jsx
+          ProfilePhoto.jsx
+        /Admin/
+          UsersList.jsx
+          UserDetail.jsx
+          UserEditor.jsx
+        /Auth/
+          LoginForm.jsx
+          RegisterForm.jsx
+        /Forms/
+          DigiTextField.jsx
+          DigiSelect.jsx
+          DigiUpload.jsx
+      /hooks/
+        useProfile.js
+        usePhotoUpload.js
+        useAdmin.js
+      /utils/
+        profileHelpers.js
+        adminHelpers.js
+      /styles/
+        digiproTheme.js
+    ```
+
+- [ ] **Modulární funkce podle best practices:**
+  - **Authentication:** Login, Register, Logout, Password Reset
+  - **User Management:** CRUD operace, Role management
+  - **File Upload:** Image, PDF, Audio, Video (s Supabase)
+  - **Notifications:** Toast, Push, Email
+  - **Search:** Global search, Filters, Sorting
+  - **Settings:** Profile, Preferences, Theme
+  - **Analytics:** Tracking, Charts, Reports
+  - **Comments/Feedback:** Rating, Reviews
+  - **Calendar:** Events, Reminders
+  - **Chat:** Real-time messaging (budoucnost)
+
+- [ ] **DigiPro Design System**
+  - Jednotná color palette napříč všemi moduly
+  - Jednotné border-radius hodnoty
+  - Jednotné spacing (4, 8, 12, 16, 24, 32, 48, 64px)
+  - Jednotné typography (font sizes, weights)
+  - Glassmorphism patterns (z CoachPro)
+  - Animation patterns (z CoachPro)
+
+---
+
+#### **10.3 👤 PROFIL KOUČKY - Import z PaymentsPro**
+**Cíl:** Mít kompletní profil koučky s fotkou (jako v PaymentsPro)
+
+- [ ] **Vytvořit CoachProfile komponenty:**
+  - [ ] **CoachProfileCard.jsx** (read-only view)
+    - Fotka (200x200px kruhová)
+    - Jméno, email, telefon
+    - Bio/Tagline
+    - Sociální sítě
+    - Kvalifikace
+    - Tlačítko "Upravit profil"
+
+  - [ ] **CoachProfileEditor.jsx** (edit mode)
+    - Upload fotky (drag & drop nebo kliknutí)
+    - Crop tool (react-easy-crop)
+    - Compress image před uploadem
+    - Vše editovatelné
+    - Auto-save (debounced)
+    - Toast feedback
+
+  - [ ] **ProfilePhotoUpload.jsx** (reusable)
+    - Drag & drop zone
+    - Preview před uploadem
+    - Crop & rotate
+    - Compress (max 500KB)
+    - Upload do Supabase Storage
+    - Fallback: Default avatar (iniciály)
+
+- [ ] **Coach object - rozšíření:**
+  ```javascript
+  {
+    // Základní (už máme)
+    id: "uuid",
+    name: "Lenka Nováková",
+    email: "lenka@example.com",
+
+    // NOVÉ - Profil
+    profilePhoto: {
+      url: "https://supabase.../coach-photos/uuid.jpg",
+      thumbnail: "https://supabase.../coach-photos/uuid_thumb.jpg",
+      uploadedAt: "ISO timestamp"
+    },
+    phone: "+420 xxx xxx xxx",
+    bio: "Koučka pro ženy v podnikání...",
+    tagline: "Najdi sílu v sobě",
+
+    // Sociální sítě
+    socialLinks: {
+      instagram: "",
+      linkedin: "",
+      website: "",
+      facebook: ""
+    },
+
+    // Kvalifikace
+    education: "ICF akreditace, XYZ škola",
+    certifications: [
+      { title: "ICF ACC", year: "2023" }
+    ],
+
+    // Settings
+    preferences: {
+      theme: "nature",
+      notifications: true,
+      language: "cs"
+    },
+
+    // Meta
+    createdAt: "ISO timestamp",
+    updatedAt: "ISO timestamp"
+  }
+  ```
+
+- [ ] **Storage.js - update:**
+  - `updateCoachProfile(coachId, updates)` - uložit změny
+  - `uploadCoachPhoto(coachId, file)` - nahrát fotku
+  - `getCoachProfile(coachId)` - načíst profil
+
+- [ ] **Navigace - přidat "Profil" stránku:**
+  - Route: `/coach/profile`
+  - Menu item v Sidebar
+  - Zobrazit CoachProfileCard + Edit button
+
+---
+
+#### **10.4 👥 PROFIL KLIENTKY - Import z PaymentsPro**
+**Cíl:** Klientka má také kompletní profil s fotkou
+
+- [ ] **Vytvořit ClientProfile komponenty:**
+  - [ ] **ClientProfileCard.jsx** (read-only)
+  - [ ] **ClientProfileEditor.jsx** (edit mode)
+  - [ ] Použít STEJNÝ ProfilePhotoUpload komponentu (modularita!)
+
+- [ ] **Client object - rozšíření:**
+  ```javascript
+  {
+    // Základní (už máme)
+    id: "uuid",
+    name: "Jana Nováková",
+    email: "jana@example.com",
+
+    // NOVÉ - Profil
+    profilePhoto: {
+      url: "https://supabase.../client-photos/uuid.jpg",
+      thumbnail: "https://supabase.../client-photos/uuid_thumb.jpg"
+    },
+    phone: "+420 xxx xxx xxx",
+    bio: "Moje cesta...", // volitelné
+
+    // Moje PROČ (už máme)
+    whyStatement: {
+      why: "...",
+      expectations: "...",
+      direction: "..."
+    },
+
+    // Program info (už máme)
+    programId: "uuid",
+    startedAt: "ISO timestamp",
+    completedDays: [1, 2, 3],
+
+    // Meta
+    createdAt: "ISO timestamp",
+    updatedAt: "ISO timestamp"
+  }
+  ```
+
+- [ ] **Navigace - přidat "Profil" stránku pro klientku:**
+  - Route: `/client/profile`
+  - Menu item v klientčině Sidebar
+
+---
+
+#### **10.5 🔧 SPRÁVA KLIENTŮ - Administrační systém (jako PaymentsPro)**
+**Problém:** Klientka se musí umět registrovat SAMA + koučka musí umět přidat ručně
+
+- [ ] **ClientsList stránka - UPGRADE:**
+  - [ ] **Tlačítko "Přidat klientku ručně"** ← NOVÉ!
+    - Otevře AdminAddClientModal
+    - Koučka vyplní: Jméno, Email, Telefon
+    - Vybere program
+    - Volitelně: Vygenerovat přístupový kód nebo poslat email
+
+  - [ ] **Batch operace:**
+    - Multi-select klientek
+    - Hromadné odeslání emailu
+    - Hromadné přiřazení programu
+    - Hromadné smazání (s potvrzením!)
+
+  - [ ] **Pokročilé filtry:**
+    - Status: Aktivní, Dokončené, Neaktivní
+    - Program
+    - Datum registrace
+    - Poslední aktivita
+
+- [ ] **AdminAddClientModal komponenta:**
+  ```javascript
+  // Formulář:
+  - Jméno (required)
+  - Email (required, validace)
+  - Telefon (optional)
+  - Program (dropdown, required)
+  - Způsob přístupu:
+    [ ] Vygenerovat kód (6 znaků)
+    [ ] Poslat email s odkazem
+    [ ] Obojí
+  - Poznámka pro koučku (optional)
+  ```
+
+- [ ] **Dva způsoby registrace klientky:**
+
+  **A) Samo-registrace (už máme, upgrade):**
+  - Klientka zadá kód programu nebo naskenuje QR
+  - Vyplní jméno + email
+  - Automaticky se vytvoří účet
+  - Redirect na program
+
+  **B) Koučka přidá ručně (NOVÉ):**
+  - Koučka vyplní AdminAddClientModal
+  - Klientka dostane email s linkem
+  - Klikne na link → nastaví heslo (volitelné)
+  - Redirect na program
+
+- [ ] **Email notifikace pro klientku:** (mock zatím, později Supabase)
+  ```
+  Subject: Tvoje koučka tě přidala do programu! 🌿
+
+  Ahoj {{name}},
+
+  Koučka {{coachName}} tě přidala do programu "{{programName}}".
+
+  Tvůj přístupový kód: {{code}}
+  Nebo klikni přímo: {{link}}
+
+  Těším se na společnou cestu!
+  {{coachName}}
+  ```
+
+- [ ] **Modularita - ClientAdmin systém:**
+  - `/src/shared/digipro/components/Admin/ClientAdmin/`
+    - `ClientsList.jsx` (tabulka/grid)
+    - `ClientDetail.jsx` (detail klientky)
+    - `ClientEditor.jsx` (editace)
+    - `ClientInvite.jsx` (pozvání emailem)
+    - `ClientBulkActions.jsx` (hromadné akce)
+
+---
+
+#### **10.6 📊 Přehled změn pro tento Sprint:**
+
+**Soubory k vytvoření:**
+- `/src/shared/digipro/` (celá struktura)
+- `/src/modules/coach/components/profile/CoachProfileCard.jsx`
+- `/src/modules/coach/components/profile/CoachProfileEditor.jsx`
+- `/src/modules/coach/components/profile/ProfilePhotoUpload.jsx`
+- `/src/modules/coach/components/admin/AdminAddClientModal.jsx`
+- `/src/modules/coach/pages/CoachProfile.jsx`
+- `/src/modules/client/components/profile/ClientProfileCard.jsx`
+- `/src/modules/client/pages/ClientProfile.jsx`
+
+**Soubory k úpravě:**
+- `/src/modules/coach/utils/storage.js` (přidat profil funkce)
+- `/src/modules/coach/utils/supabaseStorage.js` (aktivovat + debug)
+- `/src/modules/coach/components/coach/ClientsList.jsx` (přidat admin features)
+- `/src/modules/coach/pages/CoachDashboard.jsx` (přidat Profil link)
+
+**Dependencies k instalaci:**
+- `react-easy-crop` (pro crop fotky)
+- `browser-image-compression` (pro compress)
+
+**Technologie:**
+- Supabase Storage (fotky)
+- Supabase Database (backup dat)
+- LocalStorage (cache)
+- Auto-sync pattern (localStorage ↔ Supabase)
+
+---
+
+### **Sprint 11: KLIENTSKÉ ROZHRANÍ + CRITICAL FEATURES (4-5 dní)**
 
 #### **9.1 Klientské rozhraní - kompletní layout**
 - [ ] **Menu + Sidebar** (stejný layout jako u koučky, jiná data)
@@ -1283,6 +1743,7 @@ Aktuálně máme: Audio, PDF, Text, Link, Image, Video, Document
   - Sdílené komponenty v @shared/components
   - Sdílené constants v @shared/constants
   - Custom hooks pro opakovanou logiku
+  - **DigiPro ekosystém:** Komponenty použitelné napříč CoachPro, PaymentsPro, atd.
 
 - [ ] **Testovat funkčnost po každé změně:**
   - Otestovat v prohlížeči (Chrome, Safari, Firefox)
@@ -1290,6 +1751,116 @@ Aktuálně máme: Audio, PDF, Text, Link, Image, Video, Document
   - Zkontrolovat console pro errory
   - Zkontrolovat Network tab pro failed requests
   - Otestovat edge cases
+
+- [ ] **🎨 GLASSMORPHISM PATTERNS (ze Sprintu 9):**
+  - ❌ **NIKDY nepoužívat glassmorphism na běžných kartách na stránce!**
+    - Backdrop-filter potřebuje vrstvu "za" elementem
+    - Na kartě na stránce není co rozmazat
+  - ✅ **Glassmorphism JEN na modaly a dialogy:**
+    ```javascript
+    <Dialog
+      BackdropProps={{
+        sx: {
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        }
+      }}
+      PaperProps={{
+        sx: {
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          backgroundColor: isDark
+            ? 'rgba(26, 26, 26, 0.7)'
+            : 'rgba(255, 255, 255, 0.7)',
+        }
+      }}
+    >
+    ```
+
+- [ ] **⚠️ MUI sx prop PRAVIDLA (ze Sprintu 9):**
+  - ❌ **Spread operator NEFUNGUJE s backdrop-filter:**
+    ```javascript
+    // ❌ NEFUNGUJE
+    <Card sx={{ ...glassCardStyles }} />
+
+    // ✅ FUNGUJE
+    <Card sx={glassCardStyles} />
+    ```
+  - **DŮVOD:** backdrop-filter je složitá CSS vlastnost a MUI ji nezvládá zpracovat při spreadu
+  - **ŘEŠENÍ:** Aplikuj styly přímo bez spreadu, nebo použij sx={styles} místo sx={{...styles}}
+
+- [ ] **🖼️ ServiceLogo komponenta PRAVIDLA (ze Sprintu 9):**
+  - ⚠️ **Size prop MUSÍ BÝT numeric, ne responsive object!**
+    ```javascript
+    // ❌ NEFUNGUJE
+    <ServiceLogo size={{ xs: 28, sm: 32 }} />
+
+    // ✅ FUNGUJE
+    const isVeryNarrow = useMediaQuery('(max-width:420px)');
+    <ServiceLogo size={isVeryNarrow ? 28 : 32} />
+    ```
+  - **DŮVOD:** ServiceLogo je custom komponenta a nepodporuje MUI responsive objekty
+  - **ŘEŠENÍ:** Použij useMediaQuery hook a ternary operator
+
+- [ ] **📐 Grid Layout PRAVIDLA (ze Sprintu 9):**
+  - ⚠️ **Grid spacing vytváří negativní marginy → potřebuje parent padding!**
+    ```javascript
+    // ❌ Bez parent paddingu = horizontal scroll
+    <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+
+    // ✅ S parent paddingem = správné zobrazení
+    <Box sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+      <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+    </Box>
+    ```
+  - **DŮVOD:** MUI Grid používá negativní marginy pro spacing
+  - **ŘEŠENÍ:** Vždy přidat padding na parent container (stejná hodnota jako spacing)
+
+- [ ] **✨ Glow efekty místo borders (ze Sprintu 9):**
+  - ✅ **Preferovat glow efekty (boxShadow) místo ostrých borders:**
+    ```javascript
+    // ❌ Border - příliš ostré
+    border: '2px solid',
+    borderColor: 'primary.main'
+
+    // ✅ Glow - modernější, soft
+    boxShadow: '0 0 30px rgba(139, 188, 143, 0.25)'
+    ```
+  - Aplikovat na karty, tlačítka, focus states
+
+- [ ] **🎯 TextField Focus efekty (ze Sprintu 9):**
+  - ✅ **Pattern pro focus states:**
+    ```javascript
+    '&.Mui-focused': {
+      boxShadow: '0 0 20px rgba(139, 188, 143, 0.15)',
+      backgroundColor: isDark
+        ? 'rgba(255, 255, 255, 0.08)'
+        : 'rgba(0, 0, 0, 0.04)',
+    }
+    ```
+
+- [ ] **🔗 PATH ALIASES - VŽDY používat!:**
+  - ✅ **Vždy používat @ aliasy místo relativních cest:**
+    ```javascript
+    // ✅ SPRÁVNĚ
+    import BORDER_RADIUS from '@styles/borderRadius';
+    import { useGlassCard } from '@shared/hooks/useModernEffects';
+    import ServiceLogo from '@modules/coach/components/shared/ServiceLogo';
+
+    // ❌ ŠPATNĚ
+    import BORDER_RADIUS from '../../../styles/borderRadius';
+    import { useGlassCard } from '../../shared/hooks/useModernEffects';
+    ```
+
+- [ ] **💾 DATA PERSISTENCE - KRITICKÉ!:**
+  - 🚨 **NIKDY neříkat "vymaž localStorage" bez varování o ztrátě dat!**
+  - ✅ **VŽDY nabídnout backup před vymazáním:**
+    - "Nejdřív zálohovat do cloudu"
+    - "Exportovat jako JSON"
+    - Teprve pak "Ano, vymazat vše"
+  - ✅ **Auto-sync do Supabase** = ochrana proti ztrátě dat
+  - ❌ **Data z vymazaného localStorage NELZE vrátit!**
 
 ---
 
@@ -1482,44 +2053,117 @@ hm, Video sessions, Progress tracking
 
 ## 🚀 DOPORUČENÉ POŘADÍ IMPLEMENTACE
 
-1. **🚨 CRITICAL BUGS** (1-2 dny) - HNED!
-2. **Sprint 7** - Veřejný profil (5-7 dní)
-3. **Sprint 8** - Nové typy materiálů (3-4 dny)
-4. **Sprint 9** - Sdílení + balíčky (2-3 dny)
-5. **Sprint 10** - Funkce pro klientku (3-4 dny)
-6. **Sprint 11** - File management (2 dny)
-7. **Sprint 12** - Vyhledávání + řazení (2 dny)
-8. **Sprint 13** - Nápověda (2-3 dny)
-9. **Sprint 14** - Mobile optimalizace (2-3 dny)
-10. **Sprint 15** - Dashboard upgrade (2 dny)
-11. **Beta testing** (1 týden)
-12. **Launch!** 🎉
+### **✅ HOTOVO:**
+- ✅ Sprint 7 - Toast notifikační systém (1 den) - **28. 10. 2025**
+- ✅ Sprint 8 - Critical bugs opravy (1 den) - **28. 10. 2025**
+- ✅ Sprint 9 - Glassmorphism & UI polish (2 dny) - **28-29. 10. 2025**
+
+### **🔥 PRIORITY 1 - NYNÍ:**
+1. **🚨 Sprint 10** - MODULARITA + DATA PERSISTENCE + SPRÁVA KLIENTŮ (5-7 dní) - **CRITICAL!**
+   - Oprava Supabase integrace
+   - Auto-sync do cloudu
+   - Backup & Recovery systém
+   - DigiPro shared komponenty
+   - Profil koučky + klientky s fotkou
+   - Administrační systém pro správu klientů
+   - **MUSÍ BÝT HOTOVO:** Před jakýmkoliv dalším vývojem!
+
+### **🎯 PRIORITY 2 - NÁSLEDUJE:**
+2. **Sprint 11** - Klientské rozhraní + Critical features (4-5 dní)
+3. **Sprint 12** - Veřejný profil + 2 úrovně (5-7 dní)
+4. **Sprint 13** - Nové typy materiálů (3-4 dny)
+5. **Sprint 14** - Sdílení + balíčky (2-3 dny)
+6. **Sprint 15** - Funkce pro klientku (3-4 dny)
+7. **Sprint 16** - File management + limity (2 dny)
+8. **Sprint 17** - Vyhledávání + řazení + filtry (2 dny)
+9. **Sprint 18** - Nápověda (Help system) (2-3 dny)
+10. **Sprint 19** - Mobile optimalizace (2-3 dny)
+11. **Sprint 20** - Dashboard & statistiky upgrade (2 dny)
+
+### **📅 FINÁLE:**
+12. **Beta testing** (1 týden)
+13. **Bug fixing** (3-5 dní)
+14. **Performance optimization** (2 dny)
+15. **Launch!** 🎉
+
+### **⏱️ ODHADOVANÝ ČAS DO LAUNCH:**
+- Sprint 10 (CRITICAL): 5-7 dní
+- Sprinty 11-20: 30-40 dní
+- Beta + fixing: 10-12 dní
+- **CELKEM: ~50-60 dní (8-10 týdnů)**
 
 ---
 
-## ❓ OTÁZKY PRO TEBE
+## ❓ OTÁZKY A AKČNÍ KROKY
 
-1. **Které Sprinty 4-7 jsou SKUTEČNĚ hotové?** (ClientsList, DailyView, atd.)
-2. **Chceš začít Critical bugsy nebo rovnou Sprint 7?**
-3. **Ceny balíčků:** Máš představu? (např. Free: 0 Kč, Basic: 1500 Kč, Pro: 3500 Kč)
-4. **WordPress:** Budeš dělat sama nebo někdo jiný?
-5. **Beta test:** Znáš 10 kouček, které by to otestovaly?
+### **🔥 IMMEDIATE - Sprint 10:**
+
+1. **Supabase Debug Session:**
+   - [ ] Zkontrolovat `.env` soubor - jsou správné credentials?
+   - [ ] Otevřít Supabase dashboard - je projekt aktivní?
+   - [ ] Zkontrolovat Storage bucket - existuje?
+   - [ ] Testovat upload funkci - jaká je error message?
+   - [ ] **Kdy můžeme udělat debugging session?**
+
+2. **PaymentsPro Komponenty:**
+   - [ ] Kde je PaymentsPro projekt? (`/Users/lenkaroubalova/Documents/Projekty/my-paymentspro-app`)
+   - [ ] Které komponenty můžeme okamžitě znovupoužít?
+   - [ ] Máš access k PaymentsPro kódu?
+
+3. **DigiPro Ekosystém:**
+   - [ ] Schválení struktury `/src/shared/digipro/`
+   - [ ] Naming convention: "DigiPro" nebo jiný název?
+   - [ ] Chceš separátní npm package nebo jen folder?
+
+### **📋 PLANNING:**
+
+4. **Ceny balíčků:** Máš představu? (např. Free: 0 Kč, Basic: 1500 Kč, Pro: 3500 Kč)
+5. **WordPress:** Budeš dělat sama nebo někdo jiný?
+6. **Beta test:** Znáš 10 kouček, které by to otestovaly?
+7. **Timeline:** Je 8-10 týdnů do launch realistických pro tebe?
+
+### **🎯 DECISION NEEDED:**
+
+8. **Začít Sprint 10 hned nebo ještě něco jiného?**
+9. **Priorities v rámci Sprint 10:**
+   - A) Supabase oprava FIRST (data persistence)
+   - B) Profily FIRST (coach + client)
+   - C) Modularita FIRST (DigiPro foundation)
+   - **Tvoje volba?**
 
 ---
 
-✅ **MASTER TODO V2.0 HOTOVO!**
+## ✅ **MASTER TODO V2.0 - UPDATE 29. 10. 2025**
 
-**Přidáno:**
-- ✅ Všech 26 tvých požadavků
-- ✅ Rešerše zahraničních aplikací
-- ✅ 15+ nových typů materiálů
-- ✅ Balíčky služeb
-- ✅ Kompletní klientka onboarding
-- ✅ File management + limity
-- ✅ Nápověda & help systém
-- ✅ Vlastní nápady (5 bonusů)
-- ✅ Timeline (8-12 týdnů)
+### **📝 Změny v této aktualizaci:**
+- ✅ Sprint 9 (Glassmorphism & UI Polish) označen jako HOTOVO
+- ✅ Přidán Sprint 10 (MODULARITA + DATA PERSISTENCE + SPRÁVA KLIENTŮ) - **PRIORITY 1!**
+- ✅ Všech 6 tvých připomínek zapracováno:
+  1. Modularita - DigiPro ekosystém foundation
+  2. Správa klientů - samo-registrace + ruční přidání
+  3. Data persistence - Supabase debug + auto-sync
+  4. Data recovery - konstatování (nelze vrátit) + prevence
+  5. Profil koučky - import z PaymentsPro
+  6. Profil klientky - import z PaymentsPro
+- ✅ Lessons learned ze Sprintu 9 přidány do Development Workflow
+- ✅ Technické patterns (glassmorphism, grid layout, ServiceLogo, atd.)
+- ✅ Kritická pravidla pro data persistence
+- ✅ Aktualizováno doporučené pořadí implementace
+- ✅ Timeline přepočítán (50-60 dní do launch)
 
-**Celkem:** 200+ úkolů seřazených podle priorit! 🚀
+### **📊 Statistiky:**
+- **Hotových sprintů:** 3 (Sprint 7, 8, 9)
+- **Čekajících sprintů:** 17+
+- **Celkem úkolů:** 250+
+- **Kritických priorit:** Sprint 10 (5-7 dní)
+- **Odhadovaný čas do MVP:** 8-10 týdnů
 
-Řekni mi, s čím chceš začít! 💪
+### **🎯 Next Steps:**
+1. Review Sprint 10 úkolů
+2. Rozhodnout o prioritách (Supabase / Profily / Modularita)
+3. Zahájit debugging session
+4. Start implementation! 💪
+
+---
+
+**Ready když ty! Řekni mi, co teď? 🚀**

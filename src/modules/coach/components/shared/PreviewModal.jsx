@@ -27,8 +27,11 @@ import PDFViewer from './PDFViewer';
 import DocumentViewer from './DocumentViewer';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { getEmbedUrl } from '../../utils/linkDetection';
+import { useModal } from '@shared/hooks/useModernEffects';
 
 const PreviewModal = ({ open, onClose, material }) => {
+  const modalStyles = useModal();
+
   if (!material) return null;
 
   const handleOpenInNewTab = () => {
@@ -152,6 +155,23 @@ const PreviewModal = ({ open, onClose, material }) => {
         );
 
       case 'video':
+        // Detekce MIME typu podle URL/base64
+        const getVideoType = (src) => {
+          if (src.includes('data:video/')) {
+            return src.split(';')[0].replace('data:', '');
+          }
+          if (src.toLowerCase().includes('.mov')) {
+            return 'video/quicktime';
+          }
+          if (src.toLowerCase().includes('.mp4')) {
+            return 'video/mp4';
+          }
+          if (src.toLowerCase().includes('.webm')) {
+            return 'video/webm';
+          }
+          return 'video/mp4'; // fallback
+        };
+
         return (
           <Box
             sx={{
@@ -170,7 +190,7 @@ const PreviewModal = ({ open, onClose, material }) => {
                 display: 'block',
               }}
             >
-              <source src={material.content} />
+              <source src={material.content} type={getVideoType(material.content)} />
               Tvůj prohlížeč nepodporuje přehrávání videa.
             </video>
           </Box>
@@ -515,20 +535,8 @@ const PreviewModal = ({ open, onClose, material }) => {
       fullWidth
       PaperProps={{
         sx: {
+          ...modalStyles,
           borderRadius: BORDER_RADIUS.dialog,
-          backdropFilter: 'blur(20px)',
-          backgroundColor: (theme) =>
-            theme.palette.mode === 'dark'
-              ? 'rgba(26, 26, 26, 0.95)'
-              : 'rgba(255, 255, 255, 0.95)',
-          border: (theme) =>
-            theme.palette.mode === 'dark'
-              ? '1px solid rgba(255, 255, 255, 0.1)'
-              : '1px solid rgba(0, 0, 0, 0.1)',
-          boxShadow: (theme) =>
-            theme.palette.mode === 'dark'
-              ? '0 8px 32px rgba(0, 0, 0, 0.5)'
-              : '0 8px 32px rgba(0, 0, 0, 0.15)',
         },
       }}
       BackdropProps={{

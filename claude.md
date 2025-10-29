@@ -6,10 +6,10 @@
 
 ## 📍 Současný stav projektu
 
-**Poslední update**: 28. října 2025, 13:56
-**Sprint**: ✅ Sprint 8 dokončen (CRITICAL BUGS - Opravy)
-**Další sprint**: Sprint 9 - Klientské rozhraní + Critical Features
-**Status**: ✅ 3 CRITICAL BUGS opraveny + 13 nových úkolů přidáno
+**Poslední update**: 29. října 2025, 14:50
+**Autor**: Lenka Roubalová + Claude (Opus + Sonnet 4.5)
+**Sprint**: ✅ Sprint 9 dokončen (Glassmorphism & UI Polish - modaly + glow efekty)
+**Status**: ✅ Funkční a testováno - 4 session dokumentace (28-29 října)
 **Dev server**: `http://localhost:3000/`
 **Projekt**: `/Users/lenkaroubalova/Documents/Projekty/coachpro`
 
@@ -1597,9 +1597,9 @@ Day header:      12px (default) → 40px → 36px
 
 ---
 
-**Poslední update**: 28. října 2025
-**Autor**: Lenka Roubalová + Claude
-**Status**: ✅ Sprint 7 dokončen (Toast Notifikační Systém - implementace v celé aplikaci), funkční a testováno
+**Poslední update**: 29. října 2025, 14:50
+**Autor**: Lenka Roubalová + Claude (Opus + Sonnet 4.5)
+**Status**: ✅ Sprint 9 dokončen (Glassmorphism & UI Polish - modaly + glow efekty), funkční a testováno
 
 ---
 
@@ -1860,4 +1860,446 @@ clearDraft(); // ← Clear draft after successful save
 
 ---
 
+## 🚀 Sprint 9: Glassmorphism & UI Polish (28-29 října 2025)
+
+**Trvání**: 2 dny (28 večer - 29 odpoledne)
+**AI asistenti**: Claude Code (Opus) + Claude Sonnet 4.5
+**Výsledek**: ✅ Funkční glassmorphism na modalech, glow efekty, opravené karty
+
+### 📅 Session 1: Modulární Glassmorphism - První pokus (28.10 večer)
+**AI**: Claude Code (Opus)
+**Čas**: 28. října 2025, večer
+
+#### 🎯 Cíl:
+Vytvořit modulární glassmorphism systém s plain objekty místo theme callbacks
+
+#### ✅ Co se povedlo:
+
+1. **Vytvořeny nové soubory**:
+   - `/src/shared/styles/modernEffects.js` - Plain objekty pro glassmorphism
+   - `/src/shared/hooks/useModernEffects.js` - React hook pro aplikaci efektů
+
+2. **Glassmorphism varianty**:
+   ```javascript
+   const glassVariants = {
+     subtle: { blur: 10, opacity: 0.7, saturation: 150 },
+     medium: { blur: 16, opacity: 0.6, saturation: 180 },
+     strong: { blur: 24, opacity: 0.5, saturation: 200 }
+   };
+   ```
+
+3. **Glow efekt pomocí boxShadow**:
+   ```javascript
+   const glowEffects = {
+     none: 'none',
+     subtle: '0 0 20px rgba(139, 188, 143, 0.15)',
+     medium: '0 0 30px rgba(139, 188, 143, 0.25)',
+     strong: '0 0 40px rgba(139, 188, 143, 0.35)'
+   };
+   ```
+
+#### ❌ CO SE NEPOVEDLO - KRITICKÉ LEKCE:
+
+**1. MUI sx prop nepodporuje spread operator s backdrop-filter** ⚠️
+```javascript
+// ❌ NEFUNGUJE
+<Card sx={{ ...glassCardStyles }} />
+
+// ✅ FUNGUJE
+<Card sx={glassCardStyles} />
+```
+**DŮVOD**: backdrop-filter je složitá CSS vlastnost a MUI ji nezvládá korektně zpracovat při spreadu.
+
+**2. ServiceLogo size prop MUSÍ BÝT ČÍSLO** ⚠️
+```javascript
+// ❌ NEFUNGUJE
+<ServiceLogo size={{ xs: 28, sm: 32 }} />
+
+// ✅ FUNGUJE
+<ServiceLogo size={isVeryNarrow ? 28 : 32} />
+```
+**DŮVOD**: ServiceLogo je custom komponenta a nepodporuje MUI responsive objekty.
+
+**3. Backdrop-filter nefunguje na běžných kartách na stránce** ⚠️
+- Glassmorphism efekt vyžaduje vrstvu "za" elementem
+- Na běžné kartě na stránce není co rozmazat
+- **ŘEŠENÍ**: Glassmorphism JEN na modaly a dialogy s backdrop
+
+**4. MaterialCard.jsx se CORRUPTOVAL**
+- Během experimentů s glassmorphism se soubor poškodil
+- Musela být provedena úplná obnova (Sonnet 4.5, 29.10 ráno)
+
+#### 📚 PATH ALIASES vzor:
+```javascript
+import BORDER_RADIUS from '@styles/borderRadius';
+import { useGlassCard } from '@shared/hooks/useModernEffects';
+import ServiceLogo from '@modules/coach/components/shared/ServiceLogo';
+```
+
+**POZOR**: Vždy používej @ aliasy místo relativních cest!
+
+#### 🎓 Lessons Learned:
+1. ✅ Plain objekty jsou lepší než theme callbacks pro glassmorphism
+2. ❌ Spread operator nefunguje s backdrop-filter v MUI sx prop
+3. ❌ Glassmorphism nefunguje na kartách přímo na stránce
+4. ✅ Glow efekty pomocí boxShadow fungují výborně
+5. ⚠️ ServiceLogo size MUSÍ BÝT numeric, ne responsive object
+
+---
+
+### 📅 Session 2: Glassmorphism Reality Check (29.10, 0:00-1:00)
+**AI**: Claude Sonnet 4.5
+**Čas**: 29. října 2025, 0:00-1:00
+
+#### 🔍 Zjištění:
+Pokus aplikovat glassmorphism na `MaterialCard.jsx` pomocí `useGlassCard` hook.
+
+#### ❌ ROOT CAUSE:
+**Backdrop-filter nefunguje na kartách přímo na stránce!**
+
+**Proč?**
+- Glassmorphism = rozmazání pozadí "za" elementem
+- Na běžné kartě na stránce není co rozmazat (není backdrop)
+- Funguje JEN na modalech/dialozích s `BackdropProps`
+
+#### ✅ Řešení:
+**Vytvořen nový soubor**: `/src/shared/styles/modernEffects_FIXED.js`
+
+**1. Backdrop pro modaly**:
+```javascript
+export const createBackdrop = (blurAmount = 4) => ({
+  backdropFilter: `blur(${blurAmount}px)`,
+  WebkitBackdropFilter: `blur(${blurAmount}px)`,
+  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+});
+```
+
+**2. Glassmorphism pro Dialog PaperProps**:
+```javascript
+export const createGlassDialog = (isDark, blur = 20, saturation = 180) => ({
+  borderRadius: BORDER_RADIUS.dialog,
+  backdropFilter: `blur(${blur}px) saturate(${saturation}%)`,
+  WebkitBackdropFilter: `blur(${blur}px) saturate(${saturation}%)`,
+  backgroundColor: isDark
+    ? 'rgba(26, 26, 26, 0.7)'
+    : 'rgba(255, 255, 255, 0.7)',
+  boxShadow: isDark
+    ? '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
+    : '0 8px 32px 0 rgba(0, 0, 0, 0.1)',
+});
+```
+
+#### 📋 GLASSMORPHISM PATTERN (v MaterialCard):
+```javascript
+<Dialog
+  open={deleteDialogOpen}
+  onClose={() => setDeleteDialogOpen(false)}
+  BackdropProps={{
+    sx: createBackdrop(4)
+  }}
+  PaperProps={{
+    sx: createGlassDialog(isDark, 20, 180)
+  }}
+>
+```
+
+#### ⚠️ DŮLEŽITÉ PATH ALIASES WARNING:
+
+**ServiceLogo size prop**:
+```javascript
+// ❌ NIKDY NEPOUŽÍVAT responsive objekty
+<ServiceLogo size={{ xs: 28, sm: 32 }} />
+
+// ✅ VŽDY numeric hodnota s podmínkou
+<ServiceLogo size={isVeryNarrow ? 28 : 32} />
+```
+
+#### 🎓 Hlavní poučení:
+1. ❌ Glassmorphism NEFUNGUJE na běžných kartách
+2. ✅ Glassmorphism JEN na modaly s `BackdropProps` + `PaperProps`
+3. ✅ Vytvořeny helper funkce `createBackdrop()` a `createGlassDialog()`
+4. ⚠️ ServiceLogo nepodporuje MUI responsive objects
+
+---
+
+### 📅 Session 3: Oprava Corrupted MaterialCard (29.10 ráno)
+**AI**: Claude Sonnet 4.5
+**Čas**: 29. října 2025, ráno
+
+#### ❌ Problém:
+`MaterialCard.jsx` byl corruptován během Session 1 (Opus experiments s glassmorphism)
+
+#### ✅ Řešení:
+- Kompletní obnova `MaterialCard.jsx`
+- Odstranění glassmorphism experimentů z karet
+- Zachování pouze funkčního kódu
+- Aplikace glassmorphism JEN na Delete Dialog
+
+#### 📁 Opravený soubor:
+`/src/modules/coach/components/coach/MaterialCard.jsx`
+
+**Změny**:
+1. ❌ Odstraněn `useGlassCard` hook z karty
+2. ✅ Aplikován glassmorphism na Delete Dialog:
+   ```javascript
+   <Dialog
+     BackdropProps={{
+       sx: {
+         backdropFilter: 'blur(4px)',
+         WebkitBackdropFilter: 'blur(4px)',
+         backgroundColor: 'rgba(0, 0, 0, 0.6)',
+       }
+     }}
+     PaperProps={{
+       sx: {
+         backdropFilter: 'blur(20px) saturate(180%)',
+         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+         backgroundColor: isDark
+           ? 'rgba(26, 26, 26, 0.7)'
+           : 'rgba(255, 255, 255, 0.7)',
+       }
+     }}
+   >
+   ```
+
+#### ✅ Výsledek:
+- MaterialCard plně funkční
+- Delete dialog má glassmorphism efekt
+- Karta samotná zůstává s běžným glass efektem (bez backdrop-filter)
+
+---
+
+### 📅 Session 4: Sprint 9 Glassmorphism & UI Polish (29.10 odpoledne)
+**AI**: Claude Sonnet 4.5
+**Čas**: 29. října 2025, odpoledne
+
+#### 🎯 Cíle:
+1. Aplikovat glassmorphism na všechny modaly
+2. Přidat glow efekty místo borders
+3. Vylepšit TextField styling
+4. Opravit Grid layout spacing
+
+#### ✅ Co bylo implementováno:
+
+**1. Grid Layout Fix v MaterialsLibrary**:
+```javascript
+// Problem: Grid spacing vytváří negativní marginy
+// Řešení: Přidat padding na parent container
+
+<Box sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+  <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+```
+
+**2. Glow efekty místo borders**:
+```javascript
+// ❌ BEFORE: Border
+border: '2px solid',
+borderColor: 'primary.main'
+
+// ✅ AFTER: Glow
+boxShadow: '0 0 30px rgba(139, 188, 143, 0.25)'
+```
+
+**3. TextField Styling Pattern**:
+```javascript
+<TextField
+  InputProps={{
+    sx: {
+      borderRadius: BORDER_RADIUS.input,
+      backgroundColor: isDark
+        ? 'rgba(255, 255, 255, 0.05)'
+        : 'rgba(0, 0, 0, 0.02)',
+      transition: 'all 0.3s ease',
+      '&:hover': {
+        backgroundColor: isDark
+          ? 'rgba(255, 255, 255, 0.08)'
+          : 'rgba(0, 0, 0, 0.04)',
+      },
+      '&.Mui-focused': {
+        boxShadow: '0 0 20px rgba(139, 188, 143, 0.15)',
+      }
+    }
+  }}
+/>
+```
+
+**4. Glassmorphism na všech modalech**:
+- ✅ PreviewModal
+- ✅ AddMaterialModal
+- ✅ Delete Dialogs
+- ✅ Všechny dialogy v aplikaci
+
+**Pattern**:
+```javascript
+<Dialog
+  BackdropProps={{
+    sx: {
+      backdropFilter: 'blur(4px)',
+      WebkitBackdropFilter: 'blur(4px)',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    }
+  }}
+  PaperProps={{
+    sx: {
+      borderRadius: BORDER_RADIUS.dialog,
+      backdropFilter: 'blur(20px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+      backgroundColor: isDark
+        ? 'rgba(26, 26, 26, 0.7)'
+        : 'rgba(255, 255, 255, 0.7)',
+      boxShadow: isDark
+        ? '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
+        : '0 8px 32px 0 rgba(0, 0, 0, 0.1)',
+    }
+  }}
+>
+```
+
+#### 📋 DEBUGGING CHECKLIST:
+
+Když glassmorphism nefunguje:
+1. ✅ Zkontroluj, že máš `BackdropProps` + `PaperProps` na `<Dialog>`
+2. ✅ Zkontroluj, že používáš `backdropFilter` + `WebkitBackdropFilter`
+3. ✅ Zkontroluj, že `backgroundColor` má alpha kanál (rgba)
+4. ✅ Zkontroluj, že je modal/dialog OPRAVDU otevřený
+5. ❌ NEPOUŽÍVEJ glassmorphism na běžných kartách na stránce!
+
+#### 🎓 Patterns & Best Practices:
+
+**1. Grid Spacing Pattern**:
+```javascript
+// Parent musí mít padding kvůli negativním marginům Grid
+<Box sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+  <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+```
+
+**2. Glow vs Border**:
+```javascript
+// ❌ Border - příliš ostré
+border: '2px solid'
+
+// ✅ Glow - modernější, soft
+boxShadow: '0 0 30px rgba(139, 188, 143, 0.25)'
+```
+
+**3. TextField Focus Effect**:
+```javascript
+'&.Mui-focused': {
+  boxShadow: '0 0 20px rgba(139, 188, 143, 0.15)',
+  backgroundColor: isDark
+    ? 'rgba(255, 255, 255, 0.08)'
+    : 'rgba(0, 0, 0, 0.04)',
+}
+```
+
+**4. Responsive ServiceLogo**:
+```javascript
+// ❌ NEFUNGUJE
+<ServiceLogo size={{ xs: 28, sm: 32 }} />
+
+// ✅ FUNGUJE
+const isVeryNarrow = useMediaQuery('(max-width:420px)');
+<ServiceLogo size={isVeryNarrow ? 28 : 32} />
+```
+
+#### ✅ Výsledný stav:
+- ✅ Glassmorphism na všech modalech a dialozích
+- ✅ Glow efekty místo borders
+- ✅ Vylepšené TextField styling s focus efekty
+- ✅ Opravený Grid layout spacing
+- ✅ Jednotný design napříč aplikací
+
+---
+
+## 🎓 Konsolidované Lessons Learned (Sprint 9, Sessions 1-4)
+
+### ❌ CO NEFUNGUJE:
+
+1. **Glassmorphism na běžných kartách**
+   - Backdrop-filter potřebuje vrstvu "za" elementem
+   - Na kartě na stránce není co rozmazat
+   - **Použití**: JEN modaly a dialogy!
+
+2. **Spread operator s backdrop-filter v MUI**
+   ```javascript
+   // ❌ NEFUNGUJE
+   <Card sx={{ ...glassStyles }} />
+
+   // ✅ FUNGUJE
+   <Card sx={glassStyles} />
+   ```
+
+3. **ServiceLogo s responsive objekty**
+   ```javascript
+   // ❌ NEFUNGUJE
+   <ServiceLogo size={{ xs: 28, sm: 32 }} />
+
+   // ✅ FUNGUJE
+   <ServiceLogo size={isVeryNarrow ? 28 : 32} />
+   ```
+
+### ✅ CO FUNGUJE:
+
+1. **Glassmorphism pattern pro modaly**:
+   ```javascript
+   <Dialog
+     BackdropProps={{ sx: createBackdrop(4) }}
+     PaperProps={{ sx: createGlassDialog(isDark) }}
+   >
+   ```
+
+2. **Glow efekty místo borders**:
+   ```javascript
+   boxShadow: '0 0 30px rgba(139, 188, 143, 0.25)'
+   ```
+
+3. **Grid layout s padding**:
+   ```javascript
+   <Box sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+     <Grid spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+   ```
+
+4. **TextField focus efekty**:
+   ```javascript
+   '&.Mui-focused': {
+     boxShadow: '0 0 20px rgba(139, 188, 143, 0.15)',
+   }
+   ```
+
+### ⚠️ KRITICKÁ PRAVIDLA:
+
+1. **VŽDY používej PATH ALIASES**:
+   - ✅ `@shared/hooks/useModernEffects`
+   - ✅ `@styles/borderRadius`
+   - ❌ `../../../shared/hooks/useModernEffects`
+
+2. **Glassmorphism JEN na modaly**:
+   - ✅ Dialog, Modal s BackdropProps
+   - ❌ Card, Box na stránce
+
+3. **ServiceLogo size = numeric**:
+   - ✅ `size={32}` nebo `size={isNarrow ? 28 : 32}`
+   - ❌ `size={{ xs: 28, sm: 32 }}`
+
+4. **Grid spacing vyžaduje parent padding**:
+   - ✅ Parent Box s `px` padding
+   - ❌ Grid bez parent paddingu (overflow)
+
+---
+
+## 📁 Soubory vytvořené/upravené v Sprintu 9:
+
+### Nové soubory:
+- `/src/shared/styles/modernEffects.js` - Plain objekty pro glassmorphism (Session 1, Opus)
+- `/src/shared/hooks/useModernEffects.js` - React hook (Session 1, Opus)
+- `/src/shared/styles/modernEffects_FIXED.js` - Opravená verze (Session 2, Sonnet)
+
+### Upravené soubory:
+- `/src/modules/coach/components/coach/MaterialCard.jsx` - Opraveno + glassmorphism na dialog (Session 3, Sonnet)
+- `/src/modules/coach/components/coach/MaterialsLibrary.jsx` - Grid layout fix (Session 4, Sonnet)
+- Všechny modaly v aplikaci - Glassmorphism aplikován (Session 4, Sonnet)
+
+---
+
 > 💡 **Pro budoucí Claude**: Tohle je kompletní kontext. Máš vše co potřebuješ. Pokud něco chybí, zeptej se uživatelky!
+

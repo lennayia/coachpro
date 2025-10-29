@@ -10,7 +10,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, getMaterials, getPrograms, getClientsByCoachId } from '../../utils/storage';
 import { formatDate, formatRelativeTime } from '@shared/utils/helpers';
-import { staggerContainer, staggerItem } from '../../utils/animations';
+import { staggerContainer, staggerItem } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
 
 const DashboardOverview = () => {

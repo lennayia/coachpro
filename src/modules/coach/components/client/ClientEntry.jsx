@@ -13,7 +13,7 @@ import {
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { QrCode2 as QrCodeIcon, Key as KeyIcon } from '@mui/icons-material';
-import { fadeIn, fadeInUp } from '../../utils/animations';
+import { fadeIn, fadeInUp } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
 import {
   getProgramByCode,
@@ -22,9 +22,11 @@ import {
   setCurrentClient,
 } from '../../utils/storage';
 import { generateUUID, isValidShareCode } from '../../utils/generateCode';
+import { useNotification } from '@shared/context/NotificationContext';
 
 const ClientEntry = () => {
   const navigate = useNavigate();
+  const { showError } = useNotification();
 
   const [entryMethod, setEntryMethod] = useState('code'); // 'code' | 'qr'
   const [code, setCode] = useState('');
@@ -46,21 +48,29 @@ const ClientEntry = () => {
     try {
       // Validace kódu
       if (code.length !== 6) {
-        throw new Error('Kód musí mít 6 znaků');
+        const errorMsg = 'Kód musí mít 6 znaků';
+        showError('Chyba validace', errorMsg);
+        throw new Error(errorMsg);
       }
 
       if (!isValidShareCode(code)) {
-        throw new Error('Neplatný formát kódu. Očekáváno: ABC123');
+        const errorMsg = 'Neplatný formát kódu. Očekáváno: ABC123';
+        showError('Chyba validace', errorMsg);
+        throw new Error(errorMsg);
       }
 
       // Najdi program podle kódu
       const program = getProgramByCode(code);
       if (!program) {
-        throw new Error('Program s tímto kódem neexistuje. Zkontroluj ho a zkus znovu.');
+        const errorMsg = 'Program s tímto kódem neexistuje. Zkontroluj ho a zkus znovu.';
+        showError('Program nenalezen', errorMsg);
+        throw new Error(errorMsg);
       }
 
       if (!program.isActive) {
-        throw new Error('Tento program už není aktivní.');
+        const errorMsg = 'Tento program už není aktivní.';
+        showError('Program neaktivní', errorMsg);
+        throw new Error(errorMsg);
       }
 
       // Zkontroluj, zda klientka už není zaregistrovaná
@@ -118,11 +128,30 @@ const ClientEntry = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        position: 'relative',
         background: (theme) =>
           theme.palette.mode === 'dark'
-            ? 'linear-gradient(135deg, #065f46 0%, #134e4a 50%, #0f172a 100%)'
-            : 'linear-gradient(135deg, #065f46 0%, #134e4a 50%, #10b981 100%)',
+            ? `
+              radial-gradient(circle at 20% 20%, rgba(143, 188, 143, 0.15) 0%, transparent 50%),
+              radial-gradient(circle at 80% 80%, rgba(85, 107, 47, 0.15) 0%, transparent 50%),
+              linear-gradient(135deg, #0a0f0a 0%, #1a2410 100%)
+            `
+            : `
+              radial-gradient(circle at 20% 20%, rgba(143, 188, 143, 0.4) 0%, transparent 50%),
+              radial-gradient(circle at 80% 80%, rgba(85, 107, 47, 0.3) 0%, transparent 50%),
+              linear-gradient(135deg, #e8ede5 0%, #d4ddd0 100%)
+            `,
         p: 2,
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E")`,
+          pointerEvents: 'none',
+        },
       }}
     >
       <motion.div
@@ -132,20 +161,27 @@ const ClientEntry = () => {
         style={{ width: '100%', maxWidth: 500 }}
       >
         <Card
+          elevation={0}
           sx={{
             width: '100%',
-            backdropFilter: 'blur(20px)',
-            backgroundColor: (theme) =>
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: '32px',
+            backdropFilter: 'blur(40px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+            background: (theme) =>
               theme.palette.mode === 'dark'
-                ? 'rgba(26, 26, 26, 0.8)'
-                : 'rgba(255, 255, 255, 0.9)',
-            border: (theme) =>
-              `1px solid ${
-                theme.palette.mode === 'dark'
-                  ? 'rgba(255, 255, 255, 0.1)'
-                  : 'rgba(255, 255, 255, 0.3)'
-              }`,
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+                ? 'rgba(26, 26, 26, 0.6)'
+                : 'rgba(255, 255, 255, 0.7)',
+            border: '1px solid',
+            borderColor: (theme) =>
+              theme.palette.mode === 'dark'
+                ? 'rgba(255, 255, 255, 0.08)'
+                : 'rgba(255, 255, 255, 0.6)',
+            boxShadow: (theme) =>
+              theme.palette.mode === 'dark'
+                ? '0 20px 60px 0 rgba(0, 0, 0, 0.5)'
+                : '0 20px 60px 0 rgba(85, 107, 47, 0.12)',
           }}
         >
           <Box p={4}>
@@ -157,22 +193,43 @@ const ClientEntry = () => {
               transition={{ delay: 0.1 }}
             >
               <Box textAlign="center" mb={4}>
-                <Typography
-                  variant="h3"
+                <Box
                   sx={{
-                    fontWeight: 700,
-                    mb: 1,
-                    background: (theme) =>
-                      theme.palette.mode === 'dark'
-                        ? 'linear-gradient(135deg, #8FBC8F 0%, #556B2F 100%)'
-                        : 'linear-gradient(135deg, #556B2F 0%, #228B22 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    mb: 2,
                   }}
                 >
-                  Vítej v CoachPro 🌿
-                </Typography>
+                  <img
+                    src="/coachPro.png"
+                    alt="CoachProApp"
+                    style={{
+                      height: '80px',
+                      width: 'auto',
+                    }}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'block';
+                    }}
+                  />
+                  <Typography
+                    variant="h3"
+                    sx={{
+                      display: 'none',
+                      fontWeight: 700,
+                      background: (theme) =>
+                        theme.palette.mode === 'dark'
+                          ? 'linear-gradient(135deg, #8FBC8F 0%, #556B2F 100%)'
+                          : 'linear-gradient(135deg, #556B2F 0%, #228B22 100%)',
+                      backgroundClip: 'text',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                    }}
+                  >
+                    CoachPro 🌿
+                  </Typography>
+                </Box>
                 <Typography variant="body1" color="text.secondary">
                   Zadej kód od své koučky pro přístup k programu
                 </Typography>
@@ -244,21 +301,40 @@ const ClientEntry = () => {
                   </motion.div>
                 )}
 
-                <Button
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  onClick={handleCodeSubmit}
-                  disabled={code.length !== 6 || loading}
-                  sx={{ mt: 3 }}
-                  startIcon={loading && <CircularProgress size={20} />}
-                >
-                  {loading
-                    ? 'Ověřuji...'
-                    : showNameInput
-                    ? 'Začít program'
-                    : 'Pokračovat'}
-                </Button>
+                <Box display="flex" justifyContent="center">
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={handleCodeSubmit}
+                    disabled={code.length !== 6 || loading}
+                    sx={{
+                      mt: 3,
+                      px: 4,
+                      py: 1.5,
+                      color: '#ffffff !important',
+                      background: (theme) =>
+                        `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                      '&:hover': {
+                        background: (theme) =>
+                          `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.primary.main} 100%)`,
+                        boxShadow: (theme) =>
+                          theme.palette.mode === 'dark'
+                            ? '0 12px 32px rgba(143, 188, 143, 0.3)'
+                            : '0 12px 32px rgba(85, 107, 47, 0.3)',
+                      },
+                      '& .MuiButton-label': {
+                        color: '#ffffff',
+                      },
+                    }}
+                    startIcon={loading && <CircularProgress size={20} sx={{ color: '#ffffff' }} />}
+                  >
+                    {loading
+                      ? 'Ověřuji...'
+                      : showNameInput
+                      ? 'Začít program'
+                      : 'Pokračovat'}
+                  </Button>
+                </Box>
               </motion.div>
             )}
 

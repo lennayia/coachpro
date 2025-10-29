@@ -14,7 +14,7 @@ export { default as ClientView } from './pages/ClientView';
 export * from './utils/storage';
 export * from './utils/generateCode';
 export * from './utils/linkDetection';
-export * from './utils/animations';
+export * from '@shared/styles/animations';
 export * from './utils/supabaseStorage';
 
 // Routes configuration pro ProApp
