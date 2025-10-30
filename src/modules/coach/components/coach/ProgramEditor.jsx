@@ -29,6 +29,8 @@ import MaterialSelector from './MaterialSelector';
 import { getCurrentUser, saveProgram, getMaterialById } from '../../utils/storage';
 import { generateUUID, generateShareCode, generateQRCode } from '../../utils/generateCode';
 import { useNotification } from '@shared/context/NotificationContext';
+import { useTheme } from '@mui/material';
+import { createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';
 
 const DURATION_OPTIONS = [7, 14, 21, 30];
 
@@ -36,6 +38,8 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
   const currentUser = getCurrentUser();
   const isEditing = Boolean(program);
   const { showSuccess, showError } = useNotification();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
 
   // Step 1 - Basic info
   const [activeStep, setActiveStep] = useState(0);
@@ -276,12 +280,14 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
   return (
     <>
       <Dialog
-        open={open}
-        onClose={handleClose}
-        maxWidth="md"
-        fullWidth
-        fullScreen={window.innerWidth < 600}
-      >
+  open={open}
+  onClose={handleClose}
+  maxWidth="md"
+  fullWidth
+  fullScreen={window.innerWidth < 600}
+  BackdropProps={{ sx: createBackdrop() }}
+  PaperProps={{ sx: createGlassDialog(isDark, '20px') }}
+>
         <DialogContent sx={{ p: 0 }}>
           {/* Header */}
           <Box

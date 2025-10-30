@@ -2301,5 +2301,358 @@ const isVeryNarrow = useMediaQuery('(max-width:420px)');
 
 ---
 
-> 💡 **Pro budoucí Claude**: Tohle je kompletní kontext. Máš vše co potřebuješ. Pokud něco chybí, zeptej se uživatelky!
+### 📅 Session 5: Glassmorphism Modularizace (30.10, 00:06-01:35)
+**AI**: Claude Sonnet 4.5
+**Čas**: 30. října 2025, 00:06-01:35 (90 minut)
 
+#### 🎯 Cíl:
+Implementovat modulární glassmorphism systém napříč celou aplikací - odstranit hardcoded styly a nahradit je centralizovanými funkcemi.
+
+#### ✅ Co bylo implementováno:
+
+**1. MaterialCard.jsx**
+- Import `createBackdrop`, `createGlassDialog`
+- Delete Dialog - nahrazen hardcoded glassmorphism modulárními funkcemi
+- Před: ~15 řádků hardcoded → Po: 2 řádky
+```javascript
+// Před:
+BackdropProps={{
+  sx: {
+    backdropFilter: 'blur(4px)',
+    WebkitBackdropFilter: 'blur(4px)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  }
+}}
+
+// Po:
+BackdropProps={{ sx: createBackdrop() }}
+PaperProps={{ sx: createGlassDialog(isDark, BORDER_RADIUS.dialog) }}
+```
+
+**2. AddMaterialModal.jsx**
+- Import `createBackdrop`, `createGlassDialog`
+- Drawer glassmorphism - nahrazen modulárními funkcemi
+- Přidán `useTheme` hook pro `isDark`
+- Před: ~25 řádků → Po: 3 řádky
+
+**3. PreviewModal.jsx**
+- Import `createBackdrop`
+- BackdropProps - nahrazen hardcoded blur modulární funkcí
+- Před: ~7 řádků → Po: 1 řádek
+
+**4. ProgramEditor.jsx**
+- Import `useTheme`, `createBackdrop`, `createGlassDialog`
+- Přidán `isDark` hook
+- Dialog glassmorphism implementován (nová implementace)
+
+**5. ShareProgramModal.jsx**
+- Import `useTheme`, `createBackdrop`, `createGlassDialog`
+- Dialog glassmorphism implementován (nová implementace)
+
+**6. ClientEntry.jsx**
+- Import `useGlassCard`, `useTheme`
+- Card komponenta - nahrazen ~30 řádků hardcoded glassmorphism
+```javascript
+// Před:
+sx={{
+  backdropFilter: 'blur(40px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+  background: (theme) => theme.palette.mode === 'dark' ? '...' : '...',
+  // ... 20+ řádků
+}}
+
+// Po:
+sx={{
+  ...glassCardStyles,
+  width: '100%',
+  position: 'relative',
+  overflow: 'hidden',
+  borderRadius: '32px',
+}}
+```
+
+**7. CelebrationModal.jsx** 🎉
+- Import `useEffect`, `useTheme`, `createBackdrop`, `createGlassDialog`, `BORDER_RADIUS`
+- Dialog glassmorphism implementován
+- **BONUS:** Přidán celebration zvuk (`/public/sounds/celebration.mp3`)
+- **BONUS:** Konfety vylepšeny (800 kusů, 5s duration, recycle=true)
+
+```javascript
+// Zvuk při dokončení celého programu
+useEffect(() => {
+  if (open && client?.completedDays?.length === program?.duration) {
+    const audio = new Audio('/sounds/celebration.mp3');
+    audio.volume = 0.5;
+    audio.play().catch(err => console.error('Audio play failed:', err));
+  }
+}, [open, client, program]);
+
+// Vylepšené konfety
+<Confetti
+  width={width}
+  height={height}
+  recycle={true}
+  numberOfPieces={800}
+  duration={5000}
+/>
+```
+
+**8. DailyView.jsx** - Oprava chyb
+- Opraveny chybějící funkce `glassmorphismWithGradient()` a `glassmorphismLight()`
+- Nahrazeno `presets.glassCard('normal')` a `presets.glassCard('subtle')`
+
+```javascript
+// Před (CHYBA):
+...glassmorphismWithGradient(),  // ❌ Undefined!
+...glassmorphismLight({ borderRadius: '33px' }),  // ❌ Undefined!
+
+// Po:
+...presets.glassCard('normal'),
+...presets.glassCard('subtle'),
+borderRadius: '33px',
+```
+
+**9. modernEffects.js** - Centralizované funkce
+```javascript
+// Backdrop blur efekt
+export const createBackdrop = () => ({
+  backdropFilter: 'blur(4px)',
+  WebkitBackdropFilter: 'blur(4px)',
+  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+});
+
+// Glassmorphism Dialog/Drawer
+export const createGlassDialog = (isDark = false, borderRadius = '20px') => ({
+  backdropFilter: 'blur(20px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+  backgroundColor: isDark
+    ? 'rgba(26, 26, 26, 0.85)'
+    : 'rgba(255, 255, 255, 0.85)',
+  borderRadius,
+  boxShadow: isDark
+    ? '0 8px 32px rgba(139, 188, 143, 0.2), 0 4px 16px rgba(0, 0, 0, 0.4)'
+    : '0 8px 32px rgba(85, 107, 47, 0.15), 0 4px 16px rgba(0, 0, 0, 0.1)',
+});
+
+// Glow efekt
+export const createGlow = (isSelected = false, color = 'rgba(139, 188, 143, 0.6)') => ({
+  boxShadow: isSelected
+    ? `0 0 12px 2px ${color}`
+    : '0 2px 8px rgba(0, 0, 0, 0.15)',
+  transition: 'all 0.2s',
+});
+```
+
+#### 📊 Statistiky:
+- **Řádky kódu ušetřeny:** ~150+
+- **Soubory upraveny:** 9
+- **Design konzistence:** Všechny modaly mají jednotný glassmorphism
+- **Maintenance:** Změny na jednom místě = změní se všude
+
+#### ⚠️ PATH ALIASY - KRITICKÉ ZJIŠTĚNÍ!
+
+**CO FUNGUJE:**
+```javascript
+✅ import BORDER_RADIUS from '@styles/borderRadius';
+✅ import { useGlassCard } from '@shared/hooks/useModernEffects';
+```
+
+**CO NEFUNGUJE:**
+```javascript
+❌ import { createBackdrop } from '@styles/modernEffects';
+❌ import { createBackdrop } from '@shared/styles/modernEffects';
+```
+
+**SPRÁVNÁ CESTA:**
+```javascript
+✅ import { createBackdrop } from '../../../../shared/styles/modernEffects';
+```
+
+**DŮVOD:** `modernEffects.js` je v `/src/shared/styles/`, ne v `/src/styles/`.
+Path alias `@styles` ukazuje na `/src/styles/`, takže `@styles/modernEffects` neexistuje!
+
+#### 🐛 Opravené chyby:
+
+**Chyba #1: Import path nebyl správný**
+- **Problém:** `@styles/modernEffects` neexistuje
+- **Řešení:** Relativní cesta `../../../../shared/styles/modernEffects`
+
+**Chyba #2: DailyView - undefined funkce**
+- **Problém:** `glassmorphismWithGradient()` a `glassmorphismLight()` neexistují
+- **Řešení:** Nahrazeno `presets.glassCard('normal')` a `presets.glassCard('subtle')`
+
+**Chyba #3: SVG size prop jako objekt**
+- **Problém:** `<ServiceLogo size={{ xs: 36, sm: 44 }} />` nefunguje v SVG
+- **Řešení:** Změněno na `size={40}` (prostě číslo)
+
+#### 🎁 Bonus Features:
+
+**1. Celebration Sound 🔊**
+- Přidán zvuk při dokončení celého programu
+- Soubor: `/public/sounds/celebration.mp3`
+- Hlasitost: 50%
+- Přehrává se POUZE při dokončení posledního dne
+
+**2. Vylepšené Konfety 🎉**
+- Počet kusů: 500 → 800
+- Recycle: false → true (padají déle)
+- Duration: 5 sekund
+- Padají KAŽDÝ den (dle požadavku uživatelky)
+
+**3. Budoucí plán:**
+- Uživatelka chce nahrát vlastním hlasem: *"Gratuluju! Jsi úžasná! 🎉"*
+- Placeholder `celebration.mp3` bude později nahrazen
+
+#### 📝 USAGE PATTERNS:
+
+**Pattern #1: Dialog/Modal**
+```javascript
+import { useTheme } from '@mui/material';
+import { createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';
+import BORDER_RADIUS from '@styles/borderRadius';
+
+const MyModal = () => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
+  return (
+    <Dialog
+      BackdropProps={{ sx: createBackdrop() }}
+      PaperProps={{ sx: createGlassDialog(isDark, BORDER_RADIUS.dialog) }}
+    >
+      {/* content */}
+    </Dialog>
+  );
+};
+```
+
+**Pattern #2: Card s glassmorphism**
+```javascript
+import { useGlassCard } from '@shared/hooks/useModernEffects';
+
+const MyCard = () => {
+  const glassCardStyles = useGlassCard('subtle'); // nebo 'normal'
+
+  return (
+    <Card sx={{ ...glassCardStyles }}>
+      {/* content */}
+    </Card>
+  );
+};
+```
+
+**Pattern #3: Glow efekt**
+```javascript
+import { createGlow } from '../../../../shared/styles/modernEffects';
+
+<Card sx={{ ...createGlow(isSelected) }}>
+```
+
+#### 🎓 Lessons Learned:
+
+1. **Path aliasy jsou projekt-specific**
+   - Každý projekt má svoje nastavení v `vite.config.js`
+   - Nelze předpokládat že všechny aliasy fungují všude
+   - Vždy zkontrolovat strukturu složek
+
+2. **SVG komponenty přijímají jen primitivní typy**
+   - `size={40}` ✅
+   - `size={{ xs: 36, sm: 44 }}` ❌
+
+3. **Modulární systém = méně duplicit**
+   - 150+ řádků kódu ušetřeno
+   - Změny na jednom místě = změní se všude
+   - Snazší maintenance a konzistence
+
+4. **useEffect pro side effects**
+   - Audio přehrávání = side effect
+   - Musí být v useEffect s dependency array
+   - Kontrolovat podmínky (pouze při dokončení programu)
+
+#### 💡 Best Practices:
+
+**1. Vždy použij funkce místo hardcoded stylů:**
+```javascript
+// ❌ ŠPATNĚ:
+sx={{
+  backdropFilter: 'blur(20px) saturate(180%)',
+  backgroundColor: 'rgba(26, 26, 26, 0.85)',
+  // ... 15 řádků
+}}
+
+// ✅ SPRÁVNĚ:
+sx={{ ...createGlassDialog(isDark, BORDER_RADIUS.dialog) }}
+```
+
+**2. Kontroluj isDark mode:**
+```javascript
+const theme = useTheme();
+const isDark = theme.palette.mode === 'dark';
+```
+
+**3. Používej BORDER_RADIUS konstanty:**
+```javascript
+import BORDER_RADIUS from '@styles/borderRadius';
+
+borderRadius: BORDER_RADIUS.dialog  // 20px
+borderRadius: BORDER_RADIUS.card    // 20px
+```
+
+**4. Side effects (audio) v useEffect:**
+```javascript
+useEffect(() => {
+  if (condition) {
+    // side effect code
+  }
+}, [dependencies]);
+```
+
+---
+
+## 📁 Soubory vytvořené/upravené v Sprintu 9 (KOMPLETNÍ):
+
+### Session 1-4 (28-29 října):
+- `/src/shared/styles/modernEffects.js` - Plain objekty pro glassmorphism (Session 1, Opus)
+- `/src/shared/hooks/useModernEffects.js` - React hook (Session 1, Opus)
+- `/src/shared/styles/modernEffects_FIXED.js` - Opravená verze (Session 2, Sonnet)
+- `/src/modules/coach/components/coach/MaterialCard.jsx` - Opraveno + glassmorphism (Session 3, Sonnet)
+- `/src/modules/coach/components/coach/MaterialsLibrary.jsx` - Grid layout fix (Session 4, Sonnet)
+- Všechny modaly v aplikaci - Glassmorphism aplikován (Session 4, Sonnet)
+
+### Session 5 (30 října) - Modularizace:
+- `/src/modules/coach/components/coach/MaterialCard.jsx` - Modulární glassmorphism
+- `/src/modules/coach/components/coach/AddMaterialModal.jsx` - Modulární glassmorphism
+- `/src/modules/coach/components/shared/PreviewModal.jsx` - Modulární glassmorphism
+- `/src/modules/coach/components/coach/ProgramEditor.jsx` - Modulární glassmorphism
+- `/src/modules/coach/components/coach/ShareProgramModal.jsx` - Modulární glassmorphism
+- `/src/modules/coach/components/client/ClientEntry.jsx` - Modulární glassmorphism
+- `/src/modules/coach/components/client/CelebrationModal.jsx` - Modulární + zvuk + konfety
+- `/src/modules/coach/components/client/DailyView.jsx` - Oprava undefined funkcí
+- `/public/sounds/celebration.mp3` - **NOVÝ SOUBOR**
+
+**Celkem upraveno/vytvořeno v Sprintu 9:** 14+ souborů
+**Řádky kódu ušetřeny modularizací:** ~150+
+
+---
+
+## 🚀 Další kroky (budoucnost)
+
+**Priorita 1 - Code cleanup:**
+- [ ] Odstranit zbytečné komentáře
+- [ ] Zkontrolovat duplicitní importy
+- [ ] Optimalizovat neoptimalizovaný kód
+
+**Priorita 2 - Rozšíření modularity:**
+- [ ] Přidat glassmorphism na další komponenty (Headers, Sidebars)
+- [ ] Vytvořit `GlassCard` wrapper komponentu
+- [ ] Vytvořit `GlassDialog` wrapper komponentu
+- [ ] Dokumentovat usage patterns
+
+**Priorita 3 - Audio features:**
+- [ ] Nahrát vlastní oslavný zvuk (hlas uživatelky)
+- [ ] Přidat možnost vypnout zvuky v nastavení
+- [ ] Různé zvuky pro různé události
+
+---
+
+> 💡 **Pro budoucí Claude**: Sprint 9 je kompletně dokončen s 5 sessions (28-30 října). Glassmorphism systém je plně modulární a implementovaný napříč aplikací. Všechny patterns a best practices jsou zdokumentované výše. Pokud něco chybí, zeptej se uživatelky!

@@ -28,6 +28,7 @@ import DocumentViewer from './DocumentViewer';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { getEmbedUrl } from '../../utils/linkDetection';
 import { useModal } from '@shared/hooks/useModernEffects';
+import { createBackdrop } from '../../../../shared/styles/modernEffects';
 
 const PreviewModal = ({ open, onClose, material }) => {
   const modalStyles = useModal();
@@ -539,12 +540,7 @@ const PreviewModal = ({ open, onClose, material }) => {
           borderRadius: BORDER_RADIUS.dialog,
         },
       }}
-      BackdropProps={{
-        sx: {
-          backdropFilter: 'blur(8px)',
-          backgroundColor: 'rgba(0, 0, 0, 0.4)',
-        },
-      }}
+      BackdropProps={{ sx: createBackdrop() }}
     >
       {/* Header */}
       <DialogTitle

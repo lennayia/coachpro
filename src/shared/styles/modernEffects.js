@@ -131,23 +131,24 @@ export const createHover = (type = 'lift') => {
   return modernEffects.hoverEffects[type] || modernEffects.hoverEffects.lift;
 };
 
-// Helper funkce pro vytváření backdrop blur efektu (pro Dialog backdrop)
-export const createBackdrop = (blurAmount = '8px', isDark = false) => ({
-  sx: {
-    backdropFilter: `blur(${blurAmount})`,
-    WebkitBackdropFilter: `blur(${blurAmount})`,
-    backgroundColor: isDark 
-      ? 'rgba(0, 0, 0, 0.7)'
-      : 'rgba(0, 0, 0, 0.5)',
-  }
+// Helper funkce pro vytvoření backdrop blur efektu (pro Dialog backdrop)
+export const createBackdrop = () => ({
+  backdropFilter: 'blur(4px)',
+  WebkitBackdropFilter: 'blur(4px)',
+  backgroundColor: 'rgba(0, 0, 0, 0.6)',
 });
 
-// Helper funkce pro vytváření glassmorphism Dialog Paper props
-export const createGlassDialog = (intensity = 'normal', isDark = false, borderRadius = '20px') => ({
-  sx: {
-    borderRadius,
-    ...createGlass(intensity, isDark),
-  }
+// Helper funkce pro vytvoření glassmorphism Dialog Paper props
+export const createGlassDialog = (isDark = false, borderRadius = '20px') => ({
+  backdropFilter: 'blur(20px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+  backgroundColor: isDark 
+    ? 'rgba(26, 26, 26, 0.85)'
+    : 'rgba(255, 255, 255, 0.85)',
+  borderRadius,
+  boxShadow: isDark
+    ? '0 8px 32px rgba(139, 188, 143, 0.2), 0 4px 16px rgba(0, 0, 0, 0.4)'
+    : '0 8px 32px rgba(85, 107, 47, 0.15), 0 4px 16px rgba(0, 0, 0, 0.1)',
 });
 
 // Helper funkce pro moderní karty
@@ -175,6 +176,13 @@ export const glassmorphism = modernEffects.glassmorphism.light;
 export const glassmorphismDark = modernEffects.glassmorphism.dark;
 export const animations = modernEffects.animations;
 export const hoverEffects = modernEffects.hoverEffects;
+// Helper funkce pro glow efekt (pro selected karty)
+export const createGlow = (isSelected = false, color = 'rgba(139, 188, 143, 0.6)') => ({
+  boxShadow: isSelected 
+    ? `0 0 12px 2px ${color}`
+    : '0 2px 8px rgba(0, 0, 0, 0.15)',
+  transition: 'all 0.2s',
+});
 
 export default {
   glassmorphism,
@@ -186,5 +194,6 @@ export default {
   createBackdrop,        // ← NOVÉ
   createGlassDialog,     // ← NOVÉ
   createModernCard,
-  createTransition
+  createTransition,
+  createGlow,
 };

@@ -35,6 +35,7 @@ import ServiceLogo from '../shared/ServiceLogo';
 import PreviewModal from '../shared/PreviewModal';
 import AddMaterialModal from './AddMaterialModal';
 import BORDER_RADIUS from '@styles/borderRadius';
+import { createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
 
 const MaterialCard = ({
@@ -448,26 +449,8 @@ const MaterialCard = ({
 <Dialog 
   open={deleteDialogOpen} 
   onClose={() => setDeleteDialogOpen(false)}
-  BackdropProps={{
-    sx: {
-      backdropFilter: 'blur(4px)',
-      WebkitBackdropFilter: 'blur(4px)',
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    }
-  }}
-  PaperProps={{
-    sx: {
-      borderRadius: BORDER_RADIUS.dialog,
-      backdropFilter: 'blur(20px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-      backgroundColor: isDark 
-        ? 'rgba(26, 26, 26, 0.7)'
-        : 'rgba(255, 255, 255, 0.7)',
-      boxShadow: isDark
-        ? '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
-        : '0 8px 32px 0 rgba(0, 0, 0, 0.1)',
-    }
-  }}
+  BackdropProps={{ sx: createBackdrop() }}
+  PaperProps={{ sx: createGlassDialog(isDark, BORDER_RADIUS.dialog) }}
 >
         <DialogTitle>Smazat materiál?</DialogTitle>
         <DialogContent>

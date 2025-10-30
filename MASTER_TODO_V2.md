@@ -141,11 +141,11 @@
 
 ---
 
-### ✅ **Sprint 9: GLASSMORPHISM & UI POLISH (2 dny)** - HOTOVO!
+### ✅ **Sprint 9: GLASSMORPHISM & UI POLISH + MODULARIZACE (3 dny)** - HOTOVO!
 
-**Datum:** 28-29. října 2025
+**Datum:** 28-30. října 2025
 **AI asistenti:** Claude Code (Opus) + Claude Sonnet 4.5
-**Status:** ✅ Kompletně implementováno a otestováno
+**Status:** ✅ Kompletně implementováno a otestováno (5 sessions)
 
 #### **9.1 Glassmorphism na modalech a dialozích**
 - ✅ **Vytvořeny utility soubory:**
@@ -233,6 +233,48 @@
 - ✅ **Grid spacing vyžaduje parent padding** (kvůli negativním marginům)
 
 **Dokumentace:** Vše zdokumentováno v `claude.md` (4 sessions, lessons learned, patterns)
+
+#### **9.6 Glassmorphism Modularizace - Session 5**
+- ✅ **Session proběhl s Claude Sonnet 4.5** (30.10, 00:06-01:35, 90 minut)
+- ✅ **Centralizované funkce vytvořeny v modernEffects.js:**
+  ```javascript
+  createBackdrop() // Blur efekt pro backdrop
+  createGlassDialog(isDark, borderRadius) // Glassmorphism pro dialogs/drawers
+  createGlow(isSelected, color) // Glow efekt pro karty
+  ```
+- ✅ **9 souborů modularizováno:**
+  - MaterialCard.jsx - Delete Dialog
+  - AddMaterialModal.jsx
+  - PreviewModal.jsx
+  - ProgramEditor.jsx
+  - ShareProgramModal.jsx
+  - ClientEntry.jsx
+  - CelebrationModal.jsx
+  - DailyView.jsx
+  - modernEffects.js (enhanced)
+
+- ✅ **~150 řádků kódu odstraněno** (duplikovaný glassmorphism styling)
+- ✅ **3 bugy opraveny:**
+  - Path aliases nefungují pro modernEffects.js → použity relativní cesty
+  - Undefined `glassmorphismWithGradient()` v DailyView → nahrazeno `presets.glassCard()`
+  - SVG size prop nepřijímá objekty → změněno na numeric value
+
+- ✅ **BONUS: Celebration enhancements:**
+  - Přidán celebrační zvuk (`/sounds/celebration.mp3`, volume 0.5)
+  - Vylepšené confetti (800 particles, 5s duration, recycle: true)
+  - Side effect pattern s useEffect pro audio playback
+
+**Kritická zjištění:**
+- ⚠️ **Path aliases @styles a @shared NEFUNGUJÍ** pro modernEffects.js (není v /src/styles/)
+- ✅ **Řešení: Relativní import** `../../../../shared/styles/modernEffects`
+- ✅ **Konzistentní usage pattern:**
+  ```javascript
+  BackdropProps={{ sx: createBackdrop() }}
+  PaperProps={{ sx: createGlassDialog(isDark, BORDER_RADIUS.dialog) }}
+  ```
+- 🎯 **Výsledek: Jednotný glassmorphism napříč všemi modaly bez duplikace kódu**
+
+**Dokumentace:** Kompletní Session 5 dokumentace v `claude.md` (řádky 2304-2658)
 
 ---
 

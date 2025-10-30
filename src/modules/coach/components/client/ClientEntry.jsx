@@ -23,10 +23,14 @@ import {
 } from '../../utils/storage';
 import { generateUUID, isValidShareCode } from '../../utils/generateCode';
 import { useNotification } from '@shared/context/NotificationContext';
+import { useGlassCard } from '@shared/hooks/useModernEffects';
+import { useTheme } from '@mui/material';
 
 const ClientEntry = () => {
   const navigate = useNavigate();
   const { showError } = useNotification();
+  const theme = useTheme();
+  const glassCardStyles = useGlassCard('subtle');
 
   const [entryMethod, setEntryMethod] = useState('code'); // 'code' | 'qr'
   const [code, setCode] = useState('');
@@ -161,29 +165,15 @@ const ClientEntry = () => {
         style={{ width: '100%', maxWidth: 500 }}
       >
         <Card
-          elevation={0}
-          sx={{
-            width: '100%',
-            position: 'relative',
-            overflow: 'hidden',
-            borderRadius: '32px',
-            backdropFilter: 'blur(40px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-            background: (theme) =>
-              theme.palette.mode === 'dark'
-                ? 'rgba(26, 26, 26, 0.6)'
-                : 'rgba(255, 255, 255, 0.7)',
-            border: '1px solid',
-            borderColor: (theme) =>
-              theme.palette.mode === 'dark'
-                ? 'rgba(255, 255, 255, 0.08)'
-                : 'rgba(255, 255, 255, 0.6)',
-            boxShadow: (theme) =>
-              theme.palette.mode === 'dark'
-                ? '0 20px 60px 0 rgba(0, 0, 0, 0.5)'
-                : '0 20px 60px 0 rgba(85, 107, 47, 0.12)',
-          }}
-        >
+  elevation={0}
+  sx={{
+    ...glassCardStyles,
+    width: '100%',
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: '32px',
+  }}
+>
           <Box p={4}>
             {/* Logo */}
             <motion.div

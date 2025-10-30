@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,9 +11,22 @@ import {
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { Share as ShareIcon, EmojiEvents as TrophyIcon } from '@mui/icons-material';
+import { useTheme } from '@mui/material';
+import { createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';
+import BORDER_RADIUS from '@styles/borderRadius';
 
 const CelebrationModal = ({ open, onClose, program, client }) => {
   const { width, height } = useWindowSize();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  // Přehrát zvuk při otevření (jen při dokončení celého programu)
+useEffect(() => {
+  if (open && client?.completedDays?.length === program?.duration) {
+    const audio = new Audio('/sounds/celebration.mp3');
+    audio.volume = 0.5; // 50% hlasitost
+    audio.play().catch(err => console.error('Audio play failed:', err));
+  }
+}, [open, client, program]);
 
   if (!program || !client) return null;
 
@@ -42,15 +56,23 @@ Jsem na sebe pyšná! 💚`;
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog 
+  open={open} 
+  onClose={onClose} 
+  maxWidth="sm" 
+  fullWidth
+  BackdropProps={{ sx: createBackdrop() }}
+  PaperProps={{ sx: createGlassDialog(isDark, BORDER_RADIUS.dialog) }}
+>
       {/* Confetti */}
       {open && (
         <Confetti
-          width={width}
-          height={height}
-          recycle={false}
-          numberOfPieces={500}
-        />
+  width={width}
+  height={height}
+  recycle={true}  // ← Konfety budou padat dokola
+  numberOfPieces={800}  // ← Víc kusů (bylo 500)
+  duration={5000}  // ← 5 sekund (pak zmizí)
+/>
       )}
 
       <DialogContent sx={{ textAlign: 'center', p: 4 }}>

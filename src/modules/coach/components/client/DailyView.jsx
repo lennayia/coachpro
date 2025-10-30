@@ -663,7 +663,7 @@ const DailyView = () => {
               elevation={0}
               sx={{
                 mb: 4,
-                ...glassmorphismWithGradient(),
+                ...presets.glassCard('normal'),
               }}
             >
               <Box
@@ -706,7 +706,8 @@ const DailyView = () => {
                     sx={{
                       mt: 4,
                       p: 3,
-                      ...glassmorphismLight({ borderRadius: '33px' }),
+                      ...presets.glassCard('subtle'),
+                      borderRadius: '33px',
                     }}
                   >
                     <Typography

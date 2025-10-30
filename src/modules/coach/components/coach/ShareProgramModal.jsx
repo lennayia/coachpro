@@ -18,10 +18,13 @@ import {
 import { downloadQRCode } from '@shared/utils/helpers';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { useNotification } from '@shared/context/NotificationContext';
+import { useTheme } from '@mui/material';
+import { createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';
 
 const ShareProgramModal = ({ open, onClose, program }) => {
   const { showSuccess, showError } = useNotification();
-
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   if (!program) return null;
 
   const handleCopyCode = () => {
@@ -76,7 +79,14 @@ Těším se na tvůj růst! 💚`;
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog 
+  open={open} 
+  onClose={onClose} 
+  maxWidth="sm" 
+  fullWidth
+  BackdropProps={{ sx: createBackdrop() }}
+  PaperProps={{ sx: createGlassDialog(isDark, BORDER_RADIUS.dialog) }}
+>
         <DialogContent sx={{ textAlign: 'center', p: 4 }}>
           {/* Success icon */}
           <CheckCircleIcon sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />

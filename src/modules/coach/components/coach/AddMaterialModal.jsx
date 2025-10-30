@@ -3,6 +3,7 @@ import {
   Drawer,
   Box,
   Typography,
+  useTheme,
   Grid,
   Card,
   CardContent,
@@ -41,6 +42,7 @@ import {
 import { detectLinkType, getEmbedUrl, isValidUrl, getThumbnailUrl, getYouTubeMetadata } from '../../utils/linkDetection';
 import { uploadFileToSupabase, isSupabaseConfigured } from '../../utils/supabaseStorage';
 import { useNotification } from '@shared/context/NotificationContext';
+import { createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';
 
 const MATERIAL_TYPES = [
   { value: 'audio', label: 'Audio', icon: <AudioIcon sx={{ fontSize: 40 }} /> },
@@ -57,6 +59,8 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
   const fileInputRef = useRef(null);
   const isEditMode = Boolean(editMaterial);
   const { showSuccess, showError } = useNotification();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
 
   const [selectedType, setSelectedType] = useState('');
   const [file, setFile] = useState(null);
@@ -370,24 +374,11 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
   anchor="right"
   open={open}
   onClose={handleClose}
-  BackdropProps={{
-    sx: {
-      backdropFilter: 'blur(4px)',
-      WebkitBackdropFilter: 'blur(4px)',
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    }
-  }}
+  BackdropProps={{ sx: createBackdrop() }}
   PaperProps={{
     sx: {
       width: { xs: '100%', sm: 500 },
-      backdropFilter: 'blur(20px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-      backgroundColor: (theme) => theme.palette.mode === 'dark'
-        ? 'rgba(26, 26, 26, 0.85)'
-        : 'rgba(255, 255, 255, 0.85)',
-      boxShadow: (theme) => theme.palette.mode === 'dark'
-      ? '-4px 0 32px rgba(139, 188, 143, 0.15), 0 8px 32px rgba(0, 0, 0, 0.37)'
-      : '-4px 0 32px rgba(85, 107, 47, 0.1), 0 8px 32px rgba(0, 0, 0, 0.1)',
+      ...createGlassDialog(isDark),
     },
   }}
 >
