@@ -22,7 +22,7 @@ const MoodCheck = ({ onMoodSelected }) => {
       <Card sx={{ mb: 3 }}>
         <CardContent sx={{ textAlign: 'center', py: 3 }}>
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-            Jak se dnes cítíš? 💚
+            Jak se dneska máš? 💚
           </Typography>
           <Typography variant="body2" color="text.secondary" mb={3}>
             Klikni na emoji, které nejlépe vystihuje tvůj dnešní pocit

@@ -178,11 +178,122 @@ export const animations = modernEffects.animations;
 export const hoverEffects = modernEffects.hoverEffects;
 // Helper funkce pro glow efekt (pro selected karty)
 export const createGlow = (isSelected = false, color = 'rgba(139, 188, 143, 0.6)') => ({
-  boxShadow: isSelected 
+  boxShadow: isSelected
     ? `0 0 12px 2px ${color}`
     : '0 2px 8px rgba(0, 0, 0, 0.15)',
   transition: 'all 0.2s',
 });
+
+// Helper funkce pro IconButton hover efekt
+export const createIconButtonHover = (color = 'primary', isDark = false) => {
+  const colors = {
+    primary: {
+      dark: 'rgba(139, 188, 143, 0.1)',
+      light: 'rgba(139, 188, 143, 0.08)',
+    },
+    secondary: {
+      dark: 'rgba(255, 255, 255, 0.1)',
+      light: 'rgba(0, 0, 0, 0.05)',
+    },
+    error: {
+      dark: 'rgba(244, 67, 54, 0.1)',
+      light: 'rgba(244, 67, 54, 0.08)',
+    }
+  };
+
+  return {
+    transition: 'all 0.2s',
+    '&:hover': {
+      backgroundColor: isDark
+        ? colors[color]?.dark
+        : colors[color]?.light,
+    }
+  };
+};
+
+// ===== BUTTON SYSTEM =====
+// Import BORDER_RADIUS bude potřeba v komponentě, která toto používá
+
+// Základní tlačítko (pro akce: Uložit, Zrušit, atd.)
+export const createActionButton = (variant = 'contained', borderRadius = '18px') => ({
+  borderRadius,
+  textTransform: 'none',
+  px: 3,
+  py: 1,
+  fontWeight: 500,
+});
+
+// Náhledové tlačítko (vždy User ikona, jednotný design) - moderní 3D efekt
+export const createPreviewButton = (isDark = false, borderRadius = '18px') => ({
+  borderRadius,
+  textTransform: 'none',
+  px: 2.5,
+  py: 0.75,
+  fontWeight: 500,
+  color: 'primary.main',
+  border: '1px solid',
+  borderColor: isDark ? 'rgba(139, 188, 143, 0.3)' : 'rgba(85, 107, 47, 0.3)',
+  backgroundColor: isDark ? 'rgba(139, 188, 143, 0.08)' : 'rgba(85, 107, 47, 0.08)',
+  boxShadow: isDark
+    ? '0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+    : '0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  position: 'relative',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: '-100%',
+    width: '100%',
+    height: '100%',
+    background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+    transition: 'left 0.5s ease',
+  },
+  '&:hover': {
+    backgroundColor: isDark ? 'rgba(139, 188, 143, 0.18)' : 'rgba(85, 107, 47, 0.18)',
+    borderColor: isDark ? 'rgba(139, 188, 143, 0.6)' : 'rgba(85, 107, 47, 0.6)',
+    transform: 'translateY(-2px) scale(1.02)',
+    boxShadow: isDark
+      ? '0 8px 20px rgba(139, 188, 143, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+      : '0 8px 20px rgba(85, 107, 47, 0.25), inset 0 1px 0 rgba(255, 255, 255, 1)',
+    '&::before': {
+      left: '100%',
+    }
+  },
+  '&:active': {
+    transform: 'translateY(0) scale(0.98)',
+  }
+});
+
+// IconButton akční (malá tlačítka v kartách - Eye, Pencil, Trash, atd.)
+export const createIconButton = (color = 'primary', isDark = false, size = 'small') => {
+  const colors = {
+    primary: {
+      color: 'primary.main',
+      hover: isDark ? 'rgba(139, 188, 143, 0.1)' : 'rgba(139, 188, 143, 0.08)',
+    },
+    secondary: {
+      color: 'text.secondary',
+      hover: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+    },
+    error: {
+      color: 'error.main',
+      hover: isDark ? 'rgba(244, 67, 54, 0.1)' : 'rgba(244, 67, 54, 0.08)',
+    }
+  };
+
+  const padding = size === 'small' ? 0.5 : 1;
+
+  return {
+    p: padding,
+    color: colors[color]?.color || colors.primary.color,
+    transition: 'all 0.2s',
+    '&:hover': {
+      backgroundColor: colors[color]?.hover || colors.primary.hover,
+    }
+  };
+};
 
 export default {
   glassmorphism,
@@ -191,9 +302,13 @@ export default {
   hoverEffects,
   createGlass,
   createHover,
-  createBackdrop,        // ← NOVÉ
-  createGlassDialog,     // ← NOVÉ
+  createBackdrop,
+  createGlassDialog,
   createModernCard,
   createTransition,
   createGlow,
+  createIconButtonHover,
+  createActionButton,    // ← NOVÉ
+  createPreviewButton,   // ← NOVÉ
+  createIconButton,      // ← NOVÉ
 };

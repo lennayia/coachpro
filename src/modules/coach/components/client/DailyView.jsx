@@ -27,6 +27,7 @@ import {
   ArrowBack as ArrowBackIcon,
   CheckCircle as CheckIcon,
   ArrowForward as NextIcon,
+  OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material';
 import {
   Headphones,
@@ -58,6 +59,7 @@ import { fadeIn, fadeInUp } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { getEmbedUrl } from '../../utils/linkDetection';
 import useModernEffects from '@shared/hooks/useModernEffects';
+import { createIconButtonHover } from '../../../../shared/styles/modernEffects';
 
 const DailyView = () => {
   const { presets, isDarkMode } = useModernEffects();
@@ -83,7 +85,8 @@ const DailyView = () => {
       return;
     }
 
-    const loadedProgram = getProgramById(loadedClient.programId);
+    // Check if this is a preview with embedded program data
+    const loadedProgram = loadedClient._previewProgram || getProgramById(loadedClient.programId);
     if (!loadedProgram) {
       navigate('/client/entry');
       return;
@@ -188,6 +191,137 @@ const DailyView = () => {
     navigate('/client/entry');
   };
 
+  // Open material in new tab (same as PreviewModal)
+  const handleOpenMaterialInNewTab = (material) => {
+    const previewWindow = window.open('', '_blank');
+    if (!previewWindow) return;
+
+    const baseStyles = `
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 40px 20px;
+        background: #f5f5f5;
+      }
+      .container {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+      h1 {
+        color: #556B2F;
+        border-bottom: 2px solid #8FBC8F;
+        padding-bottom: 10px;
+        margin-top: 0;
+      }
+    `;
+
+    switch (material.type) {
+      case 'audio':
+        previewWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>${material.title}</title>
+              <meta charset="UTF-8">
+              <style>${baseStyles}</style>
+            </head>
+            <body>
+              <div class="container">
+                <h1>🎧 ${material.title}</h1>
+                <audio controls autoplay style="width: 100%; margin-top: 20px;">
+                  <source src="${material.content}" type="audio/mpeg">
+                </audio>
+              </div>
+            </body>
+          </html>
+        `);
+        break;
+
+      case 'video':
+        previewWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>${material.title}</title>
+              <meta charset="UTF-8">
+              <style>${baseStyles}</style>
+            </head>
+            <body>
+              <div class="container">
+                <h1>🎬 ${material.title}</h1>
+                <video controls autoplay style="width: 100%; margin-top: 20px; background: #000; border-radius: 8px;">
+                  <source src="${material.content}">
+                  Tvůj prohlížeč nepodporuje přehrávání videa.
+                </video>
+              </div>
+            </body>
+          </html>
+        `);
+        break;
+
+      case 'image':
+        previewWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>${material.title}</title>
+              <meta charset="UTF-8">
+              <style>${baseStyles}</style>
+            </head>
+            <body>
+              <div class="container">
+                <h1>🖼️ ${material.title}</h1>
+                <img src="${material.content}" alt="${material.title}" style="width: 100%; height: auto; margin-top: 20px; border-radius: 8px;">
+              </div>
+            </body>
+          </html>
+        `);
+        break;
+
+      case 'pdf':
+        previewWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>${material.title}</title>
+              <style>body { margin: 0; } iframe { width: 100vw; height: 100vh; border: none; }</style>
+            </head>
+            <body><iframe src="${material.content}"></iframe></body>
+          </html>
+        `);
+        break;
+
+      case 'text':
+        previewWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>${material.title}</title>
+              <meta charset="UTF-8">
+              <style>${baseStyles} .text-content { white-space: pre-wrap; line-height: 1.6; }</style>
+            </head>
+            <body>
+              <div class="container">
+                <h1>📝 ${material.title}</h1>
+                <div class="text-content">${material.content}</div>
+              </div>
+            </body>
+          </html>
+        `);
+        break;
+
+      default:
+        window.open(material.content, '_blank');
+        previewWindow.close();
+        return;
+    }
+
+    previewWindow.document.close();
+  };
+
   if (!client || !program || !currentDayData) {
     return (
       <Box
@@ -257,6 +391,49 @@ const DailyView = () => {
                 CoachPro
               </Typography>
             </Box>
+
+            {/* Admin режim indikátor + exit button */}
+            {client?.isAdmin && (
+              <Box
+                onClick={() => navigate('/coach/programs')}
+                sx={{
+                  ml: 2,
+                  px: 2,
+                  py: 0.5,
+                  cursor: 'pointer',
+                  borderRadius: BORDER_RADIUS.button,
+                  backdropFilter: 'blur(10px) saturate(150%)',
+                  WebkitBackdropFilter: 'blur(10px) saturate(150%)',
+                  backgroundColor: isDarkMode
+                    ? 'rgba(139, 188, 143, 0.15)'
+                    : 'rgba(85, 107, 47, 0.15)',
+                  border: '1px solid',
+                  borderColor: isDarkMode
+                    ? 'rgba(139, 188, 143, 0.3)'
+                    : 'rgba(85, 107, 47, 0.3)',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    backgroundColor: isDarkMode
+                      ? 'rgba(139, 188, 143, 0.25)'
+                      : 'rgba(85, 107, 47, 0.25)',
+                    transform: 'translateY(-1px)',
+                  },
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 600,
+                    color: 'primary.main',
+                    fontSize: '0.7rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  👁️ Preview
+                </Typography>
+              </Box>
+            )}
           </Box>
 
           <Box sx={{ minWidth: 150, textAlign: 'right' }}>
@@ -396,6 +573,27 @@ const DailyView = () => {
                           {material.description}
                         </Typography>
                       </Box>
+
+                      {/* Otevřít v nové kartě */}
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          if (material.type === 'link') {
+                            // Pro linky otevři přímo URL
+                            window.open(material.content, '_blank', 'noopener,noreferrer');
+                          } else {
+                            // Pro ostatní typy použij handleOpenMaterialInNewTab
+                            handleOpenMaterialInNewTab(material);
+                          }
+                        }}
+                        title="Otevřít v nové kartě"
+                        sx={{
+                          color: 'primary.main',
+                          ...createIconButtonHover('primary', isDarkMode),
+                        }}
+                      >
+                        <OpenInNewIcon />
+                      </IconButton>
                     </Box>
 
                     {/* Render by type */}

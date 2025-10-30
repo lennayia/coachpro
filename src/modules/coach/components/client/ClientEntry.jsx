@@ -9,6 +9,11 @@ import {
   Tab,
   Alert,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Chip,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -20,6 +25,7 @@ import {
   getClientByProgramCode,
   saveClient,
   setCurrentClient,
+  getPrograms,
 } from '../../utils/storage';
 import { generateUUID, isValidShareCode } from '../../utils/generateCode';
 import { useNotification } from '@shared/context/NotificationContext';
@@ -39,6 +45,11 @@ const ClientEntry = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Admin mode
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [selectedProgramId, setSelectedProgramId] = useState('');
+  const [allPrograms, setAllPrograms] = useState([]);
+
   const handleCodeChange = (e) => {
     const value = e.target.value.toUpperCase().slice(0, 6);
     setCode(value);
@@ -50,6 +61,20 @@ const ClientEntry = () => {
     setLoading(true);
 
     try {
+      // 🔑 ADMIN MODE - speciální kód pro testování
+      if (code === 'ADMIN1') {
+        const programs = getPrograms();
+        if (programs.length === 0) {
+          const errorMsg = 'Žádné programy k dispozici. Vytvoř nejdřív nějaký program.';
+          showError('Admin režim', errorMsg);
+          throw new Error(errorMsg);
+        }
+        setAllPrograms(programs);
+        setIsAdminMode(true);
+        setLoading(false);
+        return;
+      }
+
       // Validace kódu
       if (code.length !== 6) {
         const errorMsg = 'Kód musí mít 6 znaků';
@@ -123,6 +148,47 @@ const ClientEntry = () => {
     setCode(scannedCode);
     setEntryMethod('code');
     handleCodeSubmit();
+  };
+
+  // Admin: Vstup do vybraného programu
+  const handleAdminProgramSelect = () => {
+    if (!selectedProgramId) return;
+
+    setLoading(true);
+    try {
+      const program = allPrograms.find(p => p.id === selectedProgramId);
+      if (!program) {
+        throw new Error('Program nenalezen');
+      }
+
+      // Vytvoř admin klientku
+      const adminClient = {
+        id: generateUUID(),
+        name: 'Admin Preview',
+        programCode: program.shareCode,
+        programId: program.id,
+        startedAt: new Date().toISOString(),
+        currentDay: 1,
+        streak: 0,
+        longestStreak: 0,
+        moodLog: [],
+        completedDays: [],
+        completedAt: null,
+        certificateGenerated: false,
+        isAdmin: true, // 🔑 označení admin session
+      };
+
+      // Ulož do session storage (NE localStorage - nechceme ukládat admin klientky)
+      setCurrentClient(adminClient);
+
+      // Přesměruj na denní přehled
+      navigate('/client/daily');
+    } catch (err) {
+      setError(err.message);
+      showError('Chyba', err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -245,7 +311,7 @@ const ClientEntry = () => {
             )}
 
             {/* Code input */}
-            {entryMethod === 'code' && (
+            {entryMethod === 'code' && !isAdminMode && (
               <motion.div
                 variants={fadeInUp}
                 initial="hidden"
@@ -323,6 +389,73 @@ const ClientEntry = () => {
                       : showNameInput
                       ? 'Začít program'
                       : 'Pokračovat'}
+                  </Button>
+                </Box>
+              </motion.div>
+            )}
+
+            {/* Admin Mode - Select Program */}
+            {isAdminMode && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Alert severity="info" sx={{ mb: 3 }}>
+                  🔑 <strong>Admin režim aktivní</strong> - Vyber program pro náhled
+                </Alert>
+
+                <FormControl fullWidth margin="normal">
+                  <InputLabel>Vyber program</InputLabel>
+                  <Select
+                    value={selectedProgramId}
+                    onChange={(e) => setSelectedProgramId(e.target.value)}
+                    label="Vyber program"
+                    disabled={loading}
+                  >
+                    {allPrograms.map((program) => (
+                      <MenuItem key={program.id} value={program.id}>
+                        <Box display="flex" alignItems="center" gap={1} width="100%">
+                          <Typography>{program.title}</Typography>
+                          <Chip
+                            label={`${program.duration} dní`}
+                            size="small"
+                            sx={{ ml: 'auto' }}
+                          />
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <Box display="flex" justifyContent="center" gap={2} mt={3}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => {
+                      setIsAdminMode(false);
+                      setCode('');
+                      setSelectedProgramId('');
+                      setAllPrograms([]);
+                    }}
+                    disabled={loading}
+                  >
+                    Zpět
+                  </Button>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={handleAdminProgramSelect}
+                    disabled={!selectedProgramId || loading}
+                    sx={{
+                      px: 4,
+                      py: 1.5,
+                      color: '#ffffff !important',
+                      background: (theme) =>
+                        `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                    }}
+                    startIcon={loading && <CircularProgress size={20} sx={{ color: '#ffffff' }} />}
+                  >
+                    {loading ? 'Načítám...' : 'Zobrazit náhled'}
                   </Button>
                 </Box>
               </motion.div>

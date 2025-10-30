@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -15,6 +15,12 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  useTheme,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  InputAdornment,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -25,19 +31,28 @@ import {
   Delete as DeleteIcon,
   CheckCircle as ActiveIcon,
   Cancel as InactiveIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
+import { User as UserIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import ProgramEditor from './ProgramEditor';
 import ShareProgramModal from './ShareProgramModal';
-import { getCurrentUser, getPrograms, deleteProgram, getClients } from '../../utils/storage';
+import { getCurrentUser, getPrograms, deleteProgram, getClients, setCurrentClient } from '../../utils/storage';
+import { generateUUID } from '../../utils/generateCode';
 import { staggerContainer, staggerItem } from '@shared/styles/animations';
 import { formatDate, pluralize } from '@shared/utils/helpers';
 import BORDER_RADIUS from '@styles/borderRadius';
+import { createPreviewButton, createActionButton, createIconButton } from '../../../../shared/styles/modernEffects';
 
 const ProgramsList = () => {
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const currentUser = getCurrentUser();
   const [programs, setPrograms] = useState(getPrograms(currentUser?.id));
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -50,6 +65,31 @@ const ProgramsList = () => {
   const refreshPrograms = () => {
     setPrograms(getPrograms(currentUser?.id));
   };
+
+  // Filtrované a prohledané programy
+  const filteredPrograms = useMemo(() => {
+    return programs.filter(program => {
+      // Filtr podle statusu
+      if (filterStatus !== 'all') {
+        const isActive = filterStatus === 'active';
+        if (program.isActive !== isActive) {
+          return false;
+        }
+      }
+
+      // Filtr podle search query
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        return (
+          program.title.toLowerCase().includes(query) ||
+          program.description?.toLowerCase().includes(query) ||
+          program.shareCode.toLowerCase().includes(query)
+        );
+      }
+
+      return true;
+    });
+  }, [programs, searchQuery, filterStatus]);
 
   const handleMenuOpen = (event, program) => {
     setAnchorEl(event.currentTarget);
@@ -78,6 +118,32 @@ const ProgramsList = () => {
     handleMenuClose();
   };
 
+  const handlePreview = (program) => {
+    // Vytvoř admin preview session
+    const adminClient = {
+      id: generateUUID(),
+      name: 'Preview (Koučka)',
+      programCode: program.shareCode,
+      programId: program.id,
+      startedAt: new Date().toISOString(),
+      currentDay: 1,
+      streak: 0,
+      longestStreak: 0,
+      moodLog: [],
+      completedDays: [],
+      completedAt: null,
+      certificateGenerated: false,
+      isAdmin: true, // 🔑 admin preview režim
+    };
+
+    // Ulož do session storage
+    setCurrentClient(adminClient);
+
+    // Přesměruj na klientskou zónu
+    navigate('/client/daily');
+    handleMenuClose();
+  };
+
   const handleDeleteClick = (program) => {
     setProgramToDelete(program);
     setDeleteDialogOpen(true);
@@ -101,35 +167,66 @@ const ProgramsList = () => {
   return (
     <Box>
       {/* Header */}
+      <Box mb={4}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
+          Moje programy
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Vytvářejte a spravujte programy pro své klientky
+        </Typography>
+      </Box>
+
+      {/* Top bar - Search, Filter, Add */}
       <Box
         display="flex"
+        flexDirection={{ xs: 'column', md: 'row' }}
         justifyContent="space-between"
-        alignItems="center"
-        mb={4}
-        flexDirection={{ xs: 'column', sm: 'row' }}
         gap={2}
+        mb={4}
       >
-        <Box>
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
-            Moje programy
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Vytvárej a spravuj programy pro své klientky
-          </Typography>
-        </Box>
+        {/* Search */}
+        <TextField
+          placeholder="Hledat programy..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          sx={{ flex: 1, maxWidth: { md: 400 } }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
 
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreateNew}
-          sx={{ whiteSpace: 'nowrap' }}
-        >
-          Vytvořit program
-        </Button>
+        {/* Filter + Add button */}
+        <Box display="flex" gap={2} flexWrap="wrap">
+          <FormControl sx={{ minWidth: 200 }}>
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={filterStatus}
+              label="Status"
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <MenuItem value="all">Všechny programy</MenuItem>
+              <MenuItem value="active">✅ Aktivní</MenuItem>
+              <MenuItem value="inactive">⏸️ Neaktivní</MenuItem>
+            </Select>
+          </FormControl>
+
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleCreateNew}
+            sx={{ whiteSpace: 'nowrap' }}
+          >
+            Vytvořit program
+          </Button>
+        </Box>
       </Box>
 
       {/* Programs grid */}
-      {programs.length === 0 ? (
+      {filteredPrograms.length === 0 ? (
         <Box
           py={8}
           textAlign="center"
@@ -160,7 +257,7 @@ const ProgramsList = () => {
           animate="visible"
         >
           <Grid container spacing={3}>
-            {programs.map((program) => {
+            {filteredPrograms.map((program) => {
               const clients = getProgramClients(program.shareCode);
               const activeClients = clients.filter(c => !c.completedAt).length;
 
@@ -191,6 +288,10 @@ const ProgramsList = () => {
                           <IconButton
                             size="small"
                             onClick={(e) => handleMenuOpen(e, program)}
+                            sx={{
+                              ...createIconButton('error', isDark, 'small'),
+                              color: 'error.main',
+                            }}
                           >
                             <MoreVertIcon />
                           </IconButton>
@@ -261,11 +362,21 @@ const ProgramsList = () => {
                         </Box>
                       </CardContent>
 
-                      <CardActions>
+                      <CardActions sx={{ flexWrap: 'wrap', gap: 1 }}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<UserIcon size={16} />}
+                          onClick={() => handlePreview(program)}
+                          sx={createPreviewButton(isDark, BORDER_RADIUS.button)}
+                        >
+                          Náhled jako klientka
+                        </Button>
                         <Button
                           size="small"
                           startIcon={<ShareIcon />}
                           onClick={() => handleShare(program)}
+                          sx={createActionButton('text', BORDER_RADIUS.button)}
                         >
                           Sdílet
                         </Button>
@@ -273,6 +384,7 @@ const ProgramsList = () => {
                           size="small"
                           startIcon={<EditIcon />}
                           onClick={() => handleEdit(program)}
+                          sx={createActionButton('text', BORDER_RADIUS.button)}
                         >
                           Upravit
                         </Button>
@@ -288,6 +400,10 @@ const ProgramsList = () => {
 
       {/* Menu */}
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+        <MenuItem onClick={() => handlePreview(menuProgram)}>
+          <UserIcon size={18} style={{ marginRight: 8 }} />
+          Náhled jako klientka
+        </MenuItem>
         <MenuItem onClick={() => handleShare(menuProgram)}>
           <QrCodeIcon fontSize="small" sx={{ mr: 1 }} />
           Sdílet

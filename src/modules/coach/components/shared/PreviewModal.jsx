@@ -5,13 +5,12 @@ import {
   DialogContent,
   IconButton,
   Box,
-  Button,
   Typography,
+  useTheme,
 } from '@mui/material';
 import {
   Close as CloseIcon,
   OpenInNew as OpenInNewIcon,
-  Download as DownloadIcon,
 } from '@mui/icons-material';
 import {
   Headphones,
@@ -28,9 +27,11 @@ import DocumentViewer from './DocumentViewer';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { getEmbedUrl } from '../../utils/linkDetection';
 import { useModal } from '@shared/hooks/useModernEffects';
-import { createBackdrop } from '../../../../shared/styles/modernEffects';
+import { createBackdrop, createIconButtonHover } from '../../../../shared/styles/modernEffects';
 
 const PreviewModal = ({ open, onClose, material }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const modalStyles = useModal();
 
   if (!material) return null;
@@ -136,6 +137,55 @@ const PreviewModal = ({ open, onClose, material }) => {
           </html>
         `);
         break;
+
+      case 'text':
+        previewWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>${material.title}</title>
+              <meta charset="UTF-8">
+              <style>${baseStyles}</style>
+            </head>
+            <body>
+              <div class="container">
+                <h1>📝 ${material.title}</h1>
+                <div style="white-space: pre-wrap; margin-top: 20px; line-height: 1.6;">${material.content}</div>
+              </div>
+            </body>
+          </html>
+        `);
+        break;
+
+      case 'document':
+        // Pro dokumenty vytvoř download link
+        previewWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>${material.title}</title>
+              <meta charset="UTF-8">
+              <style>${baseStyles}</style>
+            </head>
+            <body>
+              <div class="container">
+                <h1>📄 ${material.title}</h1>
+                <p style="margin-top: 20px;">
+                  <a href="${material.content}" download="${material.fileName || material.title}" style="color: #556B2F; font-size: 18px;">
+                    ⬇️ Stáhnout dokument
+                  </a>
+                </p>
+              </div>
+            </body>
+          </html>
+        `);
+        break;
+
+      case 'link':
+        // Pro linky otevři přímo URL
+        window.open(material.content, '_blank', 'noopener,noreferrer');
+        previewWindow.close();
+        return;
 
       default:
         window.open(material.content, '_blank');
@@ -566,16 +616,26 @@ const PreviewModal = ({ open, onClose, material }) => {
             </Typography>
           )}
         </Box>
+
+        {/* Otevřít v nové kartě */}
+        <IconButton
+          onClick={handleOpenInNewTab}
+          title="Otevřít v nové kartě"
+          sx={{
+            color: 'primary.main',
+            ...createIconButtonHover('primary', isDark),
+          }}
+        >
+          <OpenInNewIcon />
+        </IconButton>
+
+        {/* Zavřít */}
         <IconButton
           onClick={onClose}
+          title="Zavřít"
           sx={{
             color: 'text.secondary',
-            '&:hover': {
-              backgroundColor: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? 'rgba(255, 255, 255, 0.1)'
-                  : 'rgba(0, 0, 0, 0.05)',
-            },
+            ...createIconButtonHover('secondary', isDark),
           }}
         >
           <CloseIcon />
@@ -585,38 +645,6 @@ const PreviewModal = ({ open, onClose, material }) => {
       {/* Content */}
       <DialogContent sx={{ pt: 3 }}>
         {renderContent()}
-
-        {/* Actions */}
-        <Box display="flex" gap={2} mt={3} justifyContent="flex-end">
-          {(material.type === 'audio' ||
-            material.type === 'video' ||
-            material.type === 'pdf' ||
-            material.type === 'image' ||
-            (material.type === 'link' && material.linkMeta?.embedSupport)) && (
-            <Button
-              variant="outlined"
-              startIcon={<OpenInNewIcon />}
-              onClick={handleOpenInNewTab}
-              sx={{
-                borderRadius: BORDER_RADIUS.button,
-                textTransform: 'none',
-                borderColor: (theme) =>
-                  theme.palette.mode === 'dark'
-                    ? 'rgba(255, 255, 255, 0.2)'
-                    : 'rgba(0, 0, 0, 0.2)',
-                '&:hover': {
-                  borderColor: 'primary.main',
-                  backgroundColor: (theme) =>
-                    theme.palette.mode === 'dark'
-                      ? 'rgba(143, 188, 143, 0.1)'
-                      : 'rgba(85, 107, 47, 0.05)',
-                },
-              }}
-            >
-              Otevřít v nové kartě
-            </Button>
-          )}
-        </Box>
       </DialogContent>
     </Dialog>
   );
