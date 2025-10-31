@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  CircularProgress,
   useTheme,
   useMediaQuery
 } from '@mui/material';
@@ -35,7 +36,7 @@ import ServiceLogo from '../shared/ServiceLogo';
 import PreviewModal from '../shared/PreviewModal';
 import AddMaterialModal from './AddMaterialModal';
 import BORDER_RADIUS from '@styles/borderRadius';
-import { createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';
+import { createBackdrop, createGlassDialog, createIconButton } from '../../../../shared/styles/modernEffects';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
 
 const MaterialCard = ({
@@ -48,16 +49,24 @@ const MaterialCard = ({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const isVeryNarrow = useMediaQuery('(max-width:420px)');
 
   const handleDeleteClick = () => {
     setDeleteDialogOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
-    deleteMaterial(material.id);
-    onUpdate();
-    setDeleteDialogOpen(false);
+  const handleDeleteConfirm = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteMaterial(material.id);
+      onUpdate();
+      setDeleteDialogOpen(false);
+    } catch (error) {
+      console.error('Failed to delete material:', error);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   // Ikona podle typu materiálu
@@ -138,6 +147,9 @@ const MaterialCard = ({
         sx={{
           ...glassCardStyles,
           height: '100%',
+          minHeight: 280,
+          display: 'flex',
+          flexDirection: 'column',
           borderRadius: BORDER_RADIUS.card,
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
@@ -150,17 +162,14 @@ const MaterialCard = ({
       >
         <CardContent
           sx={{
+            flexGrow: 1,
             px: isVeryNarrow ? 1 : { xs: 1, sm: 2 },
             py: isVeryNarrow ? 1.5 : { xs: 1.5, sm: 2 },
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: isVeryNarrow ? 1 : { xs: 1, sm: 1.5 },
             '&:last-child': { pb: isVeryNarrow ? 1.5 : { xs: 1.5, sm: 2 } }
           }}
         >
-          {/* Horní řádek: Kategorie chip + Service logo (jen pro links) */}
-          <Box display="flex" justifyContent="space-between" alignItems="center">
+          {/* Horní řádek: Kategorie chip + Ikona/Logo (proklikávací) */}
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={isVeryNarrow ? 1 : { xs: 1, sm: 1.5 }}>
             <Chip
               label={getCategoryLabel(material.category)}
               size="small"
@@ -179,27 +188,33 @@ const MaterialCard = ({
               }}
             />
 
-            {/* Logo služby v pravém rohu (jen pro link typy) */}
-            {material.type === 'link' && material.linkType && (
-              <ServiceLogo 
-                linkType={material.linkType} 
-                size={isVeryNarrow ? 28 : 32}
-              />
-            )}
+            {/* Ikona/Logo v pravém rohu - PROKLIKÁVACÍ (otevře preview) */}
+            <IconButton
+              size="small"
+              onClick={() => setPreviewOpen(true)}
+              sx={{
+                p: 0.5,
+                '&:hover': {
+                  backgroundColor: isDark ? 'rgba(139, 188, 143, 0.1)' : 'rgba(139, 188, 143, 0.08)',
+                }
+              }}
+            >
+              {renderIcon()}
+            </IconButton>
           </Box>
 
-          {/* Hlavní content: Ikona + Text obsah | Akční ikony */}
+          {/* Hlavní content: Text obsah | Akční ikony */}
           <Box
             display="flex"
             gap={isVeryNarrow ? 0.75 : 1}
             alignItems="flex-start"
             flex={1}
           >
-            {/* Levý sloupec: Ikona + Text obsah */}
+            {/* Levý sloupec: Text obsah (plná šířka) */}
             <Box
               display="flex"
-              gap={isVeryNarrow ? 0.75 : { xs: 1, sm: 1.5 }}
-              alignItems="flex-start"
+              flexDirection="column"
+              gap={0.5}
               sx={{
                 flex: '1 1 0px',
                 minWidth: 0,
@@ -207,22 +222,6 @@ const MaterialCard = ({
                 overflow: 'hidden',
               }}
             >
-              {/* Velká ikona materiálu */}
-              <Box flexShrink={0}>
-                {renderIcon()}
-              </Box>
-
-              {/* Text obsah */}
-              <Box
-                display="flex"
-                flexDirection="column"
-                gap={0.5}
-                sx={{
-                  flex: 1,
-                  minWidth: 0,
-                  overflow: 'hidden',
-                }}
-              >
                 {/* Název materiálu */}
                 <Typography
                   variant="h6"
@@ -231,36 +230,40 @@ const MaterialCard = ({
                     fontWeight: 600,
                     color: 'text.primary',
                     lineHeight: 1.3,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
                     overflowWrap: 'anywhere',
                     wordBreak: 'break-word',
                     hyphens: 'auto',
                     minWidth: 0,
+                    minHeight: '2.6em', // 2 řádky × 1.3 lineHeight
                   }}
                 >
                   {material.title}
                 </Typography>
 
-                {/* Popis */}
-                {material.description && (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: 'text.secondary',
-                      fontSize: isVeryNarrow ? '0.8rem' : { xs: '0.85rem', sm: '0.875rem' },
-                      lineHeight: 1.4,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      overflowWrap: 'anywhere',
-                      wordBreak: 'break-word',
-                      hyphens: 'auto',
-                      minWidth: 0,
-                    }}
-                  >
-                    {material.description}
-                  </Typography>
-                )}
+                {/* Popis - VŽDY zobrazený (i prázdný) */}
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: 'text.secondary',
+                    fontSize: isVeryNarrow ? '0.8rem' : { xs: '0.85rem', sm: '0.875rem' },
+                    lineHeight: 1.4,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    overflowWrap: 'anywhere',
+                    wordBreak: 'break-word',
+                    hyphens: 'auto',
+                    minWidth: 0,
+                    minHeight: '2.8em', // 2 řádky × 1.4 lineHeight
+                  }}
+                >
+                  {material.description || '\u00A0'}
+                </Typography>
 
                 {/* URL nebo fileName (jen pro link a file-based typy) */}
                 {material.type === 'link' && material.content && (
@@ -335,28 +338,6 @@ const MaterialCard = ({
                     ))}
                   </Box>
                 )}
-
-                {/* Chip "Náhled" pro link materiály s embed supportem */}
-                {material.type === 'link' && material.linkMeta?.embedSupport && (
-                  <Chip
-                    label="Náhled"
-                    size="small"
-                    sx={{
-                      height: isVeryNarrow ? 18 : 20,
-                      width: 'fit-content',
-                      fontSize: isVeryNarrow ? '0.65rem' : '0.7rem',
-                      fontWeight: 500,
-                      backgroundColor: material.linkMeta?.color 
-                        ? `${material.linkMeta.color}15`
-                        : 'rgba(139, 188, 143, 0.15)',
-                      color: material.linkMeta?.color || 'primary.main',
-                      '& .MuiChip-label': {
-                        px: isVeryNarrow ? 0.75 : 1,
-                      }
-                    }}
-                  />
-                )}
-              </Box>
             </Box>
 
             {/* Pravý sloupec: Akční ikony */}
@@ -376,14 +357,7 @@ const MaterialCard = ({
               <IconButton
                 size="small"
                 onClick={() => setPreviewOpen(true)}
-                sx={{
-                  p: isVeryNarrow ? 0.25 : 0.5,
-                  color: 'text.secondary',
-                  '&:hover': {
-                    color: 'primary.main',
-                    backgroundColor: isDark ? 'rgba(139, 188, 143, 0.1)' : 'rgba(139, 188, 143, 0.08)'
-                  }
-                }}
+                sx={createIconButton('secondary', isDark, 'small')}
               >
                 <Eye size={isVeryNarrow ? 14 : 18} />
               </IconButton>
@@ -392,16 +366,9 @@ const MaterialCard = ({
               <IconButton
                 size="small"
                 onClick={() => setEditOpen(true)}
-                sx={{
-                  p: isVeryNarrow ? 0.25 : 0.5,
-                  color: 'text.secondary',
-                  '&:hover': {
-                    color: 'primary.main',
-                    backgroundColor: isDark ? 'rgba(139, 188, 143, 0.1)' : 'rgba(139, 188, 143, 0.08)'
-                  }
-                }}
+                sx={createIconButton('secondary', isDark, 'small')}
               >
-                <Pencil size={isVeryNarrow  ? 14 : 18} />
+                <Pencil size={isVeryNarrow ? 14 : 18} />
               </IconButton>
 
               {/* Otevřít (jen pro link materiály) */}
@@ -412,14 +379,7 @@ const MaterialCard = ({
                   href={material.content}
                   target="_blank"
                   rel="noopener noreferrer"
-                  sx={{
-                    p: isVeryNarrow ? 0.25 : 0.5,
-                    color: 'text.secondary',
-                    '&:hover': {
-                      color: 'primary.main',
-                      backgroundColor: isDark ? 'rgba(139, 188, 143, 0.1)' : 'rgba(139, 188, 143, 0.08)'
-                    }
-                  }}
+                  sx={createIconButton('secondary', isDark, 'small')}
                 >
                   <ExternalLink size={isVeryNarrow ? 14 : 18} />
                 </IconButton>
@@ -427,19 +387,12 @@ const MaterialCard = ({
 
               {/* Smazat */}
               <IconButton
-  size="small"
-  onClick={handleDeleteClick}
-  sx={{
-    p: isVeryNarrow ? 0.25 : 0.5,
-    color: 'error.main',  // ← ČERVENÁ BARVA
-    '&:hover': {
-      color: 'error.dark',
-      backgroundColor: isDark ? 'rgba(244, 67, 54, 0.1)' : 'rgba(244, 67, 54, 0.08)'
-    }
-  }}
->
-  <Trash2 size={18} />  {/* ← STEJNÁ VELIKOST JAKO OSTATNÍ */}
-</IconButton>
+                size="small"
+                onClick={handleDeleteClick}
+                sx={createIconButton('error', isDark, 'small')}
+              >
+                <Trash2 size={isVeryNarrow ? 14 : 18} />
+              </IconButton>
             </Box>
           </Box>
         </CardContent>
@@ -460,19 +413,22 @@ const MaterialCard = ({
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button 
+          <Button
             onClick={() => setDeleteDialogOpen(false)}
+            disabled={isDeleting}
             sx={{ borderRadius: BORDER_RADIUS.button }}
           >
             Zrušit
           </Button>
-          <Button 
-            onClick={handleDeleteConfirm} 
-            variant="contained" 
+          <Button
+            onClick={handleDeleteConfirm}
+            variant="contained"
             color="error"
+            disabled={isDeleting}
+            startIcon={isDeleting ? <CircularProgress size={20} color="inherit" /> : null}
             sx={{ borderRadius: BORDER_RADIUS.button }}
           >
-            Smazat
+            {isDeleting ? 'Mazání...' : 'Smazat'}
           </Button>
         </DialogActions>
       </Dialog>

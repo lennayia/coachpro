@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
   useTheme,
   TextField,
   FormControl,
@@ -61,6 +62,7 @@ const ProgramsList = () => {
   const [menuProgram, setMenuProgram] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [programToDelete, setProgramToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const refreshPrograms = () => {
     setPrograms(getPrograms(currentUser?.id));
@@ -150,12 +152,19 @@ const ProgramsList = () => {
     handleMenuClose();
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (programToDelete) {
-      deleteProgram(programToDelete.id);
-      refreshPrograms();
-      setDeleteDialogOpen(false);
-      setProgramToDelete(null);
+      setIsDeleting(true);
+      try {
+        await deleteProgram(programToDelete.id);
+        refreshPrograms();
+        setDeleteDialogOpen(false);
+        setProgramToDelete(null);
+      } catch (error) {
+        console.error('Failed to delete program:', error);
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -262,7 +271,7 @@ const ProgramsList = () => {
               const activeClients = clients.filter(c => !c.completedAt).length;
 
               return (
-                <Grid item xs={12} sm={6} md={4} key={program.id}>
+                <Grid item xs={12} sm={6} md={4} lg={3} key={program.id}>
                   <motion.div variants={staggerItem}>
                     <Card
                       sx={{
@@ -436,9 +445,20 @@ const ProgramsList = () => {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Zrušit</Button>
-          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-            Smazat
+          <Button
+            onClick={() => setDeleteDialogOpen(false)}
+            disabled={isDeleting}
+          >
+            Zrušit
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={isDeleting}
+            startIcon={isDeleting ? <CircularProgress size={20} color="inherit" /> : null}
+          >
+            {isDeleting ? 'Mazání...' : 'Smazat'}
           </Button>
         </DialogActions>
       </Dialog>

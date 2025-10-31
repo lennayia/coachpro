@@ -60,7 +60,7 @@ const MaterialsLibrary = () => {
         Knihovna materiálů
       </Typography>
       <Typography variant="body1" color="text.secondary">
-        Spravuj své audio nahrávky, PDF dokumenty a další materiály
+        Spravujte své video i audio nahrávky, textové i PDF dokumenty a další materiály
       </Typography>
     </Box>
 
@@ -155,8 +155,8 @@ const MaterialsLibrary = () => {
       >
         <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}> {/* ✅ Změněno z 1 na 1.5 */}
           {filteredMaterials.map((material) => (
-            <Grid item xs={12} sm={6} md={4} key={material.id}>
-              <motion.div variants={staggerItem}>
+            <Grid item xs={12} sm={6} md={4} lg={3} key={material.id}>
+              <motion.div variants={staggerItem} style={{ height: '100%' }}>
                 <MaterialCard
                   material={material}
                   onUpdate={refreshMaterials}

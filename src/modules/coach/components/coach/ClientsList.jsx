@@ -435,7 +435,7 @@ const ClientsList = () => {
       ) : (
         <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
           {filteredClients.map((client) => (
-            <Grid item xs={12} sm={6} md={4} key={client.id}>
+            <Grid item xs={12} sm={6} md={4} lg={3} key={client.id}>
               <ClientCard client={client} program={client.program} />
             </Grid>
           ))}

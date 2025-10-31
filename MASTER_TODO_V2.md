@@ -2208,4 +2208,1451 @@ hm, Video sessions, Progress tracking
 
 ---
 
+## 📋 Sprint 9 - Session 6: Grid Layout & MaterialCard Redesign (30. 10. 2025)
+
+**Datum:** 30. října 2025, odpoledne/večer
+**Status:** ✅ DOKONČENO (po velkých komplikacích)
+**AI asistent:** Claude Sonnet 4.5 (problémy) + Opus (dokončení)
+**Trvání:** ~2.5 hodiny (mělo být 30 minut)
+
+### ❌ CO SE NEPOVEDLO (CRITICAL LESSONS!)
+
+#### 1. 🚨 GIT CHECKOUT BEZ DISKUZE
+**Kritická chyba:**
+- Claude viděl JSX error v MaterialCard.jsx
+- Bez diskuze provedl: `git checkout HEAD -- MaterialCard.jsx`
+- **SMAZAL celou dnešní práci** na MaterialCard layout redesign
+- Ztraceno ~300+ řádků kódu
+
+**Důsledek:**
+- Museli jsme re-implementovat celý layout znovu
+- Ztráta času ~45 minut
+
+**Lesson:**
+- ✅ **NIKDY git operace bez explicitního souhlasu!**
+- ✅ VŽDY se zeptat: "Můžu zkusit git checkout, nebo máš jiný nápad?"
+
+#### 2. 📦 ZTRÁTA UNCOMMITTED PRÁCE
+- 1102 řádků uncommitted changes v 8 souborech
+- MaterialCard.jsx změny ztraceny git checkoutem
+- Museli jsme vytvořit WIP commit (bab163c)
+
+#### 3. 🔄 GIT PUSH PROBLÉM
+- Commit 3623c55 nebyl pushnutý na GitHub (Claude v minulé session řekl že ano)
+- Matoucí situace - lokálně vidět, na GitHubu ne
+- Museli jsme zpětně pushnout
+
+#### 4. 👂 NEPOSLOUCHÁNÍ ZADÁNÍ
+**První pokus - špatný:**
+```
+[Chip] [Ikona/Logo]
+[VELKÁ IKONA + Text] [Akční ikony]  ❌ Velká ikona vlevo!
+```
+
+**Správně (co uživatelka chtěla):**
+```
+[Chip] [Ikona/Logo]
+[Text na plnou šířku] [Akční ikony]  ✅ ŽÁDNÁ velká ikona vlevo!
+```
+
+#### 5. 🔁 6 POKUSŮ O STEJNOU VÝŠKU KARET
+- **Pokus #1:** Grid item display flex → ❌ velké mezery
+- **Pokus #2:** Odstranění display flex → ❌ různé výšky
+- **Pokus #3:** motion.div height 100% → ❌ pořád různé
+- **Pokus #4:** CardContent flex + flexGrow → ❌ různé řádky gridu
+- **Pokus #5:** Fixní počet řádků + minHeight na texty → ❌ lepší, ale ne dost
+- **Pokus #6:** `minHeight: 280` na Card → ✅ **KONEČNĚ FUNGUJE!**
+
+**Proč 6 pokusů?**
+- ❌ Neporovnal jsem s working příkladem (ProgramsList) od začátku
+- ❌ Vymýšlel jsem vlastní řešení místo kopírování fungujícího patternu
+- ❌ Nerozuměl jsem CSS Grid row sizing
+
+#### 6. 🐌 POMALOST
+**Uživatelka:**
+- "co se děje? Každý krok ti trvá nesmírně dlouho!"
+- "máš špatné připojení nebo co se pořád děje?"
+
+**Problém:**
+- Četl dlouhé soubory (100+ řádků)
+- Grepal různé patterny
+- Analyzoval řádek po řádku
+- Pomalé iterace
+
+**Řešení:**
+- ✅ Podívat se na WORKING příklad (ProgramsList)
+- ✅ Zkopírovat PŘESNĚ stejný pattern
+- ✅ Aplikovat rychle
+
+#### 7. 🎯 IGNOROVÁNÍ TYPU PROBLÉMU
+**Špatná diagnóza:**
+- Myslel jsem, že problém je v Card (flex, height, padding)
+
+**Reálný problém:**
+- CSS Grid - každý řádek má výšku podle nejvyššího prvku
+- **Řešení:** minHeight na Card
+
+### ✅ CO SE NAKONEC POVEDLO
+
+#### 1. Git Status Vyřešen
+- ✅ Commit 3623c55 pushnut na GitHub
+- ✅ Uncommitted práce v WIP commitu bab163c
+- ✅ Nic neztraceno (kromě původní MaterialCard)
+
+#### 2. MaterialCard Layout Redesign
+- ✅ **Ikona/logo vpravo nahoře** (proklikávací) - pro VŠECHNY typy
+- ✅ **2 sloupce místo 3** (text + akční ikony)
+- ✅ **Modular button functions** (createIconButton())
+- ✅ **Stejná výška všech karet** (minHeight: 280)
+- ✅ **Fixní počet řádků** (nadpis 2, popis 2)
+- ✅ **Popis VŽDY zobrazený** (i prázdný)
+
+#### 3. Grid Layout 4 Sloupce
+- ✅ `lg={3}` přidáno do MaterialsLibrary, ProgramsList, ClientsList
+- ✅ 4 karty vedle sebe na obrazovkách 1200px+
+
+#### 4. Grid Mezery Opraveny
+- ✅ Odstraněn `display: 'flex'` z Grid item
+- ✅ `motion.div` s `height: '100%'`
+- ✅ Normální mezery jako v Programech
+
+### 🎓 LESSONS LEARNED (CRITICAL PRO BUDOUCNOST!)
+
+1. **NIKDY git operace bez diskuze**
+   - ❌ git checkout, git reset, git rebase = VŽDY zeptat se PŘEDEM
+   - ✅ "Můžu zkusit X, nebo máš jiný nápad?"
+
+2. **Testuj working příklad PRVNÍ**
+   - ❌ Vymýšlet vlastní řešení
+   - ✅ Najít working příklad → zkopírovat pattern → aplikovat
+
+3. **Rychlost > Analýza**
+   - ❌ Číst 100 řádků, grepit 5 patternů
+   - ✅ Rychlý pohled na příklad → copy → done
+
+4. **CSS Grid chování**
+   - Grid rows = výška nejvyššího prvku
+   - **Řešení:** minHeight na všechny items
+
+5. **Komunikuj problémy okamžitě**
+   - ❌ "Zkusím 5 řešení sám"
+   - ✅ "Tohle nefunguje. X nebo Y?"
+
+6. **Respektuj user feedback na 1. pokus**
+   - ❌ Zkusit stejné 3× doufajíc
+   - ✅ Když "ne" → okamžitě změnit
+
+### 📊 Časová Statistika
+- ⏱️ Git problémy: ~30 minut
+- ⏱️ Re-implementace MaterialCard: ~45 minut
+- ⏱️ Debugging stejné výšky: ~40 minut (6 pokusů!)
+- ⏱️ Grid layout & mezery: ~20 minut
+- **Celkem: ~2.5 hodiny**
+
+**Co jsme mohli:**
+- Kdyby jsme zkopírovali ProgramsList pattern od začátku → **30 minut max**
+
+### 📁 Upravené Soubory
+- `MaterialCard.jsx` - kompletní layout redesign
+- `MaterialsLibrary.jsx` - Grid lg={3}
+- `ProgramsList.jsx` - Grid lg={3}
+- `ClientsList.jsx` - Grid lg={3}
+
+---
+
+## 📋 Sprint 9.5: Loading States & UX Polish (31. 10. 2025)
+
+**Datum:** 31. října 2025
+**Status:** 🔄 IN PROGRESS
+**AI asistent:** Claude Sonnet 4.5
+
+### 🎯 Cíl:
+Implementovat loading states pro všechny async operace (Supabase upload/delete) a přidat skeleton loaders.
+
+### 🐛 Nalezené problémy:
+
+#### ❌ CRITICAL BUG #1: MaterialCard - Race Condition
+**Soubor:** `/src/modules/coach/components/coach/MaterialCard.jsx` (line 57-61)
+
+**Problém:**
+```javascript
+const handleDeleteConfirm = () => {
+  deleteMaterial(material.id);  // ❌ async funkce bez await!
+  onUpdate();
+  setDeleteDialogOpen(false);
+};
+```
+
+- `deleteMaterial` je async (maže ze Supabase 1-2 sekundy)
+- Není awaited → race condition
+- Dialog se zavře okamžitě, ale mazání ještě běží
+- Uživatel nevidí zpětnou vazbu
+- Pokud mazání selže, uživatel se to nedozví
+
+**Řešení:**
+- Přidat `isDeleting` state
+- Await `deleteMaterial`
+- Zobrazit CircularProgress spinner
+- Disable tlačítka během mazání
+- Chytit errory a nechat dialog otevřený při chybě
+
+#### ✅ CO JE UŽ HOTOVO:
+- **AddMaterialModal.jsx** - má správné loading states:
+  - `loading` state
+  - Tlačítko disabled během uploadu
+  - CircularProgress spinner
+  - Text "Ukládám..."
+
+#### ❌ CO JEŠTĚ CHYBÍ:
+1. **MaterialCard.jsx** - opravit delete race condition
+2. **ProgramEditor.jsx** - přidat loading pro save/delete
+3. **ProgramsList.jsx** - přidat loading pro delete programu
+4. **Skeleton loaders** - pro MaterialsLibrary, ProgramsList, ClientsList
+
+### 📋 Implementační plán:
+
+**Fáze 1: Oprava critical bugů (1-2 hodiny)** ✅ HOTOVO
+- [x] MaterialCard - opravit delete race condition ✅
+- [x] ProgramsList - opravit delete race condition ✅
+- [x] ProgramEditor - loading states (už hotovo) ✅
+- [x] AddMaterialModal - loading states (už hotovo) ✅
+
+**Fáze 2: Skeleton loaders (2-3 hodiny)** - PENDING
+- [ ] MaterialCard skeleton
+- [ ] ProgramCard skeleton
+- [ ] ClientCard skeleton
+- [ ] Implementovat v Library komponentách
+
+### 🎓 Lessons Learned:
+1. **Async funkce VŽDY awaitovat** - jinak race condition
+2. **Loading states POVINNÉ** pro async operace > 500ms
+3. **Disable tlačítka** během async operací
+4. **Catch errors** a uživateli ukázat chybu
+5. **Skeleton loaders** pro lepší UX během načítání
+
+---
+
+### ✅ IMPLEMENTACE - Fáze 1 HOTOVO (31. 10. 2025, 14:00-15:00)
+
+**Co bylo opraveno:**
+
+1. **MaterialCard.jsx** (lines 51, 58-69, 416-432):
+   ```javascript
+   // Přidáno:
+   const [isDeleting, setIsDeleting] = useState(false);
+
+   // Opraveno:
+   const handleDeleteConfirm = async () => {
+     setIsDeleting(true);
+     try {
+       await deleteMaterial(material.id);  // ← AWAIT přidán!
+       onUpdate();
+       setDeleteDialogOpen(false);
+     } catch (error) {
+       console.error('Failed to delete material:', error);
+     } finally {
+       setIsDeleting(false);
+     }
+   };
+
+   // Tlačítka:
+   disabled={isDeleting}
+   startIcon={isDeleting ? <CircularProgress size={20} color="inherit" /> : null}
+   {isDeleting ? 'Mazání...' : 'Smazat'}
+   ```
+
+2. **ProgramsList.jsx** (lines 65, 155-169, 448-462):
+   - Stejné opravy jako MaterialCard
+   - `await deleteProgram()` místo synchronního volání
+   - Loading states v delete dialogu
+
+**Benefity:**
+- ✅ **Žádné race conditions** - mazání ze Supabase je správně awaited
+- ✅ **Uživatel vidí zpětnou vazbu** - spinner + text "Mazání..."
+- ✅ **Nelze kliknout 2× rychle** - tlačítka jsou disabled
+- ✅ **Error handling** - pokud mazání selže, dialog zůstane otevřený
+
+**Testing:**
+```bash
+# Test 1: Smazat materiál
+1. Otevři MaterialCard
+2. Klikni "Smazat"
+3. ✅ Dialog zobrazí "Mazání..." + spinner
+4. ✅ Tlačítka jsou disabled
+5. ✅ Po 1-2 s se dialog zavře a materiál zmizí
+
+# Test 2: Smazat program
+1. Otevři ProgramsList
+2. Klikni "Smazat" na programu
+3. ✅ Dialog zobrazí "Mazání..." + spinner
+4. ✅ Po dokončení se program odstraní
+```
+
+---
+
 **Ready když ty! Řekni mi, co teď? 🚀**
+
+**Možnosti:**
+1. Pokračovat s Fází 2 - Skeleton loaders (2-3 hodiny)
+2. Testovat opravy v prohlížeči
+3. Přejít na další úkol (Error boundaries / LocalStorage warning / atd.)
+
+---
+
+## ✅ **MASTER TODO V2.1 - UPDATE 31. 10. 2025**
+
+### **📝 Změny v této aktualizaci:**
+- ✅ Přidána Sprint 9 - Session 6 (Grid Layout & MaterialCard Redesign, 30. 10. 2025)
+  - Detailní dokumentace všech problémů (git checkout bez diskuze, 6 pokusů o stejnou výšku, atd.)
+  - Critical lessons learned pro budoucí sessions
+  - Časová statistika (2.5h místo 30 minut)
+- ✅ Sprint 9.5 (Loading States) - Fáze 1 HOTOVO (31. 10. 2025)
+  - MaterialCard race condition opravena
+  - ProgramsList race condition opravena
+  - Loading states funkční
+
+### **📊 Aktuální Statistiky:**
+- **Hotových sprintů:** 4 (Sprint 7, 8, 9, 9 Session 6)
+- **Částečně hotových:** 1 (Sprint 9.5 - Fáze 1 done, Fáze 2 pending)
+- **Celkem úkolů:** 250+
+- **Kritických priorit:** Sprint 10 (5-7 dní)
+
+### **🎯 Status Projektu:**
+- ✅ Grid layout 4 sloupce (lg={3})
+- ✅ MaterialCard redesign (2 sloupce, minHeight: 280)
+- ✅ Loading states pro delete operace
+- ⏳ Skeleton loaders (pending)
+- ⏳ Error boundaries (pending)
+- ⏳ LocalStorage warning (pending)
+
+---
+
+## 🚀 **NOVÉ FUNKCIONALITY - PRE-PRODUCTION ROADMAP (31. 10. 2025)**
+
+**Datum zadání:** 31. října 2025, 16:30
+**Target launch:** 31. října - 1. listopadu 2025
+**Status:** 🔄 PLANNING & PRIORITIZATION
+**Priorita:** 🔴 CRITICAL - Produkční launch!
+
+---
+
+## 📋 **Sprint 10: Pre-Production Critical Features**
+
+**Priorita:** 🔴 CRITICAL
+**Odhadovaný čas:** 4-6 hodin
+**Musí být hotovo PŘED spuštěním!**
+
+### **10.1 Personalizované oslovení**
+**Priorita:** HIGH
+**Čas:** 30 minut
+
+**Úkoly:**
+- [ ] Přidat personalizované pozdravy v DailyView.jsx
+  - Ráno (6-12h): "Dobré ráno, {jméno}! 🌅"
+  - Odpoledne (12-18h): "Hezké odpoledne, {jméno}! ☀️"
+  - Večer (18-24h): "Dobrý večer, {jméno}! 🌙"
+  - Noc (0-6h): "Dobrou noc, {jméno}! 🌜"
+- [ ] Přidat do CoachDashboard: "Ahoj, {jméno}! 👋"
+- [ ] Přidat do ClientEntry: "Vítej zpět, {jméno}! ✨"
+- [ ] Použít `getCurrentUser()` nebo `getCurrentClient()` pro jméno
+
+**Soubory k úpravě:**
+- `DailyView.jsx` - top greeting
+- `CoachDashboard.jsx` - header greeting
+- `ClientEntry.jsx` - welcome back message
+
+---
+
+### **10.2 Tooltips všude**
+**Priorita:** HIGH
+**Čas:** 1-2 hodiny
+
+**Úkoly:**
+- [ ] Nainstalovat MUI Tooltip (už je součástí @mui/material)
+- [ ] Přidat tooltips na všechny ikony (Eye, Edit, Delete, Share, QR, atd.)
+- [ ] Přidat tooltips na karty materiálů (ServiceLogo, kategorie)
+- [ ] Přidat tooltips v ProgramEditor (duration, isActive toggle)
+- [ ] Přidat tooltips v ProgressGarden (streak info, day status)
+- [ ] Tooltips v češtině!
+
+**Pattern:**
+```javascript
+import { Tooltip } from '@mui/material';
+
+<Tooltip title="Náhled materiálu" arrow>
+  <IconButton onClick={handlePreview}>
+    <Eye size={18} />
+  </IconButton>
+</Tooltip>
+```
+
+**Soubory k úpravě:**
+- `MaterialCard.jsx` - ikony akcí
+- `ProgramsList.jsx` - three dots menu, akce
+- `ClientsList.jsx` - ikony status
+- `DailyView.jsx` - mood check, completion button
+- `ProgressGarden.jsx` - day bloky
+- `ShareProgramModal.jsx` - share buttons
+
+---
+
+### **10.3 Data Persistence & Supabase Strategy**
+**Priorita:** 🔴 CRITICAL
+**Čas:** 2 hodiny (analýza + dokumentace)
+
+**PROBLÉM:**
+- LocalStorage = omezený prostor (~5-8 MB)
+- LocalStorage = per browser/device (žádná sync mezi zařízeními)
+- LocalStorage = smazání = ztráta všech dat
+- Bez backendu není možná synchronizace
+
+**SOUČASNÝ STAV:**
+- ✅ Supabase Storage - soubory (audio, PDF, images, video)
+- ❌ Supabase Database - NENÍ implementováno pro user data
+- ❌ Žádná auth (Google OAuth planned)
+- ❌ Žádná multi-device sync
+
+**ŘEŠENÍ - Fáze:**
+
+**Fáze 1 (PRE-PRODUCTION, teď):**
+- [ ] **Warning systém** při blízkém localStorage limitu (80%+)
+  - Toast notification: "Úložiště se plní! Zvažte smazání starých dat."
+  - Možnost exportu dat před smazáním
+- [ ] **Export/Import funkce** (JSON backup)
+  - Export všech dat do JSON souboru
+  - Import JSON souboru (restore dat)
+  - Manuální backup solution
+- [ ] **Dokumentace pro uživatele**
+  - "Jak zálohovat data?" tutorial
+  - Doporučení: export dat 1× týdně
+
+**Fáze 2 (POST-LAUNCH, budoucnost):**
+- [ ] **Supabase Database implementace**
+  - Tabulky: users, programs, materials, clients, sessions
+  - RLS politiky pro data security
+  - Real-time sync mezi zařízeními
+- [ ] **Google OAuth authentication**
+  - Login přes Google
+  - Multi-device sync
+  - Cloud backup automaticky
+- [ ] **Offline-first architecture**
+  - LocalStorage = cache
+  - Supabase = source of truth
+  - Sync při připojení k internetu
+
+**Úkoly PRE-PRODUCTION:**
+- [ ] Implementovat localStorage usage monitor
+- [ ] Přidat warning toast při 80%+ usage
+- [ ] Vytvořit Export/Import funkce (JSON)
+- [ ] Dokumentovat backup workflow
+- [ ] UI pro export/import v Settings
+
+**Soubory:**
+- `/src/modules/coach/utils/storageMonitor.js` - NOVÝ
+- `/src/modules/coach/utils/dataExport.js` - NOVÝ
+- `/src/modules/coach/pages/Settings.jsx` - NOVÝ (nebo přidat sekci)
+
+---
+
+### **10.4 Production Environment Setup**
+**Priorita:** 🔴 CRITICAL
+**Čas:** 1 hodina
+
+**Úkoly:**
+- [ ] Environment variables check
+  - ✅ VITE_SUPABASE_URL
+  - ✅ VITE_SUPABASE_ANON_KEY
+  - [ ] VITE_APP_ENV (development/production)
+- [ ] Build test: `npm run build`
+- [ ] Preview test: `npm run preview`
+- [ ] Error tracking setup (optional: Sentry)
+- [ ] Analytics setup (optional: Google Analytics)
+- [ ] Performance audit (Lighthouse)
+- [ ] Security audit
+  - [ ] Žádné console.log v production
+  - [ ] Žádné hardcoded secrets
+  - [ ] HTTPS only
+- [ ] SEO meta tags
+  - [ ] Title, description, OG tags
+  - [ ] Favicon
+  - [ ] Apple touch icon
+
+**Deployment checklist:**
+- [ ] Vercel/Netlify setup
+- [ ] Custom domain (optional)
+- [ ] SSL certificate (auto)
+- [ ] Environment variables v production
+- [ ] Build & deploy test
+
+---
+
+## 📋 **Sprint 11: Media Compression & Optimization**
+
+**Priorita:** HIGH
+**Odhadovaný čas:** 3-4 hodiny
+**Úspory:** Až 70% storage space!
+
+### **11.1 Image Compression**
+**Priorita:** HIGH
+**Čas:** 2 hodiny
+
+**Knihovny:**
+```bash
+npm install browser-image-compression
+```
+
+**Funkce:**
+- [ ] Auto-compression při uploadu obrázků
+  - Target: 1920px max width/height
+  - Quality: 80%
+  - Format: WebP (fallback JPEG)
+  - Max file size: 500KB
+- [ ] Thumbnail generování (pro preview)
+  - 400px max width/height
+  - Quality: 70%
+  - Lazy loading
+- [ ] Progress bar při kompresi
+- [ ] Toast notification: "Obrázek optimalizován: 3.2 MB → 450 KB"
+
+**Implementace:**
+```javascript
+// /src/modules/coach/utils/imageCompression.js
+import imageCompression from 'browser-image-compression';
+
+export const compressImage = async (file, options = {}) => {
+  const defaultOptions = {
+    maxSizeMB: 0.5,
+    maxWidthOrHeight: 1920,
+    useWebWorker: true,
+    fileType: 'image/webp'
+  };
+
+  try {
+    const compressed = await imageCompression(file, { ...defaultOptions, ...options });
+    const originalSize = (file.size / 1024 / 1024).toFixed(2);
+    const compressedSize = (compressed.size / 1024 / 1024).toFixed(2);
+    console.log(`Image compressed: ${originalSize} MB → ${compressedSize} MB`);
+    return compressed;
+  } catch (error) {
+    console.error('Compression failed:', error);
+    return file; // Fallback na originál
+  }
+};
+
+export const createThumbnail = async (file) => {
+  return compressImage(file, {
+    maxSizeMB: 0.1,
+    maxWidthOrHeight: 400,
+    fileType: 'image/webp'
+  });
+};
+```
+
+**Soubory k úpravě:**
+- `AddMaterialModal.jsx` - použít compressImage před uploadem
+- `supabaseStorage.js` - integrovat compresi
+
+---
+
+### **11.2 Video Compression (Optional)**
+**Priorita:** MEDIUM
+**Čas:** 2 hodiny
+
+**Knihovny:**
+```bash
+npm install ffmpeg.wasm @ffmpeg/ffmpeg @ffmpeg/util
+```
+
+**Funkce:**
+- [ ] Video compression při uploadu
+  - Target: 720p (1280x720)
+  - Codec: H.264
+  - Bitrate: 2 Mbps
+  - Max file size: 50 MB
+- [ ] Progress bar s ETA
+- [ ] Možnost cancel během komprese
+- [ ] Fallback: odkaz na Google Drive/YouTube místo uploadu
+
+**Pozor:** FFmpeg.wasm je ~30 MB knihovna!
+**Alternativa:** Doporučit koučce nahrát video na YouTube/Vimeo a použít link.
+
+**Implementace:**
+```javascript
+// /src/modules/coach/utils/videoCompression.js
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+
+export const compressVideo = async (file, onProgress) => {
+  const ffmpeg = new FFmpeg();
+  await ffmpeg.load();
+
+  // ... compression logic
+
+  return compressedFile;
+};
+```
+
+**Rozhodnutí:**
+- [ ] Implementovat FFmpeg.wasm? (komplexní)
+- [ ] NEBO doporučit YouTube/Vimeo links? (jednodušší) ✅ **DOPORUČENO**
+
+---
+
+## 📋 **Sprint 12: Enhanced Mood Tracking & Reflection**
+
+**Priorita:** HIGH
+**Odhadovaný čas:** 3-4 hodiny
+
+### **12.1 Rozšířený Mood Check System**
+**Priorita:** HIGH
+**Čas:** 2 hodiny
+
+**Nové featury:**
+- [ ] **Textové poznámky** k mood check
+  - TextArea pod emoji výběrem
+  - Placeholder: "Jak se dnes cítíš? Co tě trápí nebo naopak těší?"
+  - Max 500 znaků
+  - Optional (nepovinné)
+- [ ] **Datové ukládání**
+  - Uložit: datum, čas, before mood, after mood, poznámka
+  - Struktura: `{ day: 1, date: '2025-10-31', time: '16:30', before: '😊', after: '😌', note: 'Dnes skvělý den!', timestamp: '...' }`
+- [ ] **Historie mood checků**
+  - Zobrazit v ProgressGarden nebo nové MoodHistory stránce
+  - Kalendářový view (heatmap barev dle nálady)
+  - Search/filter dle data, nálady
+- [ ] **Export mood historie**
+  - CSV export s datem, časem, náladou, poznámkou
+  - Koučka může vidět mood timeline klientky
+
+**Komponenty:**
+- `MoodCheck.jsx` - přidat TextArea, upravit data strukturu
+- `MoodHistory.jsx` - NOVÁ komponenta (kalendář + list view)
+- `ProgressGarden.jsx` - zobrazit mood indicators na day blocích
+
+**Data struktura:**
+```javascript
+// Client object extension:
+{
+  ...existingClientData,
+  moodChecks: [
+    {
+      day: 1,
+      date: '2025-10-31',
+      time: '16:30',
+      before: { emoji: '😊', label: 'Dobře' },
+      after: { emoji: '😌', label: 'V klidu' },
+      note: 'Dnes skvělý den! Meditace mi hodně pomohla.',
+      timestamp: '2025-10-31T16:30:00Z'
+    }
+  ]
+}
+```
+
+---
+
+### **12.2 Klientské Audio Feedback**
+**Priorita:** MEDIUM
+**Čas:** 2 hodiny
+
+**Funkce:**
+- [ ] **Opt-in checkbox** v programu
+  - Koučka při vytváření programu zaškrtne: "Umožnit audio zpětnou vazbu"
+  - Program object: `{ ...program, allowClientAudioFeedback: true }`
+- [ ] **Audio recorder pro klientku**
+  - Zobrazit po dokončení dne (pokud je povoleno)
+  - Max délka: 2 minuty
+  - Formát: MP3 nebo WebM
+  - Upload do Supabase: `client-feedback/{clientId}/{programId}/day-{dayNumber}.mp3`
+- [ ] **Koučka může poslouchat feedback**
+  - V ClientsList → detail klientky
+  - Seznam všech audio feedbacků s přehrávačem
+  - Download možnost
+
+**Knihovna:**
+```bash
+npm install react-media-recorder
+```
+
+**Komponenty:**
+- `AudioRecorder.jsx` - NOVÁ komponenta (reusable)
+- `ClientFeedbackPlayer.jsx` - NOVÁ komponenta (pro koučku)
+- `DailyView.jsx` - přidat recorder po completion
+- `ClientDetail.jsx` - NOVÁ stránka s feedbacky
+
+**Implementace:**
+```javascript
+// AudioRecorder.jsx
+import { useReactMediaRecorder } from 'react-media-recorder';
+
+const AudioRecorder = ({ onSave, maxDuration = 120 }) => {
+  const { status, startRecording, stopRecording, mediaBlobUrl } = useReactMediaRecorder({ audio: true });
+
+  // UI: Record button, timer, stop button, preview player, save button
+};
+```
+
+---
+
+## 📋 **Sprint 13: Coach Audio Recording System**
+
+**Priorita:** HIGH
+**Odhadovaný čas:** 2-3 hodiny
+
+### **13.1 Audio Recorder pro Koučku**
+**Priorita:** HIGH
+**Čas:** 2 hodiny
+
+**Use cases:**
+1. **Osobní zpráva pro klientku**
+   - Uvítací zpráva na začátku programu
+   - Motivační zpráva po splnění milníku
+   - Gratulace k dokončení programu
+2. **Oslava úspěchu**
+   - Vlastním hlasem: "Gratuluju! Jsi úžasná! 🎉"
+   - Nahradit placeholder `celebration.mp3`
+
+**Funkce:**
+- [ ] **Audio recorder v ProgramEditor**
+  - Možnost nahrát osobní zprávu pro každý den
+  - Možnost nahrát completion message (oslava)
+  - Max délka: 3 minuty
+  - Preview před uložením
+  - Upload do Supabase: `coach-messages/{coachId}/{programId}/day-{dayNumber}.mp3`
+- [ ] **Management nahraných zpráv**
+  - Seznam všech nahrávek v programu
+  - Play, delete, re-record
+  - Metadata: délka, datum nahrání
+- [ ] **Přehrávání pro klientku**
+  - Auto-play při otevření dne (optional)
+  - Custom audio player s waveform (optional)
+
+**Komponenty:**
+- Použít stejný `AudioRecorder.jsx` jako pro klientky
+- `ProgramEditor.jsx` - přidat recorder do day editoru
+- `DailyView.jsx` - přehrát coach message (pokud existuje)
+- `CelebrationModal.jsx` - přehrát completion message místo placeholder
+
+**Data struktura:**
+```javascript
+// Program day object extension:
+{
+  dayNumber: 1,
+  title: 'Den 1',
+  description: '...',
+  materialIds: [...],
+  instruction: '...',
+  coachMessage: {
+    url: 'https://supabase.../coach-messages/...',
+    duration: 45, // seconds
+    recordedAt: '2025-10-31T16:00:00Z'
+  }
+}
+
+// Program object extension:
+{
+  ...program,
+  completionMessage: {
+    url: 'https://supabase.../completion-message.mp3',
+    duration: 30,
+    recordedAt: '2025-10-31T16:00:00Z'
+  }
+}
+```
+
+---
+
+## 📋 **Sprint 14: Notifications Management**
+
+**Priorita:** MEDIUM
+**Odhadovaný čas:** 2 hodiny
+
+### **14.1 Client Notification Settings**
+**Priorita:** MEDIUM
+**Čas:** 1.5 hodiny
+
+**Funkce:**
+- [ ] **Settings stránka pro klientku**
+  - Přístup z menu: ⚙️ Nastavení
+  - Sekce: Notifikace, Zvuky, Vzhled
+- [ ] **Notifikační nastavení**
+  - Toggle: "Povolit notifikace" (Web Notifications API)
+  - Toggle: "Povolit zvuky" (audio feedback)
+  - Toggle: "Tiché hodiny" (21:00 - 8:00)
+- [ ] **Uložení preferencí**
+  - LocalStorage: `'coachpro_client_settings'`
+  - Struktura:
+    ```javascript
+    {
+      notifications: {
+        enabled: true,
+        sound: true,
+        quietHours: { enabled: true, start: '21:00', end: '08:00' }
+      },
+      appearance: {
+        theme: 'auto' // light, dark, auto
+      }
+    }
+    ```
+
+**Komponenty:**
+- `ClientSettings.jsx` - NOVÁ stránka
+- `NotificationToggle.jsx` - NOVÁ komponenta
+- Update `useNotification` hook pro respektovat settings
+
+**Implementace:**
+```javascript
+// /src/shared/context/NotificationContext.jsx - UPDATE
+const NotificationContext = () => {
+  const settings = getClientSettings();
+
+  const playSound = () => {
+    if (!settings.notifications.sound) return; // Respektovat setting
+    // ... play notification.mp3
+  };
+
+  const showNotification = (title, body) => {
+    if (!settings.notifications.enabled) return;
+
+    // Check quiet hours
+    const now = new Date();
+    const hour = now.getHours();
+    if (settings.notifications.quietHours.enabled) {
+      const start = parseInt(settings.notifications.quietHours.start);
+      const end = parseInt(settings.notifications.quietHours.end);
+      if (hour >= start || hour < end) return; // Tichý režim
+    }
+
+    // Show notification
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body });
+    }
+  };
+};
+```
+
+---
+
+## 📋 **Sprint 15: Data Export System (CSV)**
+
+**Priorita:** HIGH
+**Odhadovaný čas:** 3 hodiny
+
+### **15.1 CSV Export pro Koučku**
+**Priorita:** HIGH
+**Čas:** 2.5 hodiny
+
+**Knihovna:**
+```bash
+npm install papaparse
+```
+
+**Export funkce:**
+1. **Export materiálů**
+   - CSV sloupce: ID, Název, Typ, Kategorie, Velikost, Datum vytvoření, URL/Cesta
+   - Filtr: všechny / podle kategorie / podle typu
+2. **Export programů**
+   - CSV sloupce: ID, Název, Popis, Délka (dny), Share kód, Status, Počet klientek, Datum vytvoření
+3. **Export klientek**
+   - CSV sloupce: ID, Jméno, Program, Aktuální den, Dokončené dny, Série, Mood checks, Datum vstupu, Status
+   - Filtr: všechny / aktivní / dokončené
+
+**Funkce:**
+- [ ] Export button v každé Library/List stránce
+  - MaterialsLibrary → "📥 Export materiálů"
+  - ProgramsList → "📥 Export programů"
+  - ClientsList → "📥 Export klientek"
+- [ ] Export dialog s možnostmi:
+  - Formát: CSV (default), JSON (optional)
+  - Filtr: všechny / vybrané kategorie/statusy
+  - Název souboru: `coachpro-materials-2025-10-31.csv`
+- [ ] Download funkce (browser download)
+
+**Komponenty:**
+- `ExportButton.jsx` - NOVÁ reusable komponenta
+- `ExportDialog.jsx` - NOVÁ komponenta s options
+- `/src/modules/coach/utils/csvExport.js` - NOVÉ utility funkce
+
+**Implementace:**
+```javascript
+// /src/modules/coach/utils/csvExport.js
+import Papa from 'papaparse';
+
+export const exportMaterials = (materials, filters = {}) => {
+  let filtered = materials;
+
+  // Apply filters
+  if (filters.category && filters.category !== 'all') {
+    filtered = filtered.filter(m => m.category === filters.category);
+  }
+
+  // Map to CSV format
+  const csvData = filtered.map(material => ({
+    'ID': material.id,
+    'Název': material.title,
+    'Typ': material.type,
+    'Kategorie': getCategoryLabel(material.category),
+    'Velikost': formatFileSize(material.fileSize),
+    'Datum vytvoření': formatDate(material.createdAt),
+    'URL': material.content?.substring(0, 50) + '...' // Truncate
+  }));
+
+  // Generate CSV
+  const csv = Papa.unparse(csvData);
+
+  // Download
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `coachpro-materials-${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+};
+
+export const exportPrograms = (programs) => { /* similar */ };
+export const exportClients = (clients) => { /* similar */ };
+```
+
+**Soubory k úpravě:**
+- `MaterialsLibrary.jsx` - přidat Export button
+- `ProgramsList.jsx` - přidat Export button
+- `ClientsList.jsx` - přidat Export button
+
+---
+
+## 📋 **Sprint 16: Program Scheduling & Time Management**
+
+**Priorita:** HIGH
+**Odhadovaný čas:** 3 hodiny
+
+### **16.1 Časové omezení programů**
+**Priorita:** HIGH
+**Čas:** 2.5 hodiny
+
+**Funkce:**
+- [ ] **Program scheduling v ProgramEditor**
+  - Radio buttons:
+    - ⭕ Neomezený (dostupný kdykoliv)
+    - ⭕ Časově omezený (od-do)
+    - ⭕ Více období (např. jaro + podzim)
+  - DatePicker pro výběr od-do datumů
+  - Možnost přidat více period
+- [ ] **Aktivace/deaktivace podle datumu**
+  - Auto-check při načtení programů
+  - Program.isActive = false pokud není v aktivním období
+  - Toast pro koučku: "Program XYZ byl automaticky deaktivován (mimo období)"
+- [ ] **Vizuální indikátory**
+  - Badge na kartě programu: "Aktivní do 15. 12. 2025"
+  - Badge: "Začíná 1. 1. 2026"
+  - Warning před koncem období: "Zbývá 7 dní!"
+
+**Data struktura:**
+```javascript
+// Program object extension:
+{
+  ...program,
+  scheduling: {
+    type: 'unlimited' | 'limited' | 'multiple', // default: 'unlimited'
+    periods: [
+      {
+        startDate: '2025-11-01',
+        endDate: '2025-12-31',
+        label: 'Podzim 2025' // optional
+      },
+      {
+        startDate: '2026-03-01',
+        endDate: '2026-05-31',
+        label: 'Jaro 2026'
+      }
+    ]
+  }
+}
+```
+
+**Funkce:**
+```javascript
+// /src/modules/coach/utils/programScheduling.js
+export const isProgramActive = (program) => {
+  if (!program.scheduling || program.scheduling.type === 'unlimited') {
+    return program.isActive; // Manual toggle
+  }
+
+  const now = new Date();
+  const isInPeriod = program.scheduling.periods.some(period => {
+    const start = new Date(period.startDate);
+    const end = new Date(period.endDate);
+    return now >= start && now <= end;
+  });
+
+  return program.isActive && isInPeriod;
+};
+
+export const getNextActivePeriod = (program) => {
+  const now = new Date();
+  const future = program.scheduling?.periods
+    ?.filter(p => new Date(p.startDate) > now)
+    ?.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+  return future?.[0] || null;
+};
+
+export const getRemainingDays = (program) => {
+  const now = new Date();
+  const current = program.scheduling?.periods?.find(p => {
+    const start = new Date(p.startDate);
+    const end = new Date(p.endDate);
+    return now >= start && now <= end;
+  });
+
+  if (!current) return null;
+
+  const end = new Date(current.endDate);
+  const diff = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+  return diff;
+};
+```
+
+**Komponenty:**
+- `ProgramEditor.jsx` - přidat scheduling sekci
+- `ProgramCard.jsx` - zobrazit scheduling badges
+- `SchedulingPicker.jsx` - NOVÁ komponenta (DatePicker wrapper)
+
+**UI v ProgramEditor:**
+```jsx
+<FormControl component="fieldset">
+  <FormLabel>Dostupnost programu</FormLabel>
+  <RadioGroup value={schedulingType} onChange={handleSchedulingChange}>
+    <FormControlLabel value="unlimited" control={<Radio />} label="Neomezený (dostupný kdykoliv)" />
+    <FormControlLabel value="limited" control={<Radio />} label="Časově omezený" />
+    <FormControlLabel value="multiple" control={<Radio />} label="Více období" />
+  </RadioGroup>
+</FormControl>
+
+{schedulingType === 'limited' && (
+  <Box display="flex" gap={2}>
+    <DatePicker label="Od" value={startDate} onChange={setStartDate} />
+    <DatePicker label="Do" value={endDate} onChange={setEndDate} />
+  </Box>
+)}
+
+{schedulingType === 'multiple' && (
+  <Box>
+    {periods.map((period, index) => (
+      <Box key={index} display="flex" gap={2}>
+        <DatePicker label="Od" value={period.start} />
+        <DatePicker label="Do" value={period.end} />
+        <TextField label="Popisek (optional)" value={period.label} />
+        <IconButton onClick={() => removePeriod(index)}><Delete /></IconButton>
+      </Box>
+    ))}
+    <Button startIcon={<Add />} onClick={addPeriod}>Přidat období</Button>
+  </Box>
+)}
+```
+
+---
+
+## 📋 **Sprint 17: Achievement & Gamification System** 🎮
+
+**Priorita:** MEDIUM (nice-to-have, ale viral potential!)
+**Odhadovaný čas:** 8-12 hodin (velký feature!)
+**Status:** 📝 Detailed specification provided
+
+### **Overview:**
+Kompletní gamifikační systém s gems, achievements, progress rings a Instagram sharing templates. Detailní zadání viz sekce níže.
+
+### **17.1 Core Engine (Priorita 1)**
+**Čas:** 3 hodiny
+
+**Úkoly:**
+- [ ] **Data structures**
+  - Rozšířit client object o: gems, achievements, streaks, stats
+  - LocalStorage keys: `'coachpro_client_gems'`, `'coachpro_client_achievements'`, atd.
+- [ ] **Achievement engine**
+  - `/src/modules/coach/utils/achievementEngine.js`
+  - Funkce: `checkAchievements()`, `calculateGems()`, `unlockAchievement()`
+  - Achievement categories: Streak, Engagement, Special
+- [ ] **Gems calculation logic**
+  - 1 gem za dokončený den
+  - Streak multipliers: 3 dny = 2x, 7 dní = 3x, 14 dní = 5x
+  - Bonus gems: mood check (+1), audio play (+1), PDF open (+1)
+
+**Achievement definitions:**
+```javascript
+// /src/modules/coach/utils/achievementDefinitions.js
+export const STREAK_ACHIEVEMENTS = [
+  { id: 'first_step', name: 'První krok', icon: '🌱', requirement: 1, gems: 5 },
+  { id: 'getting_started', name: 'Rozjezd', icon: '🚀', requirement: 3, gems: 10 },
+  { id: 'habit_forming', name: 'Síla zvyku', icon: '💪', requirement: 7, gems: 25 },
+  { id: 'diamond_streak', name: 'Diamantová série', icon: '💎', requirement: 14, gems: 50 },
+  { id: 'unstoppable', name: 'Neporazitelná', icon: '⭐', requirement: 21, gems: 100 }
+];
+
+export const ENGAGEMENT_ACHIEVEMENTS = [
+  { id: 'listener', name: 'Posluchačka', icon: '🎧', requirement: 10, type: 'audio_plays' },
+  { id: 'reader', name: 'Čtenářka', icon: '📚', requirement: 10, type: 'pdf_opens' },
+  { id: 'explorer', name: 'Explorátorka', icon: '🔗', requirement: 20, type: 'link_clicks' },
+  { id: 'reflective', name: 'Reflexní mistr', icon: '✍️', requirement: 15, type: 'mood_checks' }
+];
+
+export const SPECIAL_ACHIEVEMENTS = [
+  { id: 'early_bird', name: 'Ranní ptáče', icon: '🌅', requirement: 5, type: 'morning_completions' },
+  { id: 'night_owl', name: 'Večerní sova', icon: '🌙', requirement: 5, type: 'evening_completions' },
+  { id: 'speedrun', name: 'Rychlonožka', icon: '⚡', requirement: 3, type: 'quick_completions' }
+];
+```
+
+---
+
+### **17.2 UI Components (Priorita 2)**
+**Čas:** 3 hodiny
+
+**Komponenty:**
+- [ ] `ProgressRing.jsx` - Circular progress ring (Apple Watch style)
+  - Props: value (0-100), size, strokeWidth, color, animated
+  - Animace: fill on mount, pulse na 100%
+- [ ] `AchievementBadge.jsx` - Badge s unlock animací
+  - Props: achievement, unlocked, showAnimation
+  - Konfety effect při unlock
+- [ ] `GemsDisplay.jsx` - Gems counter s sparkle animacemi
+  - Props: currentGems, recentGain
+  - Number counting animation
+
+**Styling:**
+- Glassmorphism design
+- Framer-motion animations
+- Sound effects (achievement.mp3)
+
+---
+
+### **17.3 Achievements Page (Priorita 3)**
+**Čas:** 2 hodiny
+
+**Úkoly:**
+- [ ] Vytvořit `AchievementsPage.jsx`
+  - Grid všech achievementů (locked + unlocked)
+  - Filter tabs: Vše / Streaks / Engagement / Speciální
+  - Stats overview: celkové gems, completion rate
+  - Progress bars u partial achievements
+- [ ] Routing: `/client/achievements`
+- [ ] Link v klientském menu
+
+---
+
+### **17.4 Instagram Story Templates (Priorita 4)**
+**Čas:** 4 hodiny
+
+**Knihovna:**
+```bash
+npm install html-to-image
+```
+
+**Úkoly:**
+- [ ] `ShareTemplateGenerator.jsx` - generátor story templates
+  - Canvas API nebo SVG → PNG export
+  - Template types: Streak, Completion, Mood, Weekly
+  - 1080x1920px (IG Story ratio)
+  - Brand colors, fonts, glassmorphism
+- [ ] `ShareButton.jsx` - tlačítko pro sdílení
+  - Download PNG
+  - Copy to clipboard
+  - Web Share API (native share na mobilu)
+- [ ] Pre-made templates:
+  - Minimalist design s CoachPro brand
+  - Motivační texty v češtině
+  - Hashtags: #CoachPro #PersonalGrowth #Transformation
+
+**Share text templates:**
+```javascript
+const SHARE_TEMPLATES = {
+  streak: "🔥 {streakCount} dní v řadě! Cítím se úžasně silná 💪 #CoachPro #PersonalGrowth",
+  completion: "✨ Dokončila jsem program '{programName}'! {duration} dní transformace za mnou 🌟 #CoachPro #Transformation",
+  achievement: "🏆 Právě jsem odemkla '{achievementName}'! Každý krok se počítá ✨ #CoachPro #SmallWins"
+};
+```
+
+---
+
+### **17.5 Integration & Polish (Priorita 5)**
+**Čas:** 2 hodiny
+
+**Úkoly:**
+- [ ] Integrovat do DailyView:
+  - Top section: ProgressRing + GemsDisplay
+  - Bottom section: AchievementUnlockAnimation + ShareButton
+- [ ] Integrovat do ProgressGarden:
+  - Gems display u každého dne
+  - Achievement badges u dokončených dní
+- [ ] Update CelebrationModal:
+  - Zobrazit total gems earned
+  - Zobrazit unlocked achievements
+  - Share to Instagram prompt
+- [ ] Sound effects:
+  - achievement.mp3 při unlock
+  - gem-collect.mp3 při získání gems (optional)
+- [ ] Analytics tracking:
+  - Achievement unlock rate
+  - Share-to-Instagram conversion
+  - Feature usage
+
+---
+
+## 📋 **Sprint 18: UX Polish & Production Ready**
+
+**Priorita:** HIGH
+**Odhadovaný čas:** 2-3 hodiny
+
+### **18.1 Error Boundaries**
+**Priorita:** HIGH
+**Čas:** 1 hodina
+
+**Úkoly:**
+- [ ] Vytvořit `ErrorBoundary.jsx` komponentu
+  - Catch React errors
+  - Zobrazit fallback UI
+  - Log error (console nebo Sentry)
+- [ ] Wrap main komponenty:
+  - `<App>` celá aplikace
+  - Každý main route (CoachDashboard, ClientDashboard)
+- [ ] Fallback UI design:
+  - Glassmorphism card
+  - Error message: "Něco se pokazilo 😕"
+  - Tlačítko: "Obnovit stránku"
+  - Tlačítko: "Kontaktovat podporu"
+
+**Implementace:**
+```javascript
+// /src/shared/components/ErrorBoundary.jsx
+import React from 'react';
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('ErrorBoundary caught:', error, errorInfo);
+    // Optional: Send to Sentry
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Box sx={{ /* fallback UI */ }}>
+          <Typography variant="h5">Něco se pokazilo 😕</Typography>
+          <Typography>Omlouváme se za komplikace.</Typography>
+          <Button onClick={() => window.location.reload()}>
+            Obnovit stránku
+          </Button>
+        </Box>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+export default ErrorBoundary;
+```
+
+---
+
+### **18.2 Skeleton Loaders (Fáze 2 z Sprint 9.5)**
+**Priorita:** MEDIUM
+**Čas:** 2 hodiny
+
+**Úkoly:**
+- [ ] Vytvořit skeleton komponenty:
+  - `MaterialCardSkeleton.jsx`
+  - `ProgramCardSkeleton.jsx`
+  - `ClientCardSkeleton.jsx`
+- [ ] Použít MUI Skeleton
+- [ ] Zobrazit skeleton při načítání (loading state)
+- [ ] Smooth transition: skeleton → real card
+
+**Implementace:**
+```javascript
+// MaterialCardSkeleton.jsx
+import { Skeleton, Card, CardContent, Box } from '@mui/material';
+
+const MaterialCardSkeleton = () => (
+  <Card sx={{ height: 280 }}>
+    <CardContent>
+      <Box display="flex" justifyContent="space-between" mb={2}>
+        <Skeleton variant="rectangular" width={60} height={20} />
+        <Skeleton variant="circular" width={40} height={40} />
+      </Box>
+      <Skeleton variant="text" width="80%" height={30} />
+      <Skeleton variant="text" width="100%" height={20} />
+      <Skeleton variant="text" width="100%" height={20} />
+      <Skeleton variant="rectangular" width="100%" height={60} sx={{ mt: 2 }} />
+    </CardContent>
+  </Card>
+);
+```
+
+---
+
+### **18.3 Final Polish**
+**Priorita:** MEDIUM
+**Čas:** 1 hodina
+
+**Úkoly:**
+- [ ] Accessibility audit
+  - Alt text na všechny ikony/obrázky
+  - ARIA labels
+  - Keyboard navigation
+  - Color contrast check (WCAG AA)
+- [ ] Performance optimization
+  - Lazy loading komponent (React.lazy)
+  - Image lazy loading
+  - Code splitting
+  - Bundle size check
+- [ ] Mobile responsiveness final check
+  - Test na 320px, 375px, 414px
+  - Test iOS Safari, Android Chrome
+  - Touch target sizes (min 44x44px)
+- [ ] Cross-browser testing
+  - Chrome, Firefox, Safari, Edge
+  - iOS Safari, Android Chrome
+- [ ] Loading states všude
+  - Spinner při async operacích
+  - Skeleton při načítání dat
+  - Progress bars při uploadu
+
+---
+
+## 📊 **PRIORITY MATRIX & TIME ESTIMATES**
+
+### **🔴 CRITICAL - Musí být PŘED launchemem:**
+1. **Personalizované oslovení** - 30 min ✅
+2. **Tooltips** - 1-2 hodiny ✅
+3. **Data persistence strategy** - 2 hodiny ✅
+4. **Production setup** - 1 hodina ✅
+5. **Error boundaries** - 1 hodina ✅
+6. **CSV Export** - 2.5 hodiny ✅
+
+**Celkem CRITICAL:** ~8 hodin
+
+---
+
+### **🟠 HIGH - Mělo by být při launchi:**
+1. **Image compression** - 2 hodiny
+2. **Enhanced mood tracking** - 2 hodiny
+3. **Coach audio recorder** - 2 hodiny
+4. **Program scheduling** - 2.5 hodiny
+5. **Skeleton loaders** - 2 hodiny
+
+**Celkem HIGH:** ~10.5 hodin
+
+---
+
+### **🟡 MEDIUM - Nice-to-have, post-launch OK:**
+1. **Video compression** - 2 hodiny (NEBO recommend YouTube/Vimeo)
+2. **Client audio feedback** - 2 hodiny
+3. **Notification settings** - 1.5 hodiny
+4. **Achievement system** - 8-12 hodin (velký feature!)
+5. **Final polish** - 1 hodina
+
+**Celkem MEDIUM:** ~15 hodin
+
+---
+
+### **⏱️ TOTAL TIME ESTIMATE:**
+- **Pre-launch minimum:** ~8 hodin (CRITICAL only)
+- **Pre-launch recommended:** ~18.5 hodin (CRITICAL + HIGH)
+- **Full feature set:** ~33.5 hodin (All priorities)
+
+---
+
+## 🎯 **LAUNCH DECISION TREE**
+
+### **Scénář A: Launch DNES (31. 10. večer)**
+**Možné:**
+- ✅ Personalizované oslovení (30 min)
+- ✅ Tooltips na nejdůležitější akce (1 hodina - partial)
+- ✅ Production setup (1 hodina)
+- ✅ Error boundary basic (30 min)
+- ✅ Data backup warning (1 hodina)
+
+**Celkem:** ~4 hodiny
+**Status:** BASIC LAUNCH ⚠️ Fungující, ale bez pokročilých features
+
+---
+
+### **Scénář B: Launch ZÍTRA (1. 11. odpoledne)**
+**Možné:**
+- ✅ Všechny CRITICAL features (8 hodin)
+- ✅ Image compression (2 hodiny)
+- ✅ Enhanced mood tracking (2 hodiny)
+- ✅ CSV Export (2.5 hodiny)
+
+**Celkem:** ~14.5 hodin
+**Status:** SOLID LAUNCH ✅ Všechny podstatné features, production ready
+
+---
+
+### **Scénář C: Launch za týden (7. 11.)**
+**Možné:**
+- ✅ Všechny CRITICAL + HIGH features (~18.5 hodin)
+- ✅ Achievement system (8 hodin)
+- ✅ Full polish (1 hodina)
+
+**Celkem:** ~27.5 hodin
+**Status:** COMPLETE LAUNCH 🚀 Všechny features, polished, viral potential
+
+---
+
+## 🚀 **RECOMMENDED LAUNCH STRATEGY**
+
+**Fáze 1: Soft Launch (1-2. listopadu)**
+- ✅ CRITICAL features implemented
+- ✅ Basic production ready
+- 👥 Beta testing s malou skupinou (5-10 koučů)
+- 🐛 Bug fixing & feedback collection
+
+**Fáze 2: Public Launch (7-14. listopadu)**
+- ✅ HIGH features implemented
+- ✅ Bug fixes z beta testingu
+- 📣 Marketing push
+- 🎉 Full feature rollout
+
+**Fáze 3: Growth Features (listopad-prosinec)**
+- ✅ Achievement & gamification system
+- ✅ Advanced features (video compression, advanced scheduling)
+- 📊 Analytics & optimization
+- 🔄 Continuous improvement based on user feedback
+
+---
+
+## 📝 **NEXT STEPS - IMMEDIATE ACTIONS**
+
+**Co teď udělat (priorita):**
+
+1. **ROZHODNOUT O LAUNCH DATU** 🗓️
+   - Dnes večer (Scénář A)?
+   - Zítra odpoledne (Scénář B)? ✅ **DOPORUČENO**
+   - Za týden (Scénář C)?
+
+2. **IMPLEMENTOVAT CRITICAL FEATURES** 🔴
+   - Start s nejkratšími: Personalizované oslovení (30 min)
+   - Pokračovat: Tooltips (1-2 hodiny)
+   - Production setup paralelně
+
+3. **TESTOVAT V PROHLÍŽEČI** 🧪
+   - Test všech critical features
+   - Mobile test (iOS + Android)
+   - Cross-browser test
+
+4. **BUILD & DEPLOY** 🚀
+   - `npm run build`
+   - Deploy na Vercel/Netlify
+   - Test v production environmentu
+
+---
+
+**Status:** ✅ MASTER_TODO_V2.md aktualizován o všechny nové funkcionality
+**Připraveno na:** Implementaci podle priorit
+**Doporučení:** Start s CRITICAL features (Scénář B - launch zítra) 🚀
