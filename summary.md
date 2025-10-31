@@ -5296,3 +5296,315 @@ const handleSave = async () => {
 > Race conditions jsou těžko debugovatelné a vedou k nekonzistentnímu stavu aplikace.
 
 ---
+CLAUDE CODE 31/10/2025 - 20:40
+---
+
+## 🎨 Sprint 9.5: MaterialCard Redesign & Client Preview (31. října 2025)
+
+**Datum:** 31. října 2025, 17:00-20:40
+**AI asistent:** Claude Sonnet 4.5
+**Trvání:** ~3.5 hodiny
+**Status:** ✅ Kompletní redesign MaterialCard, skeleton loaders, klientská preview
+
+---
+
+### 📋 Co bylo implementováno
+
+#### 1. **MaterialCard - Kompletní Redesign**
+
+**Nový layout levého sloupce:**
+1. **Chip** - Minimalistický, transparentní s borderem
+2. **URL/Filename** - Ikona Link2/Paperclip + text (řádek vždy přítomen)
+3. **File size** - Ikona HardDrive + velikost (řádek vždy přítomen)
+4. **Duration/Pages** - Ikona Clock/FileText + hodnota (řádek vždy přítomen)
+5. **Title** - 2 řádky, fixed height (minHeight: 2.6em)
+6. **Description** - 3 řádky, fixed height (minHeight: 4.2em)
+7. **Tlačítko "Jak to vidí klientka"** - Nové! Otevře klientskou preview
+
+**Klíčové změny:**
+- ✅ Všechny metadata řádky mají `minHeight: '1.2em'` pro konzistentní layout
+- ✅ Použit `visibility: 'hidden'` pro placeholder text (zachová prostor)
+- ✅ Odstraněno emoji z kategorií (chips jsou čisté)
+- ✅ Přidáno 5 nových kategorií: Šablona, Pracovní list, Pracovní sešit, Otázky, Zpětná vazba
+- ✅ Velká ikona otevírá materiál přímo (ne preview)
+- ✅ Border-radius tlačítka opraveno na `BORDER_RADIUS.small` (12px)
+
+**Pravý sloupec - ikony:**
+1. **Velká ikona** - Otevře přímo (YouTube, PDF, atd.)
+2. **ExternalLink** - Otevřít v novém okně (pro VŠECHNY materiály)
+3. **Eye** - Náhled v preview modalu
+4. **Share2** - Sdílení s klientkou (TODO)
+5. **Pencil** - Editace
+6. **Trash** - Smazání (separované `mt: 'auto', pt: 2`)
+
+**Touch targets pro mobil:**
+- Pod 420px: ikony 20px (místo 14px)
+- Všechny IconButtony: `minWidth: 44, minHeight: 44` (accessibility standard)
+
+---
+
+#### 2. **Tooltips na všechny ikony**
+
+Implementovány tooltips pomocí `QuickTooltip` komponenty (200ms delay):
+
+**Velká ikona:**
+- Dynamický text podle typu: "Otevřít na YouTube", "Otevřít PDF", atd.
+
+**Akční ikony:**
+- ExternalLink: "Otevřít v novém okně nebo kartě"
+- Eye: "Otevřít v náhledu"
+- Share2: "Sdílet s klientkou"
+- Pencil: "Upravit materiál"
+- Trash: "Smazat materiál"
+
+---
+
+#### 3. **Klientská Preview z MaterialCard**
+
+**Funkce `handleClientPreview()`:**
+```javascript
+const handleClientPreview = () => {
+  const currentUser = getCurrentUser();
+
+  // Vytvoř dočasný program s pouze tímto materiálem
+  const tempProgram = {
+    id: generateUUID(),
+    coachId: currentUser?.id,
+    title: `Preview: ${material.title}`,
+    description: 'Náhled materiálu v klientském rozhraní',
+    duration: 1,
+    shareCode: 'PREVIEW',
+    isActive: true,
+    days: [
+      {
+        dayNumber: 1,
+        title: material.title,
+        description: material.description || '',
+        materialIds: [material.id],
+        instruction: ''
+      }
+    ],
+    createdAt: new Date().toISOString()
+  };
+
+  // Vytvoř admin preview session
+  const adminClient = {
+    id: generateUUID(),
+    name: 'Preview (Koučka)',
+    programCode: 'PREVIEW',
+    programId: tempProgram.id,
+    startedAt: new Date().toISOString(),
+    currentDay: 1,
+    streak: 0,
+    longestStreak: 0,
+    moodLog: [],
+    completedDays: [],
+    completedAt: null,
+    certificateGenerated: false,
+    isAdmin: true,
+    _previewProgram: tempProgram // Uložíme dočasný program pro DailyView
+  };
+
+  // Ulož do session storage
+  setCurrentClient(adminClient);
+
+  // Přesměruj na klientskou zónu
+  navigate('/client/daily');
+};
+```
+
+**DailyView - Admin badge:**
+- Změněno z "👁️ Preview" na ikonu `Eye` + text "Admin"
+- Ikona Eye má velikost 14px a primary barvu (zelená)
+- Parent Box má `sx={{ color: 'primary.main' }}` pro konzistentní barvu
+
+---
+
+#### 4. **Odstranění Emoji z Kategorií**
+
+**Soubory upraveny:**
+- `helpers.js` - `getCategoryLabel()` bez emoji
+- `MaterialsLibrary.jsx` - dropdown bez emoji
+- `AddMaterialModal.jsx` - dropdown bez emoji
+- `MaterialSelector.jsx` - dropdown bez emoji
+
+**Předtím:**
+```javascript
+case 'meditation': return '🧘‍♀️ Meditace';
+```
+
+**Teď:**
+```javascript
+case 'meditation': return 'Meditace';
+```
+
+---
+
+#### 5. **Nové Kategorie Materiálů**
+
+Přidáno 5 nových kategorií do všech dropdown menu:
+- **Šablona** (template)
+- **Pracovní list** (worksheet)
+- **Pracovní sešit** (workbook)
+- **Otázky** (question)
+- **Zpětná vazba** (feedback)
+
+**Celkem kategorií:** 10 (meditation, affirmation, exercise, reflection, template, worksheet, workbook, question, feedback, other)
+
+---
+
+#### 6. **Skeleton Loaders**
+
+**Nové soubory:**
+- `MaterialCardSkeleton.jsx` - Skeleton pro MaterialCard
+- `ProgramCardSkeleton.jsx` - Skeleton pro ProgramCard
+
+**MaterialsLibrary.jsx:**
+- Přidán `loading` state (useState)
+- useEffect s async loading (simulace 300ms delay)
+- Zobrazuje 8 skeleton karet během načítání
+
+**ProgramsList.jsx:**
+- Přidán `loading` state
+- useEffect s async loading (simulace 300ms delay)
+- Zobrazuje 4 skeleton karty během načítání
+
+**Skeleton features:**
+- ✅ Napodobuje strukturu skutečné karty
+- ✅ Responsive design (isVeryNarrow breakpoint)
+- ✅ Glassmorphism efekt
+- ✅ Smooth transition mezi loading a loaded state
+
+---
+
+### 📁 Soubory vytvořené/upravené
+
+**Vytvořené soubory:**
+1. `MaterialCardSkeleton.jsx` - Skeleton loader pro materiály
+2. `ProgramCardSkeleton.jsx` - Skeleton loader pro programy
+
+**Upravené soubory:**
+1. `MaterialCard.jsx` - Kompletní redesign, tooltips, klientská preview
+2. `MaterialsLibrary.jsx` - Loading state, skeleton loaders
+3. `ProgramsList.jsx` - Loading state, skeleton loaders
+4. `helpers.js` - Odstranění emoji, nové kategorie
+5. `AddMaterialModal.jsx` - Dropdown bez emoji, nové kategorie
+6. `MaterialSelector.jsx` - Dropdown bez emoji, nové kategorie
+7. `DailyView.jsx` - Admin badge s Eye ikonou
+
+---
+
+### 🎓 Klíčové Lekce
+
+#### 1. **Border-Radius Systém**
+Používej vždy konstanty z `BORDER_RADIUS`:
+- `button` = 18px (normální tlačítka)
+- `small` = 12px (small tlačítka podle theme overrides)
+- `card` = 20px (karty)
+
+#### 2. **Konzistentní Layout s minHeight**
+Pro srovnání karet používej `minHeight` na všech řádcích:
+```javascript
+minHeight: '1.2em'  // Metadata řádky
+minHeight: '2.6em'  // Title (2 řádky × 1.3 line-height)
+minHeight: '4.2em'  // Description (3 řádky × 1.4 line-height)
+```
+
+#### 3. **Visibility: hidden vs Display: none**
+Pro placeholder text používej `visibility: 'hidden'`:
+- Zachová prostor
+- Layout zůstane konzistentní
+- Display: none by layout zkolaboval
+
+#### 4. **Touch Targets na Mobilu**
+Ikony musí mít minimálně 44×44px pro touch:
+```javascript
+minWidth: 44,
+minHeight: 44
+```
+
+#### 5. **Color Inheritance v Parent Box**
+Pro sdílenou barvu ikony a textu:
+```javascript
+<Box sx={{ color: 'primary.main' }}>
+  <Eye size={14} />  {/* Zdědí primary color */}
+  <Typography>Text</Typography>  {/* Zdědí primary color */}
+</Box>
+```
+
+---
+
+### 📊 Časová Statistika
+
+- ⏱️ MaterialCard redesign: ~2 hodiny
+- ⏱️ Skeleton loaders: ~30 minut
+- ⏱️ Klientská preview: ~30 minut
+- ⏱️ Odstranění emoji: ~15 minut
+- ⏱️ Nové kategorie: ~15 minut
+- **Celkem: ~3.5 hodiny**
+
+---
+
+### 🚀 Status na Konci Session
+
+**✅ Hotovo:**
+- ✅ MaterialCard kompletní redesign
+- ✅ Tooltips na všech ikonách
+- ✅ Velká ikona otevírá přímo (ne preview)
+- ✅ Layout s 3 řádky metadat + title + description
+- ✅ Minimalistické chipy bez emoji
+- ✅ 5 nových kategorií materiálů
+- ✅ Tlačítko "Jak to vidí klientka" → otevře klientskou preview
+- ✅ Admin badge v DailyView s Eye ikonou
+- ✅ Skeleton loaders pro MaterialsLibrary a ProgramsList
+- ✅ Touch targets 44×44px pro mobil
+
+**⏳ Pending:**
+- Share2 ikona (TODO - implementovat sdílení)
+- Error boundaries (další úkol)
+- LocalStorage warning (další úkol)
+
+**🖥️ Dev Server:**
+- ✅ Běží bez chyb na http://localhost:3001/
+- ✅ Hot reload funguje
+- ✅ Žádné console errors
+
+---
+
+### 🎯 Production Readiness
+
+**MaterialCard:**
+- ✅ Plně responzivní (320px+)
+- ✅ Touch-friendly (44px targets)
+- ✅ Accessibility (tooltips, ARIA labels)
+- ✅ Loading states
+- ✅ Error handling (delete race condition fixed)
+
+**Skeleton Loaders:**
+- ✅ Připraveno na async Supabase API
+- ✅ Smooth UX transitions
+- ✅ Konzistentní design
+
+**Klientská Preview:**
+- ✅ Funkční pro všechny typy materiálů
+- ✅ Admin režim jasně označen
+- ✅ Temporal program session
+
+---
+
+**💡 PRO BUDOUCÍ CLAUDE:**
+
+Tento sprint dokončil MaterialCard redesign podle požadavků uživatelky. Klíčové body:
+1. Layout musí být konzistentní (minHeight)
+2. Border-radius podle centrálního systému
+3. Touch targets 44×44px
+4. Skeleton loaders připravené na Supabase
+5. Klientská preview plně funkční
+
+Všechny patterns jsou zdokumentované v CLAUDE.md.
+
+---
+
+----------------
+CLAUDE CODE 31/10/2025 - 
+----------------

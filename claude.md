@@ -3094,3 +3094,501 @@ const handleDeleteConfirm = async () => {
 > - Session 7 (Sprint 9.5): Loading States & Race Condition Fixes (31.10) - critical bug fixes
 >
 > Glassmorphism systém je plně modulární a implementovaný napříč aplikací. Race conditions v delete operacích opraveny. Všechny patterns a best practices jsou zdokumentované výše. Pokud něco chybí, zeptej se uživatelky!
+---
+
+### 📅 Session 8 (Sprint 9.5): MaterialCard Redesign & Client Preview (31.10, večer)
+**AI**: Claude Sonnet 4.5
+**Čas**: 31. října 2025, 17:00-20:40 (~3.5 hodiny)
+
+#### 🎯 Cíle:
+1. Dokončit MaterialCard redesign podle požadavků uživatelky
+2. Přidat tooltips na všechny ikony
+3. Implementovat klientskou preview z MaterialCard
+4. Odstranit emoji z kategorií
+5. Přidat nové kategorie materiálů
+6. Implementovat skeleton loaders
+
+#### ✅ MaterialCard - Kompletní Redesign
+
+**Nový layout levého sloupce:**
+```
+1. Chip (vlevo nahoře) + Velká ikona (vpravo nahoře - PROKLIKÁVACÍ)
+2. URL nebo fileName (Link2/Paperclip ikona)
+3. File size (HardDrive ikona)
+4. Duration nebo počet stran (Clock/FileText ikona)
+5. Název materiálu (2 řádky, fixed height)
+6. Popis (3 řádky, fixed height)
+7. Tlačítko "Jak to vidí klientka" (NOVÉ!)
+```
+
+**Klíčové změny:**
+```javascript
+// 1. Všechny metadata řádky mají minHeight pro konzistentní layout
+<Box sx={{ minHeight: '1.2em' }}>
+  {material.fileSize ? (
+    <>
+      <HardDrive size={12} />
+      <Typography>{formatFileSize(material.fileSize)}</Typography>
+    </>
+  ) : (
+    <Typography sx={{ visibility: 'hidden' }}>&nbsp;</Typography>
+  )}
+</Box>
+
+// 2. Title - fixed 2 řádky
+<Typography
+  sx={{
+    lineHeight: 1.3,
+    WebkitLineClamp: 2,
+    minHeight: '2.6em', // 2 řádky × 1.3 lineHeight
+  }}
+>
+  {material.title}
+</Typography>
+
+// 3. Description - fixed 3 řádky
+<Typography
+  sx={{
+    lineHeight: 1.4,
+    WebkitLineClamp: 3,
+    minHeight: '4.2em', // 3 řádky × 1.4 lineHeight
+  }}
+>
+  {material.description || '\u00A0'}
+</Typography>
+
+// 4. Tlačítko "Jak to vidí klientka"
+<Button
+  variant="outlined"
+  size="small"
+  startIcon={<User size={16} />}
+  onClick={handleClientPreview}
+  sx={{
+    mt: 1.5,
+    borderRadius: BORDER_RADIUS.small, // 12px pro small button
+  }}
+>
+  Jak to vidí klientka
+</Button>
+```
+
+**Pravý sloupec - ikony v novém pořadí:**
+```javascript
+1. Velká ikona (component="a", href, otevře přímo)
+2. ExternalLink - "Otevřít v novém okně" (PRO VŠECHNY materiály)
+3. Eye - "Otevřít v náhledu"
+4. Share2 - "Sdílet s klientkou" (TODO)
+5. Pencil - "Upravit materiál"
+6. Trash - "Smazat materiál" (separované: mt: 'auto', pt: 2)
+```
+
+**Touch targets pro mobil:**
+```javascript
+// Pod 420px šířky
+<IconButton
+  sx={{
+    minWidth: 44,  // Accessibility standard
+    minHeight: 44,
+  }}
+>
+  <Eye size={isVeryNarrow ? 20 : 18} />  // Větší ikony na mobilu
+</IconButton>
+```
+
+#### ✅ Tooltips na všech ikonách
+
+Použita `QuickTooltip` komponenta (200ms delay):
+
+```javascript
+import { QuickTooltip } from '@shared/components/AppTooltip';
+
+// Velká ikona - dynamický tooltip
+<QuickTooltip title={
+  material.type === 'link' && material.linkMeta?.label
+    ? `Otevřít na ${material.linkMeta.label}`
+    : material.type === 'audio'
+    ? 'Otevřít audio soubor'
+    : material.type === 'video'
+    ? 'Otevřít video'
+    : material.type === 'pdf'
+    ? 'Otevřít PDF'
+    : material.type === 'image'
+    ? 'Otevřít obrázek'
+    : material.type === 'document'
+    ? 'Otevřít dokument'
+    : 'Otevřít textový dokument'
+}>
+  <IconButton component="a" href={material.content} target="_blank">
+    {renderIcon()}
+  </IconButton>
+</QuickTooltip>
+
+// Akční ikony
+<QuickTooltip title="Otevřít v novém okně nebo kartě">
+  <IconButton component="a" href={material.content} target="_blank">
+    <ExternalLink size={18} />
+  </IconButton>
+</QuickTooltip>
+
+<QuickTooltip title="Otevřít v náhledu">
+  <IconButton onClick={() => setPreviewOpen(true)}>
+    <Eye size={18} />
+  </IconButton>
+</QuickTooltip>
+
+// ... atd pro všechny ikony
+```
+
+#### ✅ Klientská Preview z MaterialCard
+
+**Implementace `handleClientPreview()`:**
+```javascript
+import { useNavigate } from 'react-router-dom';
+import { generateUUID } from '../../utils/generateCode';
+import { getCurrentUser, setCurrentClient } from '../../utils/storage';
+
+const handleClientPreview = () => {
+  const currentUser = getCurrentUser();
+
+  // Vytvoř dočasný program s pouze tímto materiálem
+  const tempProgram = {
+    id: generateUUID(),
+    coachId: currentUser?.id,
+    title: `Preview: ${material.title}`,
+    description: 'Náhled materiálu v klientském rozhraní',
+    duration: 1,
+    shareCode: 'PREVIEW',
+    isActive: true,
+    days: [
+      {
+        dayNumber: 1,
+        title: material.title,
+        description: material.description || '',
+        materialIds: [material.id],
+        instruction: ''
+      }
+    ],
+    createdAt: new Date().toISOString()
+  };
+
+  // Vytvoř admin preview session
+  const adminClient = {
+    id: generateUUID(),
+    name: 'Preview (Koučka)',
+    programCode: 'PREVIEW',
+    programId: tempProgram.id,
+    startedAt: new Date().toISOString(),
+    currentDay: 1,
+    streak: 0,
+    longestStreak: 0,
+    moodLog: [],
+    completedDays: [],
+    completedAt: null,
+    certificateGenerated: false,
+    isAdmin: true,
+    _previewProgram: tempProgram // DailyView použije tento temp program
+  };
+
+  setCurrentClient(adminClient);
+  navigate('/client/daily');
+};
+```
+
+**DailyView - Admin Badge:**
+```javascript
+// Změněno z "👁️ Preview" na Eye ikonu + "Admin"
+import { Eye } from 'lucide-react';
+
+{client.isAdmin && (
+  <Box
+    sx={{
+      color: 'primary.main',  // Parent má barvu
+    }}
+  >
+    <Box display="flex" alignItems="center" gap={0.5}>
+      <Eye size={14} />  {/* Zdědí primary color */}
+      <Typography
+        variant="caption"
+        sx={{
+          fontWeight: 600,
+          fontSize: '0.7rem',
+          textTransform: 'uppercase',
+          letterSpacing: 0.5,
+        }}
+      >
+        Admin
+      </Typography>
+    </Box>
+  </Box>
+)}
+```
+
+#### ✅ Odstranění Emoji z Kategorií
+
+**helpers.js:**
+```javascript
+export const getCategoryLabel = (category) => {
+  switch (category) {
+    case 'meditation':
+      return 'Meditace';  // Bylo: '🧘‍♀️ Meditace'
+    case 'affirmation':
+      return 'Afirmace';  // Bylo: '💫 Afirmace'
+    // ... atd bez emoji
+  }
+};
+```
+
+**Upravené soubory:**
+- `helpers.js` - getCategoryLabel() bez emoji
+- `MaterialsLibrary.jsx` - dropdown bez emoji
+- `AddMaterialModal.jsx` - dropdown bez emoji
+- `MaterialSelector.jsx` - dropdown bez emoji
+
+#### ✅ Nové Kategorie Materiálů
+
+Přidáno 5 nových kategorií:
+```javascript
+<MenuItem value="template">Šablona</MenuItem>
+<MenuItem value="worksheet">Pracovní list</MenuItem>
+<MenuItem value="workbook">Pracovní sešit</MenuItem>
+<MenuItem value="question">Otázky</MenuItem>
+<MenuItem value="feedback">Zpětná vazba</MenuItem>
+```
+
+**helpers.js:**
+```javascript
+case 'template':
+  return 'Šablona';
+case 'worksheet':
+  return 'Pracovní list';
+case 'workbook':
+  return 'Pracovní sešit';
+case 'question':
+  return 'Otázky';
+case 'feedback':
+  return 'Zpětná vazba';
+```
+
+**Celkem kategorií:** 10
+
+#### ✅ Skeleton Loaders
+
+**Nové komponenty:**
+
+**MaterialCardSkeleton.jsx:**
+```javascript
+import { Card, CardContent, Box, Skeleton } from '@mui/material';
+
+const MaterialCardSkeleton = () => {
+  return (
+    <Card>
+      <CardContent>
+        <Box display="flex" gap={1.5}>
+          {/* Levý sloupec */}
+          <Box flex="1 1 0px">
+            <Skeleton variant="rounded" width={80} height={18} /> {/* Chip */}
+            <Skeleton variant="text" width="70%" height={16} />  {/* URL */}
+            <Skeleton variant="text" width="40%" height={16} />  {/* Size */}
+            <Skeleton variant="text" width="50%" height={16} />  {/* Duration */}
+            <Skeleton variant="text" width="90%" height={20} />  {/* Title line 1 */}
+            <Skeleton variant="text" width="70%" height={20} />  {/* Title line 2 */}
+            <Skeleton variant="text" width="100%" height={14} /> {/* Desc line 1 */}
+            <Skeleton variant="text" width="95%" height={14} />  {/* Desc line 2 */}
+            <Skeleton variant="text" width="60%" height={14} />  {/* Desc line 3 */}
+          </Box>
+          
+          {/* Pravý sloupec */}
+          <Box>
+            <Skeleton variant="circular" width={40} height={40} /> {/* Velká ikona */}
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} variant="circular" width={18} height={18} />
+            ))}
+            <Box mt="auto" pt={2}>
+              <Skeleton variant="circular" width={18} height={18} /> {/* Trash */}
+            </Box>
+          </Box>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+};
+```
+
+**ProgramCardSkeleton.jsx:**
+```javascript
+const ProgramCardSkeleton = () => {
+  return (
+    <Card>
+      <CardContent>
+        <Box display="flex" justifyContent="space-between">
+          <Skeleton variant="rounded" width={80} height={24} /> {/* Chip */}
+          <Skeleton variant="circular" width={24} height={24} /> {/* Menu */}
+        </Box>
+        <Skeleton variant="text" width="85%" height={28} />      {/* Title */}
+        <Skeleton variant="text" width="100%" height={20} />     {/* Desc 1 */}
+        <Skeleton variant="text" width="75%" height={20} />      {/* Desc 2 */}
+        {/* ... meta info, share code box */}
+      </CardContent>
+      <CardActions>
+        <Skeleton variant="rounded" width={160} height={32} />
+        <Skeleton variant="rounded" width={70} height={32} />
+        <Skeleton variant="rounded" width={70} height={32} />
+      </CardActions>
+    </Card>
+  );
+};
+```
+
+**MaterialsLibrary.jsx & ProgramsList.jsx:**
+```javascript
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  const loadMaterials = async () => {
+    setLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 300)); // Simulace async
+    setMaterials(getMaterials(currentUser?.id));
+    setLoading(false);
+  };
+  loadMaterials();
+}, [currentUser?.id]);
+
+// Render
+{loading ? (
+  <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+    {[...Array(8)].map((_, index) => (
+      <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
+        <MaterialCardSkeleton />
+      </Grid>
+    ))}
+  </Grid>
+) : (
+  // ... skutečná data
+)}
+```
+
+#### 🎓 Klíčové Lekce
+
+**1. Border-Radius podle velikosti:**
+```javascript
+// ❌ ŠPATNĚ
+borderRadius: BORDER_RADIUS.button  // 18px pro size="small" tlačítko
+
+// ✅ SPRÁVNĚ
+borderRadius: BORDER_RADIUS.small   // 12px (podle theme overrides)
+```
+
+**2. Konzistentní layout s minHeight:**
+```javascript
+// Všechny metadata řádky
+minHeight: '1.2em'
+
+// Title (2 řádky × 1.3 line-height)
+minHeight: '2.6em'
+
+// Description (3 řádky × 1.4 line-height)
+minHeight: '4.2em'
+```
+
+**3. Visibility hidden vs display none:**
+```javascript
+// ✅ SPRÁVNĚ - zachová prostor
+<Typography sx={{ visibility: 'hidden' }}>&nbsp;</Typography>
+
+// ❌ ŠPATNĚ - zkolabuje layout
+<Typography sx={{ display: 'none' }}>&nbsp;</Typography>
+```
+
+**4. Touch targets na mobilu:**
+```javascript
+// Minimálně 44×44px pro touch
+minWidth: 44,
+minHeight: 44
+```
+
+**5. Color inheritance v parent Box:**
+```javascript
+// ✅ SPRÁVNĚ
+<Box sx={{ color: 'primary.main' }}>
+  <Eye size={14} />  {/* Zdědí primary color */}
+  <Typography>Text</Typography>  {/* Zdědí primary color */}
+</Box>
+
+// ❌ ŠPATNĚ
+<Eye size={14} color="currentColor" />
+<Typography sx={{ color: 'primary.main' }}>Text</Typography>
+```
+
+#### 📁 Soubory vytvořené/upravené
+
+**Vytvořené:**
+1. `MaterialCardSkeleton.jsx`
+2. `ProgramCardSkeleton.jsx`
+
+**Upravené:**
+1. `MaterialCard.jsx` - Kompletní redesign (250+ řádků změn)
+2. `MaterialsLibrary.jsx` - Loading state, skeleton loaders
+3. `ProgramsList.jsx` - Loading state, skeleton loaders
+4. `helpers.js` - Odstranění emoji, nové kategorie
+5. `AddMaterialModal.jsx` - Dropdown bez emoji, nové kategorie
+6. `MaterialSelector.jsx` - Dropdown bez emoji, nové kategorie
+7. `DailyView.jsx` - Admin badge s Eye ikonou
+
+#### ⏳ Pending úkoly:
+- [ ] Share2 ikona - implementovat sdílení s klientkou
+- [x] MaterialCard tooltips ✅
+- [x] MaterialCard redesign ✅
+- [x] Skeleton loaders ✅
+- [ ] Error boundaries
+- [ ] LocalStorage warning
+
+#### 📊 Časová statistika:
+- MaterialCard redesign: ~2 hodiny
+- Skeleton loaders: ~30 minut
+- Klientská preview: ~30 minut
+- Odstranění emoji + nové kategorie: ~30 minut
+- **Celkem: ~3.5 hodiny**
+
+---
+
+## 🚀 Další kroky (budoucnost)
+
+**Priorita 1 - Production Ready Features:**
+- [ ] Error boundaries - React error boundaries pro graceful error handling
+- [ ] LocalStorage warning - upozornění při 80%+ využití
+- [ ] Share2 ikona - sdílení materiálu s klientkou
+
+**Priorita 2 - Code cleanup:**
+- [ ] Odstranit zbytečné komentáře
+- [ ] Zkontrolovat duplicitní importy
+- [ ] Optimalizovat neoptimalizovaný kód
+
+**Priorita 3 - Rozšíření modularity:**
+- [ ] Přidat glassmorphism na další komponenty (Headers, Sidebars)
+- [ ] Vytvořit `GlassCard` wrapper komponentu
+- [ ] Vytvořit `GlassDialog` wrapper komponentu
+
+**Priorita 4 - Audio features:**
+- [ ] Nahrát vlastní oslavný zvuk (hlas uživatelky)
+- [ ] Přidat možnost vypnout zvuky v nastavení
+- [ ] Různé zvuky pro různé události
+
+---
+
+> 💡 **Pro budoucí Claude**: Sprint 9 je kompletně dokončen s **8 sessions** (28-31 října 2025):
+> - Sessions 1-5: Glassmorphism & UI Polish (28-30.10)
+> - Session 6: Grid Layout & MaterialCard Redesign (30.10 večer) - problematická session
+> - Session 7 (Sprint 9.5): Loading States & Race Condition Fixes (31.10 odpoledne)
+> - Session 8 (Sprint 9.5): MaterialCard Redesign & Client Preview (31.10 večer) - **AKTUÁLNÍ**
+>
+> **Hlavní achievements Session 8:**
+> - ✅ MaterialCard kompletně redesignován podle požadavků uživatelky
+> - ✅ Tooltips na všech ikonách
+> - ✅ Klientská preview funkční pro všechny typy materiálů
+> - ✅ Odstranění emoji z kategorií
+> - ✅ 5 nových kategorií materiálů
+> - ✅ Skeleton loaders připravené na Supabase API
+> - ✅ Touch targets 44×44px pro mobil
+>
+> Glassmorphism systém je plně modulární a implementovaný napříč aplikací. Race conditions opraveny. MaterialCard je production-ready s konzistentním layoutem. Všechny patterns zdokumentované výše.
+

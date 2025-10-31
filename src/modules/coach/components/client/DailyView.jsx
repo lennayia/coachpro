@@ -36,7 +36,8 @@ import {
   Image as ImageLucide,
   FileSpreadsheet,
   Type,
-  Link2
+  Link2,
+  Eye
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Confetti from 'react-confetti';
@@ -420,18 +421,25 @@ const DailyView = () => {
                   },
                 }}
               >
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 600,
-                    color: 'primary.main',
-                    fontSize: '0.7rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                  }}
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  gap={0.5}
+                  sx={{ color: 'primary.main' }}
                 >
-                  👁️ Preview
-                </Typography>
+                  <Eye size={14} />
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: '0.7rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.5,
+                    }}
+                  >
+                    Admin
+                  </Typography>
+                </Box>
               </Box>
             )}
           </Box>

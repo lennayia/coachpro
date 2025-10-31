@@ -251,15 +251,25 @@ export const getIconByType = (type) => {
 export const getCategoryLabel = (category) => {
   switch (category) {
     case 'meditation':
-      return '🧘‍♀️ Meditace';
+      return 'Meditace';
     case 'affirmation':
-      return '💫 Afirmace';
+      return 'Afirmace';
     case 'exercise':
-      return '💪 Cvičení';
+      return 'Cvičení';
     case 'reflection':
-      return '📝 Reflexe';
+      return 'Reflexe';
+    case 'template':
+      return 'Šablona';
+    case 'worksheet':
+      return 'Pracovní list';
+    case 'workbook':
+      return 'Pracovní sešit';
+    case 'question':
+      return 'Otázky';
+    case 'feedback':
+      return 'Zpětná vazba';
     case 'other':
-      return '📦 Ostatní';
+      return 'Ostatní';
     default:
       return category;
   }

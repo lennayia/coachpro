@@ -112,11 +112,16 @@ const MaterialSelector = ({ open, onClose, selectedMaterialIds = [], onConfirm, 
               onChange={(e) => setFilterCategory(e.target.value)}
             >
               <MenuItem value="all">Všechny</MenuItem>
-              <MenuItem value="meditation">🧘‍♀️ Meditace</MenuItem>
-              <MenuItem value="affirmation">💫 Afirmace</MenuItem>
-              <MenuItem value="exercise">💪 Cvičení</MenuItem>
-              <MenuItem value="reflection">📝 Reflexe</MenuItem>
-              <MenuItem value="other">📦 Ostatní</MenuItem>
+              <MenuItem value="meditation">Meditace</MenuItem>
+              <MenuItem value="affirmation">Afirmace</MenuItem>
+              <MenuItem value="exercise">Cvičení</MenuItem>
+              <MenuItem value="reflection">Reflexe</MenuItem>
+              <MenuItem value="template">Šablona</MenuItem>
+              <MenuItem value="worksheet">Pracovní list</MenuItem>
+              <MenuItem value="workbook">Pracovní sešit</MenuItem>
+              <MenuItem value="question">Otázky</MenuItem>
+              <MenuItem value="feedback">Zpětná vazba</MenuItem>
+              <MenuItem value="other">Ostatní</MenuItem>
             </Select>
           </FormControl>
         </Box>

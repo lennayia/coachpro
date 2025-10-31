@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -38,6 +38,7 @@ import { User as UserIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import ProgramEditor from './ProgramEditor';
+import ProgramCardSkeleton from './ProgramCardSkeleton';
 import ShareProgramModal from './ShareProgramModal';
 import { getCurrentUser, getPrograms, deleteProgram, getClients, setCurrentClient } from '../../utils/storage';
 import { generateUUID } from '../../utils/generateCode';
@@ -51,7 +52,7 @@ const ProgramsList = () => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const currentUser = getCurrentUser();
-  const [programs, setPrograms] = useState(getPrograms(currentUser?.id));
+  const [programs, setPrograms] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [editorOpen, setEditorOpen] = useState(false);
@@ -63,9 +64,25 @@ const ProgramsList = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [programToDelete, setProgramToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const refreshPrograms = () => {
+  // Load programs on mount
+  useEffect(() => {
+    const loadPrograms = async () => {
+      setLoading(true);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setPrograms(getPrograms(currentUser?.id));
+      setLoading(false);
+    };
+
+    loadPrograms();
+  }, [currentUser?.id]);
+
+  const refreshPrograms = async () => {
+    setLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 300));
     setPrograms(getPrograms(currentUser?.id));
+    setLoading(false);
   };
 
   // Filtrované a prohledané programy
@@ -235,7 +252,15 @@ const ProgramsList = () => {
       </Box>
 
       {/* Programs grid */}
-      {filteredPrograms.length === 0 ? (
+      {loading ? (
+        <Grid container spacing={3}>
+          {[...Array(4)].map((_, index) => (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
+              <ProgramCardSkeleton />
+            </Grid>
+          ))}
+        </Grid>
+      ) : filteredPrograms.length === 0 ? (
         <Box
           py={8}
           textAlign="center"

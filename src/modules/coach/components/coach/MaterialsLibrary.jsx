@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -14,6 +14,7 @@ import {
 import { Search as SearchIcon, Add as AddIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import MaterialCard from './MaterialCard';
+import MaterialCardSkeleton from './MaterialCardSkeleton';
 import AddMaterialModal from './AddMaterialModal';
 import { getCurrentUser, getMaterials } from '../../utils/storage';
 import { staggerContainer, staggerItem } from '@shared/styles/animations';
@@ -21,14 +22,31 @@ import BORDER_RADIUS from '@styles/borderRadius';
 
 const MaterialsLibrary = () => {
   const currentUser = getCurrentUser();
-  const [materials, setMaterials] = useState(getMaterials(currentUser?.id));
+  const [materials, setMaterials] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Load materials on mount
+  useEffect(() => {
+    const loadMaterials = async () => {
+      setLoading(true);
+      // Simulate async loading (for future Supabase integration)
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setMaterials(getMaterials(currentUser?.id));
+      setLoading(false);
+    };
+
+    loadMaterials();
+  }, [currentUser?.id]);
 
   // Refresh materials
-  const refreshMaterials = () => {
+  const refreshMaterials = async () => {
+    setLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 300));
     setMaterials(getMaterials(currentUser?.id));
+    setLoading(false);
   };
 
   // Filtrované a prohledané materiály
@@ -97,11 +115,16 @@ const MaterialsLibrary = () => {
             onChange={(e) => setFilterCategory(e.target.value)}
           >
             <MenuItem value="all">Všechny kategorie</MenuItem>
-            <MenuItem value="meditation">🧘‍♀️ Meditace</MenuItem>
-            <MenuItem value="affirmation">💫 Afirmace</MenuItem>
-            <MenuItem value="exercise">💪 Cvičení</MenuItem>
-            <MenuItem value="reflection">📝 Reflexe</MenuItem>
-            <MenuItem value="other">📦 Ostatní</MenuItem>
+            <MenuItem value="meditation">Meditace</MenuItem>
+            <MenuItem value="affirmation">Afirmace</MenuItem>
+            <MenuItem value="exercise">Cvičení</MenuItem>
+            <MenuItem value="reflection">Reflexe</MenuItem>
+            <MenuItem value="template">Šablona</MenuItem>
+            <MenuItem value="worksheet">Pracovní list</MenuItem>
+            <MenuItem value="workbook">Pracovní sešit</MenuItem>
+            <MenuItem value="question">Otázky</MenuItem>
+            <MenuItem value="feedback">Zpětná vazba</MenuItem>
+            <MenuItem value="other">Ostatní</MenuItem>
           </Select>
         </FormControl>
 
@@ -117,7 +140,15 @@ const MaterialsLibrary = () => {
     </Box>
 
     {/* Grid materiálů */}
-    {filteredMaterials.length === 0 ? (
+    {loading ? (
+      <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+        {[...Array(8)].map((_, index) => (
+          <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
+            <MaterialCardSkeleton />
+          </Grid>
+        ))}
+      </Grid>
+    ) : filteredMaterials.length === 0 ? (
       <Box
         py={8}
         textAlign="center"
@@ -153,7 +184,7 @@ const MaterialsLibrary = () => {
         initial="hidden"
         animate="visible"
       >
-        <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}> {/* ✅ Změněno z 1 na 1.5 */}
+        <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
           {filteredMaterials.map((material) => (
             <Grid item xs={12} sm={6} md={4} lg={3} key={material.id}>
               <motion.div variants={staggerItem} style={{ height: '100%' }}>
