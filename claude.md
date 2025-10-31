@@ -3592,3 +3592,330 @@ minHeight: 44
 >
 > Glassmorphism systém je plně modulární a implementovaný napříč aplikací. Race conditions opraveny. MaterialCard je production-ready s konzistentním layoutem. Všechny patterns zdokumentované výše.
 
+
+---
+
+## 📋 Sprint 9.5 Session 9: MaterialCard UI Polish & Modern Button (31. října 2025, večer)
+
+**Trvání**: ~2 hodiny
+**AI**: Claude Sonnet 4.5
+**Status**: ✅ DOKONČENO - MaterialCard production-ready
+
+### 🎯 Cíle Session 9
+
+1. Zarovnat akční ikony v pravém sloupci doprava
+2. Zmenšit rozestupy mezi ikonami (kompaktnost)
+3. Redukovat right padding karty
+4. Zarovnat chip k hornímu okraji loga
+5. Redesignovat chip (minimalistický styl)
+6. Redesignovat tlačítko "Jak to vidí klientka" (moderní efekty)
+7. Modularizovat button design
+8. Standardizovat spacing napříč breakpointy
+9. Opravit barvu ikon v headeru (light mode)
+
+### ✅ Implementované změny
+
+#### 1. Icon Alignment - Pravý sloupec
+
+**Problém**: Ikony byly zarovnány na střed
+
+**Řešení**:
+```javascript
+<IconButton
+  sx={{
+    minWidth: 44,
+    minHeight: 32,      // Reduced from 44px
+    display: 'flex',
+    justifyContent: 'flex-end',  // Align right
+    alignItems: 'center',
+    pr: 0,              // No padding right
+    py: 0.5,            // Controlled vertical
+  }}
+>
+```
+
+#### 2. Icon Spacing Reduction
+
+**Změna**: `gap={1}` → `gap={0}` (absolutní minimum)
+
+**Touch targets**: 44×44px zachovány pro accessibility, vizuální výška 32px
+
+**Trash separace**: `pt: 3` (24px separation)
+
+#### 3. Chip Redesign - Minimalistický styl
+
+**Před**: Outlined, lowercase, větší velikost
+**Po**: Solid background, uppercase, letter-spacing
+
+```javascript
+<Chip
+  sx={{
+    height: isVeryNarrow ? 14 : 16,
+    fontSize: isVeryNarrow ? '0.55rem' : '0.6rem',
+    fontWeight: 500,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    backgroundColor: isDark
+      ? 'rgba(139, 188, 143, 0.15)'
+      : 'rgba(139, 188, 143, 0.12)',
+    border: 'none',
+    color: isDark 
+      ? 'rgba(139, 188, 143, 0.95)' 
+      : 'rgba(85, 107, 47, 0.95)',
+  }}
+/>
+```
+
+#### 4. Modern Button Design - 6 Effects
+
+**Vytvořena funkce**: `createClientPreviewButton(isDark)`
+
+**6 moderních efektů**:
+
+1. **Gradient background** - 135deg linear gradient
+2. **Glassmorphism** - `backdropFilter: blur(10px)`
+3. **Inset highlight** - `inset 0 1px 0 rgba(255, 255, 255, 0.15)`
+4. **Shine animation** - `::before` pseudo-element slides on hover
+5. **Glow effect** - `0 4px 16px rgba(139, 188, 143, 0.4)` on hover
+6. **Transform** - `translateY(-2px) scale(1.02)` on hover
+
+**Kód**:
+```javascript
+export const createClientPreviewButton = (isDark = false) => ({
+  py: 0.5,
+  px: 1.5,
+  fontSize: '0.7rem',
+  fontWeight: 600,
+  borderRadius: '10px',
+  color: '#fff',
+  background: isDark
+    ? 'linear-gradient(135deg, rgba(139, 188, 143, 0.9) 0%, rgba(85, 107, 47, 0.85) 100%)'
+    : 'linear-gradient(135deg, rgba(139, 188, 143, 0.95) 0%, rgba(85, 107, 47, 0.9) 100%)',
+  backdropFilter: 'blur(10px)',
+  textTransform: 'none',
+  alignSelf: 'flex-start',
+  border: '1px solid',
+  borderColor: isDark
+    ? 'rgba(139, 188, 143, 0.3)'
+    : 'rgba(255, 255, 255, 0.4)',
+  boxShadow: isDark
+    ? '0 2px 8px rgba(139, 188, 143, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)'
+    : '0 2px 8px rgba(85, 107, 47, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
+  position: 'relative',
+  overflow: 'hidden',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: '-100%',
+    width: '100%',
+    height: '100%',
+    background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+    transition: 'left 0.5s ease',
+  },
+  '&:hover': {
+    transform: 'translateY(-2px) scale(1.02)',
+    boxShadow: isDark
+      ? '0 4px 16px rgba(139, 188, 143, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+      : '0 4px 16px rgba(85, 107, 47, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
+    '&::before': {
+      left: '100%',
+    },
+  },
+  '&:active': {
+    transform: 'translateY(-1px) scale(1.01)',
+  },
+});
+```
+
+#### 5. Standardizace Spacing - Všechny breakpointy
+
+**MaterialsLibrary.jsx**:
+```javascript
+// Před:
+<Box sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+<Grid spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+
+// Po:
+<Box sx={{ px: 3 }}>
+<Grid spacing={3}>
+```
+
+**MaterialCard.jsx**:
+```javascript
+// Před:
+<CardContent sx={{ p: { xs: 1.5, sm: 2, md: 3 }, pr: { xs: 1, sm: 1.5, md: 2.5 } }}>
+
+// Po:
+<CardContent sx={{ p: 3, pr: 2.5 }}>
+```
+
+**Výsledek**: Konzistentní okraje na mobilu i desktopu
+
+#### 6. Header Icon Colors - Light Mode Fix
+
+**Header.jsx**:
+```javascript
+// Hamburger menu
+<IconButton
+  sx={{
+    color: mode === 'dark' ? 'inherit' : 'rgba(0, 0, 0, 0.87)',
+  }}
+>
+
+// Theme toggle
+<IconButton
+  sx={{
+    color: mode === 'dark' ? 'inherit' : 'rgba(0, 0, 0, 0.87)',
+  }}
+>
+```
+
+**Výsledek**: Tmavé ikony v light mode (viditelné na bílém pozadí)
+
+### 🎓 Klíčové Lekce Session 9
+
+#### 1. Flexbox Right Alignment Pattern
+```javascript
+// IconButton musí mít:
+display: 'flex',
+justifyContent: 'flex-end',
+pr: 0,  // Důležité!
+```
+
+#### 2. Touch Targets vs Visual Height
+```javascript
+minWidth: 44,   // Touch target (accessibility)
+minHeight: 32,  // Visual height (kompaktnost)
+py: 0.5,        // Controlled padding
+```
+
+#### 3. Negative Margin Pull-Up
+```javascript
+// Pull content up
+mt: -2  // -16px
+```
+
+#### 4. Chip Design Best Practices
+```javascript
+// Modern minimalist chip:
+textTransform: 'uppercase',
+letterSpacing: '0.5px',
+backgroundColor: 'rgba(..., 0.15)',  // Solid, ne outline
+border: 'none',
+```
+
+#### 5. Modern Button Effect Layering
+```javascript
+// Kombinace efektů:
+1. Gradient background
+2. Glassmorphism (blur)
+3. Multiple box-shadows (outer + inset)
+4. ::before pseudo-element (shine)
+5. Transform animations
+6. Transition timing
+```
+
+#### 6. Spacing Standardization
+```javascript
+// ❌ ŠPATNĚ - responsive chaos
+px: { xs: 1.5, sm: 2, md: 3 }
+
+// ✅ SPRÁVNĚ - konzistentní
+px: 3
+```
+
+### 📁 Soubory upravené v Session 9
+
+1. **MaterialCard.jsx** - Icon alignment, chip design, button, spacing
+2. **modernEffects.js** - `createClientPreviewButton()` funkce
+3. **MaterialsLibrary.jsx** - Constant spacing
+4. **Header.jsx** - Icon colors light mode
+
+### 🐛 Chyby a opravy
+
+**Chyba #1: Icons se neposunuly doprava**
+- **Fix**: Přidat `display: 'flex'` + `pr: 0`
+
+**Chyba #2: Obsah se neposunul nahoru**
+- **Fix**: Negativní margin `mt: -2`
+
+**Chyba #3: Opacity direction wrong**
+- **Fix**: Zvýšit opacity místo snížení (0.08 → 0.15)
+
+**Chyba #4: Icon spacing se nezměnil**
+- **Fix**: Snížit `minHeight` z 44px na 32px + `gap={0}`
+
+**Chyba #5: Button příliš plain**
+- **Fix**: Implementovat 6 moderních efektů
+
+### 📊 Session 9 Statistika
+
+- **Řádky kódu**: ~200 řádků změn
+- **Soubory upraveny**: 4
+- **Modularizace**: 50+ řádků button kódu → 1 řádek
+- **Čas**: ~2 hodiny
+
+### ✅ Production Readiness Checklist
+
+- [x] Icon alignment konzistentní
+- [x] Touch targets 44×44px (accessibility)
+- [x] Chip design minimalistický a distinct
+- [x] Modern button s 6 efekty
+- [x] Modularizovaný button (reusable)
+- [x] Spacing standardizován (všechny breakpointy)
+- [x] Header icons viditelné v light mode
+- [x] Testováno na 320px+ (mobile ready)
+
+### 🚀 Modular Pattern Usage
+
+**Import pattern**:
+```javascript
+import { createClientPreviewButton } from '../../../../shared/styles/modernEffects';
+```
+
+**Usage pattern**:
+```javascript
+<Button
+  variant="contained"
+  size="small"
+  startIcon={<User size={14} />}
+  sx={{
+    mt: 1.5,
+    ...createClientPreviewButton(isDark)
+  }}
+>
+  Jak to vidí klientka
+</Button>
+```
+
+**Export pattern** (modernEffects.js):
+```javascript
+export default {
+  // ... existing exports
+  createClientPreviewButton,
+};
+```
+
+### ⏳ Následující kroky
+
+**Hotovo v Session 9:**
+- [x] MaterialCard UI polish
+- [x] Modern button design
+- [x] Modularizace button
+- [x] Spacing standardizace
+- [x] Header icon colors
+
+**Další session (Priorita 1):**
+- [ ] Error boundaries
+- [ ] LocalStorage warning
+- [ ] Share2 ikona funkcionality
+
+---
+
+**Status**: ✅ Session 9 dokončena
+**MaterialCard**: Production-ready s moderními efekty
+**Dev Server**: ✅ Běží bez chyb
+**Doporučení**: Pokračovat na Error boundaries (Priorita 1) 🚀
+

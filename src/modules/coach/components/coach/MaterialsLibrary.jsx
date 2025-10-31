@@ -71,7 +71,7 @@ const MaterialsLibrary = () => {
   }, [materials, searchQuery, filterCategory]);
 
   return (
-  <Box sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}> {/* ✅ Větší padding */}
+  <Box sx={{ px: 3 }}>
     {/* Header */}
     <Box mb={4}>
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
@@ -141,7 +141,7 @@ const MaterialsLibrary = () => {
 
     {/* Grid materiálů */}
     {loading ? (
-      <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+      <Grid container spacing={3}>
         {[...Array(8)].map((_, index) => (
           <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
             <MaterialCardSkeleton />
@@ -184,7 +184,7 @@ const MaterialsLibrary = () => {
         initial="hidden"
         animate="visible"
       >
-        <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+        <Grid container spacing={3}>
           {filteredMaterials.map((material) => (
             <Grid item xs={12} sm={6} md={4} lg={3} key={material.id}>
               <motion.div variants={staggerItem} style={{ height: '100%' }}>

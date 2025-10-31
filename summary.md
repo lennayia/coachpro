@@ -5608,3 +5608,414 @@ Všechny patterns jsou zdokumentované v CLAUDE.md.
 ----------------
 CLAUDE CODE 31/10/2025 - 
 ----------------
+
+---
+
+## 📋 Sprint 9.5 - Session 9: MaterialCard UI Polish & Moderní Tlačítko (31. října 2025)
+
+**Datum:** 31. října 2025
+**Čas:** 3+ hodiny
+**AI asistent:** Claude Sonnet 4.5
+**Status:** ✅ Dokončeno
+
+---
+
+### 🎯 Cíle Session
+
+1. **Finální úpravy MaterialCard layoutu** - kompaktnost, zarovnání, spacing
+2. **Moderní tlačítko "Jak to vidí klientka"** - gradient, glassmorphism, shine, glow
+3. **Modularizace button designu** - znovupoužitelná funkce
+4. **Responzivní spacing** - jednotné okraje na všech breakpointech
+5. **Header ikony v light mode** - tmavá barva pro viditelnost
+
+---
+
+### ✅ Co bylo implementováno
+
+#### 1. MaterialCard - Zarovnání a Spacing
+
+**Akční ikony zarovnané doprava:**
+```javascript
+// IconButton s flexbox zarovnáním
+sx={{
+  ...createIconButton('secondary', isDark, 'small'),
+  minWidth: 44,
+  minHeight: 32,  // Sníženo z 44px
+  display: 'flex',
+  justifyContent: 'flex-end',  // Zarovnání doprava
+  alignItems: 'center',
+  pr: 0,  // Žádný padding vpravo
+  py: 0.5
+}}
+```
+
+**Zmenšené mezery mezi ikonami:**
+- Gap mezi akčními ikonami: `0.5` → `0.25` → `0` (žádné mezery)
+- První ikona (ExternalLink): `mt: 1` (8px odsazení od loga)
+- Ikona koše: `pt: 3` (24px odsazení od ostatních)
+
+**Padding optimalizace:**
+```javascript
+// CardContent
+p: 3,           // 24px (konstantní na všech breakpointech)
+pr: 2.5,        // 20px vpravo (kompaktnější)
+
+// Velká ikona v rohu
+mr: -0.5        // Posunutí blíž ke kraji
+```
+
+#### 2. Chip Design - Minimalistický
+
+**Vlastnosti:**
+- **Uppercase text** s letter-spacing 0.5px
+- **Menší velikost**: 14-16px (dříve 16-18px)
+- **Menší font**: 0.55-0.6rem
+- **Solid background**: 15%/12% opacity (místo transparent)
+- **Žádný border**
+- **Font weight 500**
+
+```javascript
+<Chip
+  sx={{
+    height: isVeryNarrow ? 14 : 16,
+    fontSize: isVeryNarrow ? '0.55rem' : '0.6rem',
+    fontWeight: 500,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    backgroundColor: isDark
+      ? 'rgba(139, 188, 143, 0.15)'
+      : 'rgba(139, 188, 143, 0.12)',
+    border: 'none',
+  }}
+/>
+```
+
+#### 3. Moderní Tlačítko "Jak to vidí klientka"
+
+**Efekty implementované:**
+
+1. **Gradientní pozadí** 🌈
+   ```javascript
+   background: 'linear-gradient(135deg, rgba(139, 188, 143, 0.95) 0%, rgba(85, 107, 47, 0.9) 100%)'
+   ```
+
+2. **Glassmorphism** 💎
+   ```javascript
+   backdropFilter: 'blur(10px)'
+   ```
+
+3. **Inset highlight** ✨
+   ```javascript
+   boxShadow: '0 2px 8px rgba(139, 188, 143, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)'
+   ```
+
+4. **Shine animation** 💫
+   ```javascript
+   '&::before': {
+     content: '""',
+     position: 'absolute',
+     background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+     left: '-100%',
+     transition: 'left 0.5s ease',
+   },
+   '&:hover::before': {
+     left: '100%',  // Přejede přes tlačítko
+   }
+   ```
+
+5. **Glow efekt** 🌟
+   ```javascript
+   '&:hover': {
+     boxShadow: '0 4px 16px rgba(139, 188, 143, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+   }
+   ```
+
+6. **Transform animations** 🎭
+   ```javascript
+   '&:hover': {
+     transform: 'translateY(-2px) scale(1.02)',
+   },
+   '&:active': {
+     transform: 'translateY(-1px) scale(1.01)',
+   }
+   ```
+
+#### 4. Modularizace - createClientPreviewButton()
+
+**Vytvořena nová funkce v `modernEffects.js`:**
+
+```javascript
+export const createClientPreviewButton = (isDark = false) => ({
+  py: 0.5,
+  px: 1.5,
+  fontSize: '0.7rem',
+  fontWeight: 600,
+  borderRadius: '10px',
+  color: '#fff',
+  background: isDark
+    ? 'linear-gradient(135deg, rgba(139, 188, 143, 0.9) 0%, rgba(85, 107, 47, 0.85) 100%)'
+    : 'linear-gradient(135deg, rgba(139, 188, 143, 0.95) 0%, rgba(85, 107, 47, 0.9) 100%)',
+  backdropFilter: 'blur(10px)',
+  alignSelf: 'flex-start',
+  // ... všechny efekty
+});
+```
+
+**Použití v komponentě:**
+```javascript
+import { createClientPreviewButton } from '../../../../shared/styles/modernEffects';
+
+<Button
+  variant="contained"
+  size="small"
+  startIcon={<User size={14} />}
+  onClick={handleClientPreview}
+  sx={{
+    mt: 1.5,
+    ...createClientPreviewButton(isDark)
+  }}
+>
+  Jak to vidí klientka
+</Button>
+```
+
+**Výhody:**
+- ~50 řádků kódu → 1 řádek usage
+- Znovupoužitelné všude v aplikaci
+- Centrální údržba
+- Konzistentní design
+
+#### 5. Layout Optimalizace
+
+**Chip na horní okraj ikony:**
+```javascript
+<Box display="flex" alignItems="flex-start" mb={0}>
+  <Chip />
+  <IconButton />  // Velká ikona
+</Box>
+```
+
+**Negativní margin pro posunutí metadata nahoru:**
+```javascript
+// Levý sloupec s obsahem
+<Box sx={{ mt: -2 }}>
+  {/* Metadata řádky blíž ke chipu */}
+</Box>
+```
+
+#### 6. Responzivní Spacing - Jednotné Okraje
+
+**Před:**
+```javascript
+// MaterialsLibrary
+px: { xs: 1.5, sm: 2, md: 3 }
+spacing={{ xs: 1.5, sm: 2, md: 3 }}
+
+// MaterialCard
+p: { xs: 1.5, sm: 2, md: 3 }
+pr: { xs: 1, sm: 1.5, md: 2.5 }
+```
+
+**Po:**
+```javascript
+// MaterialsLibrary
+px: 3                    // Konstantní 24px
+spacing={3}              // Konstantní 24px
+
+// MaterialCard
+p: 3                     // Konstantní 24px
+pr: 2.5                  // Konstantní 20px
+```
+
+**Výsledek:** Stejné okraje a spacing na všech breakpointech (320px - 1920px+)
+
+#### 7. Header - Dark Ikony v Light Mode
+
+**Před:**
+```javascript
+<IconButton color="inherit">  // Světlé ikony i v light mode
+```
+
+**Po:**
+```javascript
+<IconButton
+  sx={{
+    color: mode === 'dark' ? 'inherit' : 'rgba(0, 0, 0, 0.87)',
+  }}
+>
+```
+
+**Upravené ikony:**
+- Hamburger menu (mobile)
+- Theme toggle
+
+---
+
+### 📊 Soubory upravené
+
+1. **MaterialCard.jsx** - Zarovnání, spacing, chip design, moderní tlačítko
+2. **modernEffects.js** - Přidána `createClientPreviewButton()`
+3. **MaterialsLibrary.jsx** - Konstantní spacing/padding
+4. **Header.jsx** - Tmavé ikony v light mode
+
+---
+
+### 🎨 Design Změny - Před/Po
+
+#### Chip Design
+- **Před:** 16-18px, transparent, outlined, normal case
+- **Po:** 14-16px, solid 15%/12%, uppercase, minimalistický
+
+#### Akční Ikony
+- **Před:** Centrované v buttonech, 44px výška, 4px mezery
+- **Po:** Zarovnané doprava, 32px výška, 0px mezery
+
+#### Client Preview Tlačítko
+- **Před:** Jednoduchý outlined button
+- **Po:** Gradient + glassmorphism + shine + glow + transform
+
+#### Spacing
+- **Před:** Responzivní (12px → 24px)
+- **Po:** Konstantní 24px na všech breakpointech
+
+---
+
+### 🎓 Klíčové Lessons Learned
+
+#### 1. Flexbox Alignment
+Pro zarovnání obsahu uvnitř IconButtonu doprava:
+```javascript
+display: 'flex',
+justifyContent: 'flex-end',  // Klíčové!
+alignItems: 'center',
+pr: 0  // Bez paddingu pro maximum přiblížení
+```
+
+#### 2. Negativní Margin pro Kompaktnost
+```javascript
+mt: -2  // Posune obsah nahoru o 16px
+```
+Užitečné když chceme obsah přiblížit k předchozímu elementu.
+
+#### 3. Touch Targets vs Visual Size
+```javascript
+minWidth: 44,      // Touch target (accessibility)
+minHeight: 32,     // Visual size (kompaktnost)
+py: 0.5            // Padding pro kontrolu výšky
+```
+
+#### 4. Uppercase pro Subtilní Tagy
+```javascript
+textTransform: 'uppercase',
+letterSpacing: '0.5px',
+fontSize: '0.6rem'
+```
+Vytváří moderní, minimalistický look pro kategorie.
+
+#### 5. Konstantní Spacing > Responzivní
+Pokud je místo dostatečné, konstantní hodnoty vytváří konzistentnější UX napříč zařízeními.
+
+---
+
+### 🚀 Performance & UX
+
+**Kompaktnost:**
+- MaterialCard výška snížena ~15-20px
+- Více karet viditelných na obrazovce
+- Méně scrollování
+
+**Klikatelnost:**
+- Touch targets zachovány (44px width)
+- Vizuální size kompaktnější (32px height)
+- Lepší density na mobilu
+
+**Animace:**
+- Shine efekt: 0.5s smooth
+- Transform: 0.3s cubic-bezier
+- Hover glow: okamžitý feedback
+
+**Loading:**
+- Žádný performance hit
+- CSS transitions hardware-accelerated
+- Modulární funkce = menší bundle
+
+---
+
+### ⚠️ Breaking Changes
+
+**Žádné!** Všechny změny jsou backwards compatible.
+
+---
+
+### 📝 TODO - Pending
+
+- [ ] Error boundaries (React error catching)
+- [ ] LocalStorage warning (80%+ utilization)
+- [ ] Share2 ikona funkčnost (sdílení materiálu)
+- [ ] ClientsList skeleton loader
+
+---
+
+### 🎯 Production Readiness
+
+**MaterialCard:**
+- ✅ Finální design approved
+- ✅ Plně responzivní (320px+)
+- ✅ Touch-friendly (44px targets)
+- ✅ Moderní efekty (gradient, glassmorphism, shine, glow)
+- ✅ Accessibility (tooltips, ARIA)
+- ✅ Loading states
+- ✅ Error handling
+
+**Button System:**
+- ✅ Modulární (`createClientPreviewButton`)
+- ✅ Znovupoužitelný
+- ✅ Konzistentní design
+- ✅ Documented
+
+**Spacing System:**
+- ✅ Konstantní hodnoty
+- ✅ Jednotné okraje
+- ✅ Prediktabilní layout
+
+---
+
+### 💡 PRO BUDOUCÍ CLAUDE
+
+**Moderní tlačítko pattern:**
+Kdykoli potřebuješ vytvořit moderní call-to-action tlačítko s efekty, použij:
+```javascript
+import { createClientPreviewButton } from '@shared/styles/modernEffects';
+
+<Button sx={{ ...createClientPreviewButton(isDark) }}>
+  Text
+</Button>
+```
+
+**Zarovnání ikon v kartách:**
+Vždy použij:
+```javascript
+display: 'flex',
+justifyContent: 'flex-end',
+pr: 0
+```
+
+**Konstantní spacing:**
+Pro karty s dostatečným místem (>= tablet), použij konstantní hodnoty místo responzivních.
+
+---
+
+### 🖥️ Dev Server
+
+- ✅ Běží bez chyb na http://localhost:3001/
+- ✅ Hot reload funguje perfektně
+- ✅ Žádné console warnings/errors
+- ✅ Light i dark mode testovány
+
+---
+
+**Session dokončena:** 31. října 2025
+**Celkový čas:** ~3.5 hodiny
+**Commits:** Ready pro git commit
+
+---

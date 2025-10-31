@@ -40,7 +40,7 @@ import ServiceLogo from '../shared/ServiceLogo';
 import PreviewModal from '../shared/PreviewModal';
 import AddMaterialModal from './AddMaterialModal';
 import BORDER_RADIUS from '@styles/borderRadius';
-import { createBackdrop, createGlassDialog, createIconButton } from '../../../../shared/styles/modernEffects';
+import { createBackdrop, createGlassDialog, createIconButton, createClientPreviewButton } from '../../../../shared/styles/modernEffects';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
 import { QuickTooltip } from '@shared/components/AppTooltip';
 
@@ -219,23 +219,27 @@ const MaterialCard = ({
         <CardContent
           sx={{
             flexGrow: 1,
-            p: { xs: 1.5, sm: 2, md: 3 },
-            '&:last-child': { pb: { xs: 1.5, sm: 2, md: 3 } }
+            p: 3,
+            pr: 2.5,
+            '&:last-child': { pb: 3 }
           }}
         >
           {/* Horní řádek: Kategorie chip + Ikona/Logo (proklikávací) */}
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={isVeryNarrow ? 0.75 : 1}>
+          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={0}>
             <Chip
               label={getCategoryLabel(material.category)}
               size="small"
               sx={{
-                height: isVeryNarrow ? 16 : 18,
-                fontSize: isVeryNarrow ? '0.6rem' : '0.65rem',
-                fontWeight: 400,
-                backgroundColor: 'transparent',
-                border: '1px solid',
-                borderColor: isDark ? 'rgba(139, 188, 143, 0.3)' : 'rgba(139, 188, 143, 0.4)',
-                color: isDark ? 'rgba(139, 188, 143, 0.9)' : 'primary.main',
+                height: isVeryNarrow ? 14 : 16,
+                fontSize: isVeryNarrow ? '0.55rem' : '0.6rem',
+                fontWeight: 500,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                backgroundColor: isDark
+                  ? 'rgba(139, 188, 143, 0.15)'
+                  : 'rgba(139, 188, 143, 0.12)',
+                border: 'none',
+                color: isDark ? 'rgba(139, 188, 143, 0.95)' : 'rgba(85, 107, 47, 0.95)',
                 '& .MuiChip-label': {
                   px: isVeryNarrow ? 0.5 : 0.75,
                   overflow: 'hidden',
@@ -269,6 +273,7 @@ const MaterialCard = ({
                 rel="noopener noreferrer"
                 sx={{
                   p: 0,
+                  mr: -0.5,
                   '&:hover': {
                     backgroundColor: isDark ? 'rgba(139, 188, 143, 0.1)' : 'rgba(139, 188, 143, 0.08)',
                   }
@@ -296,6 +301,7 @@ const MaterialCard = ({
                 minWidth: 0,
                 width: 0,
                 overflow: 'hidden',
+                mt: -2,
               }}
             >
                 {/* Řádek 1: URL nebo fileName (vždy přítomen, i když prázdný) */}
@@ -483,30 +489,13 @@ const MaterialCard = ({
 
                 {/* Tlačítko "Jak to vidí klientka" */}
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   size="small"
-                  startIcon={<User size={16} />}
+                  startIcon={<User size={14} />}
                   onClick={handleClientPreview}
                   sx={{
                     mt: 1.5,
-                    py: 0.5,
-                    px: 1.5,
-                    fontSize: '0.75rem',
-                    borderRadius: BORDER_RADIUS.small,
-                    borderColor: isDark
-                      ? 'rgba(139, 188, 143, 0.3)'
-                      : 'rgba(139, 188, 143, 0.4)',
-                    color: isDark
-                      ? 'rgba(139, 188, 143, 0.9)'
-                      : 'primary.main',
-                    backgroundColor: 'transparent',
-                    textTransform: 'none',
-                    '&:hover': {
-                      borderColor: 'primary.main',
-                      backgroundColor: isDark
-                        ? 'rgba(139, 188, 143, 0.08)'
-                        : 'rgba(139, 188, 143, 0.08)',
-                    },
+                    ...createClientPreviewButton(isDark)
                   }}
                 >
                   Jak to vidí klientka
@@ -518,7 +507,7 @@ const MaterialCard = ({
               display="flex"
               flexDirection="column"
               alignItems="flex-end"
-              gap={isVeryNarrow ? 0.5 : 1}
+              gap={0}
               sx={{
                 flexShrink: 0,
                 height: '100%',
@@ -536,7 +525,13 @@ const MaterialCard = ({
                   sx={{
                     ...createIconButton('secondary', isDark, 'small'),
                     minWidth: 44,
-                    minHeight: 44
+                    minHeight: 32,
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    alignItems: 'center',
+                    pr: 0,
+                    mt: 1,
+                    py: 0.5
                   }}
                 >
                   <ExternalLink size={isVeryNarrow ? 20 : 18} />
@@ -551,7 +546,12 @@ const MaterialCard = ({
                   sx={{
                     ...createIconButton('secondary', isDark, 'small'),
                     minWidth: 44,
-                    minHeight: 44
+                    minHeight: 32,
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    alignItems: 'center',
+                    pr: 0,
+                    py: 0.5
                   }}
                 >
                   <Eye size={isVeryNarrow ? 20 : 18} />
@@ -566,7 +566,12 @@ const MaterialCard = ({
                   sx={{
                     ...createIconButton('secondary', isDark, 'small'),
                     minWidth: 44,
-                    minHeight: 44
+                    minHeight: 32,
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    alignItems: 'center',
+                    pr: 0,
+                    py: 0.5
                   }}
                 >
                   <Share2 size={isVeryNarrow ? 20 : 18} />
@@ -581,7 +586,12 @@ const MaterialCard = ({
                   sx={{
                     ...createIconButton('secondary', isDark, 'small'),
                     minWidth: 44,
-                    minHeight: 44
+                    minHeight: 32,
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    alignItems: 'center',
+                    pr: 0,
+                    py: 0.5
                   }}
                 >
                   <Pencil size={isVeryNarrow ? 20 : 18} />
@@ -596,9 +606,13 @@ const MaterialCard = ({
                   sx={{
                     ...createIconButton('error', isDark, 'small'),
                     mt: 'auto',
-                    pt: 2,
+                    pt: 3,
                     minWidth: 44,
-                    minHeight: 44
+                    minHeight: 44,
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    alignItems: 'center',
+                    pr: 0
                   }}
                 >
                   <Trash2 size={isVeryNarrow ? 20 : 18} />

@@ -295,6 +295,54 @@ export const createIconButton = (color = 'primary', isDark = false, size = 'smal
   };
 };
 
+// Moderní client preview tlačítko (s gradientem, glassmorphism, shine, glow)
+export const createClientPreviewButton = (isDark = false) => ({
+  py: 0.5,
+  px: 1.5,
+  fontSize: '0.7rem',
+  fontWeight: 600,
+  borderRadius: '10px',
+  color: '#fff',
+  background: isDark
+    ? 'linear-gradient(135deg, rgba(139, 188, 143, 0.9) 0%, rgba(85, 107, 47, 0.85) 100%)'
+    : 'linear-gradient(135deg, rgba(139, 188, 143, 0.95) 0%, rgba(85, 107, 47, 0.9) 100%)',
+  backdropFilter: 'blur(10px)',
+  textTransform: 'none',
+  alignSelf: 'flex-start',
+  border: '1px solid',
+  borderColor: isDark
+    ? 'rgba(139, 188, 143, 0.3)'
+    : 'rgba(255, 255, 255, 0.4)',
+  boxShadow: isDark
+    ? '0 2px 8px rgba(139, 188, 143, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)'
+    : '0 2px 8px rgba(85, 107, 47, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
+  position: 'relative',
+  overflow: 'hidden',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: '-100%',
+    width: '100%',
+    height: '100%',
+    background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+    transition: 'left 0.5s ease',
+  },
+  '&:hover': {
+    transform: 'translateY(-2px) scale(1.02)',
+    boxShadow: isDark
+      ? '0 4px 16px rgba(139, 188, 143, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+      : '0 4px 16px rgba(85, 107, 47, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
+    '&::before': {
+      left: '100%',
+    },
+  },
+  '&:active': {
+    transform: 'translateY(-1px) scale(1.01)',
+  },
+});
+
 export default {
   glassmorphism,
   glassmorphismDark,
@@ -308,7 +356,8 @@ export default {
   createTransition,
   createGlow,
   createIconButtonHover,
-  createActionButton,    // ← NOVÉ
-  createPreviewButton,   // ← NOVÉ
-  createIconButton,      // ← NOVÉ
+  createActionButton,
+  createPreviewButton,
+  createIconButton,
+  createClientPreviewButton,  // ← NOVÉ
 };

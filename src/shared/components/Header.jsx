@@ -34,11 +34,11 @@ const Header = ({ onMenuClick }) => {
         {/* Menu button (mobile) */}
         <IconButton
           edge="start"
-          color="inherit"
           onClick={onMenuClick}
           sx={{
             mr: 2,
             display: { md: 'none' },
+            color: mode === 'dark' ? 'inherit' : 'rgba(0, 0, 0, 0.87)',
           }}
         >
           <MenuIcon />
@@ -94,7 +94,13 @@ const Header = ({ onMenuClick }) => {
 
         {/* Theme toggle */}
         <Tooltip title={mode === 'dark' ? 'Světlý režim' : 'Tmavý režim'}>
-          <IconButton onClick={toggleTheme} color="inherit" sx={{ mr: 2 }}>
+          <IconButton
+            onClick={toggleTheme}
+            sx={{
+              mr: 2,
+              color: mode === 'dark' ? 'inherit' : 'rgba(0, 0, 0, 0.87)',
+            }}
+          >
             {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
           </IconButton>
         </Tooltip>
