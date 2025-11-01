@@ -11,6 +11,7 @@ import {
   WarningAmberOutlined,
   Close as CloseIcon,
 } from '@mui/icons-material';
+import BORDER_RADIUS from '@styles/borderRadius';
 import './Notification.css';
 
 const customIcons = {
@@ -24,13 +25,13 @@ export const NotificationContainer = () => {
   const { notifications, removeNotification } = useNotification();
 
   const baseAlertStyle = {
-    borderRadius: '24px',
+    borderRadius: BORDER_RADIUS.premium,  // 24px - modulární konstanta
     color: '#fff',
     backgroundColor: '#1e1e2f',
     border: '1px solid rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-    backdropFilter: 'blur(20px) saturate(180%)',
+    backdropFilter: 'blur(20px) saturate(180%)',  // Glassmorphism efekt
     overflow: 'hidden',
     minWidth: '320px',
     '& .MuiAlert-icon': { color: 'inherit' },

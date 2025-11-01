@@ -6,6 +6,7 @@ export const STORAGE_KEYS = {
   MATERIALS: 'coachpro_materials',
   PROGRAMS: 'coachpro_programs',
   CLIENTS: 'coachpro_clients',
+  SHARED_MATERIALS: 'coachpro_shared_materials',
   CURRENT_USER: 'coachpro_currentUser',
 };
 
@@ -192,6 +193,46 @@ export const getClientsByCoachId = (coachId) => {
   return allClients.filter(c => programCodes.includes(c.programCode));
 };
 
+// ===== SHARED MATERIALS =====
+export const getSharedMaterials = (coachId = null) => {
+  const sharedMaterials = loadFromStorage(STORAGE_KEYS.SHARED_MATERIALS, []);
+  return coachId ? sharedMaterials.filter(sm => sm.coachId === coachId) : sharedMaterials;
+};
+
+export const createSharedMaterial = async (material, coachId) => {
+  const { generateShareCode, generateQRCode } = await import('./generateCode.js');
+
+  const shareCode = generateShareCode();
+  const qrCode = await generateQRCode(shareCode);
+
+  const sharedMaterial = {
+    id: material.id + '-shared-' + Date.now(),
+    materialId: material.id,
+    material: material,
+    shareCode: shareCode,
+    qrCode: qrCode,
+    coachId: coachId,
+    createdAt: new Date().toISOString(),
+  };
+
+  const sharedMaterials = getSharedMaterials();
+  sharedMaterials.push(sharedMaterial);
+  saveToStorage(STORAGE_KEYS.SHARED_MATERIALS, sharedMaterials);
+
+  return sharedMaterial;
+};
+
+export const getSharedMaterialByCode = (shareCode) => {
+  const sharedMaterials = getSharedMaterials();
+  return sharedMaterials.find(sm => sm.shareCode === shareCode.toUpperCase());
+};
+
+export const deleteSharedMaterial = (id) => {
+  const sharedMaterials = getSharedMaterials();
+  const filtered = sharedMaterials.filter(sm => sm.id !== id);
+  return saveToStorage(STORAGE_KEYS.SHARED_MATERIALS, filtered);
+};
+
 // ===== CURRENT USER =====
 export const getCurrentUser = () => {
   return loadFromStorage(STORAGE_KEYS.CURRENT_USER);
@@ -300,6 +341,12 @@ export default {
   getClientById,
   getClientByProgramCode,
   getClientsByCoachId,
+
+  // Shared Materials
+  getSharedMaterials,
+  createSharedMaterial,
+  getSharedMaterialByCode,
+  deleteSharedMaterial,
 
   // Current user/client
   getCurrentUser,

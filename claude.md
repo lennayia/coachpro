@@ -4128,3 +4128,1217 @@ background: 'rgba(139, 188, 143, 0.08)'
 **Status**: ✅ Session 6 dokončena (1.11.2025, 02:30)
 **Příští priorita**: Tooltips na IconButtons (HIGH priority)
 
+---
+
+## 📋 Sprint 9 Session 11: Share Material Functionality - PHASE 1 (1.11.2025)
+
+**Datum:** 1. listopadu 2025, 15:00-17:30
+**AI**: Claude Sonnet 4.5
+**Priorita**: HIGH - Client Material Sharing
+**Status**: ✅ PHASE 1 dokončena
+
+### 🎯 Cíl Session
+
+Implementovat funkci "Sdílet s klientkou" pro jednotlivé materiály pomocí 6-místného kódu a QR kódu (podobně jako u programů).
+
+### ✅ Implementováno - PHASE 1
+
+#### 1. ShareMaterialModal.jsx (214 lines)
+**Soubor**: `src/modules/coach/components/coach/ShareMaterialModal.jsx`
+
+Modal pro zobrazení share kódu a QR kódu kouči:
+
+```javascript
+const ShareMaterialModal = ({ open, onClose, sharedMaterial }) => {
+  const { showSuccess, showError } = useNotification();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(sharedMaterial.shareCode);
+    showSuccess('Hotovo!', 'Kód zkopírován do schránky! 📋');
+  };
+
+  const handleShare = () => {
+    const text = `🌿 CoachPro Materiál
+${material.title}
+🔑 Kód: ${sharedMaterial.shareCode}`;
+
+    if (navigator.share) {
+      navigator.share({ title: material.title, text });
+    } else {
+      navigator.clipboard.writeText(text);
+    }
+  };
+```
+
+**Features**:
+- QR kód (200×200px s white border)
+- 6-znakový shareCode (velké Typography)
+- Material info (title, description, category, coach)
+- Action buttons: Copy code, Download QR, Share material
+- Glassmorphism design (`createBackdrop()`, `createGlassDialog()`)
+
+#### 2. MaterialRenderer.jsx (313 lines) - NOVÁ KOMPONENTA
+**Soubor**: `src/modules/coach/components/shared/MaterialRenderer.jsx`
+
+Sdílená komponenta pro renderování materiálů (eliminuje duplicity):
+
+```javascript
+const MaterialRenderer = ({ material, showTitle = false }) => {
+  if (!material) return null;
+
+  return (
+    <Box>
+      {showTitle && (
+        <Typography variant="h6">{material.title}</Typography>
+      )}
+
+      {/* Audio */}
+      {material.type === 'audio' && (
+        <CustomAudioPlayer src={material.content} title={material.title} />
+      )}
+
+      {/* Video, Image, PDF, Document, Text, Link */}
+      {/* ... (všechny typy materiálů) */}
+    </Box>
+  );
+};
+```
+
+**Props**:
+- `material` - Material object
+- `showTitle` - Zobrazit název (default: false)
+
+**Supported Material Types**:
+- Audio (CustomAudioPlayer)
+- Video (HTML5 video)
+- Image (img tag)
+- PDF (PDFViewer)
+- Document (DocumentViewer)
+- Text (Typography)
+- Link (YouTube, Vimeo, Spotify, SoundCloud, Instagram embeds)
+
+**Design**:
+- Všechny embeds používají `BORDER_RADIUS.dayHeader` (36px)
+- Konzistentní styling s DailyView
+- Dark/light mode support
+
+#### 3. MaterialView.jsx (155 lines) - NOVÁ STRÁNKA
+**Soubor**: `src/modules/coach/pages/MaterialView.jsx`
+
+Client-facing page pro zobrazení sdílených materiálů:
+
+```javascript
+const MaterialView = () => {
+  const { code } = useParams();  // URL param
+  const [loading, setLoading] = useState(true);
+  const [sharedMaterial, setSharedMaterial] = useState(null);
+  const [coach, setCoach] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const loadMaterial = async () => {
+      const shared = getSharedMaterialByCode(code);
+      if (!shared) {
+        setError('Materiál nebyl nalezen');
+        return;
+      }
+      const coachData = getCoachById(shared.coachId);
+      setSharedMaterial(shared);
+      setCoach(coachData);
+      setLoading(false);
+    };
+    loadMaterial();
+  }, [code]);
+
+  return (
+    <Container maxWidth="lg">
+      <MaterialRenderer material={material} />
+    </Container>
+  );
+};
+```
+
+**Route**: `/client/material/:code`
+
+**Features**:
+- Loading state s CircularProgress
+- Error handling pro invalid codes
+- Coach info display (chip s "Od: [jméno kouče]")
+- Glass card design (`presets.glassCard('normal')`)
+- Back button → `/client/entry`
+- Info Alert: "Tento materiál byl s tebou sdílen pomocí aplikace CoachPro."
+
+#### 4. storage.js - Nové funkce (lines 196-234)
+**Soubor**: `src/modules/coach/utils/storage.js`
+
+Přidány 4 nové funkce pro shared materials:
+
+```javascript
+// 1. Get shared materials
+export const getSharedMaterials = (coachId = null) => {
+  const sharedMaterials = loadFromStorage(STORAGE_KEYS.SHARED_MATERIALS, []);
+  return coachId ? sharedMaterials.filter(sm => sm.coachId === coachId) : sharedMaterials;
+};
+
+// 2. Create shared material (async)
+export const createSharedMaterial = async (material, coachId) => {
+  const { generateShareCode, generateQRCode } = await import('./generateCode.js');
+
+  const shareCode = generateShareCode();
+  const qrCode = await generateQRCode(shareCode);
+
+  const sharedMaterial = {
+    id: material.id + '-shared-' + Date.now(),
+    materialId: material.id,
+    material: material,
+    shareCode: shareCode,
+    qrCode: qrCode,
+    coachId: coachId,
+    createdAt: new Date().toISOString(),
+  };
+
+  const sharedMaterials = getSharedMaterials();
+  sharedMaterials.push(sharedMaterial);
+  saveToStorage(STORAGE_KEYS.SHARED_MATERIALS, sharedMaterials);
+
+  return sharedMaterial;
+};
+
+// 3. Get by code (case-insensitive)
+export const getSharedMaterialByCode = (shareCode) => {
+  const sharedMaterials = getSharedMaterials();
+  return sharedMaterials.find(sm => sm.shareCode === shareCode.toUpperCase());
+};
+
+// 4. Delete shared material
+export const deleteSharedMaterial = (id) => {
+  const sharedMaterials = getSharedMaterials();
+  const filtered = sharedMaterials.filter(sm => sm.id !== id);
+  return saveToStorage(STORAGE_KEYS.SHARED_MATERIALS, filtered);
+};
+```
+
+**localStorage Key**: `coachpro_shared_materials`
+
+**Shared Material Object**:
+```javascript
+{
+  id: 'mat-123-shared-1730472000000',
+  materialId: 'mat-123',
+  material: { /* full material object */ },
+  shareCode: 'ABC123',  // 6-char code
+  qrCode: 'data:image/png;base64,...',
+  coachId: 'coach-id',
+  createdAt: '2025-11-01T15:30:00Z'
+}
+```
+
+#### 5. ClientView.jsx - Nová route
+**Soubor**: `src/modules/coach/pages/ClientView.jsx`
+
+Přidána route pro material view:
+
+```javascript
+import MaterialView from './MaterialView';
+
+<Routes>
+  <Route path="/" element={<Navigate to="/client/entry" replace />} />
+  <Route path="/entry" element={<ClientEntry />} />
+  <Route path="/daily" element={<DailyView />} />
+  <Route path="/material/:code" element={<MaterialView />} />  {/* ← NEW */}
+</Routes>
+```
+
+#### 6. MaterialCard.jsx - Share2 ikona funkční
+**Soubor**: `src/modules/coach/components/coach/MaterialCard.jsx`
+
+Propojení Share2 ikony s ShareMaterialModal:
+
+```javascript
+// Imports (lines 37, 42)
+import { createSharedMaterial } from '../../utils/storage';
+import ShareMaterialModal from './ShareMaterialModal';
+
+// State (lines 59-62)
+const [shareModalOpen, setShareModalOpen] = useState(false);
+const [sharedMaterialData, setSharedMaterialData] = useState(null);
+const [isSharing, setIsSharing] = useState(false);
+
+// Handler (lines 82-102)
+const handleShareMaterial = async () => {
+  setIsSharing(true);
+  try {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      console.error('No current user found');
+      return;
+    }
+
+    const shared = await createSharedMaterial(material, currentUser.id);
+    setSharedMaterialData(shared);
+    setShareModalOpen(true);
+  } catch (error) {
+    console.error('Failed to create shared material:', error);
+  } finally {
+    setIsSharing(false);
+  }
+};
+
+// IconButton (line 592)
+<IconButton
+  onClick={handleShareMaterial}  // ← Changed from TODO
+  disabled={isSharing}
+>
+  <Share2 size={isVeryNarrow ? 20 : 18} />
+</IconButton>
+
+// Modal (lines 707-712)
+<ShareMaterialModal
+  open={shareModalOpen}
+  onClose={() => setShareModalOpen(false)}
+  sharedMaterial={sharedMaterialData}
+/>
+```
+
+### 📊 Statistiky Session 11
+
+- **Soubory vytvořeny**: 3 (ShareMaterialModal, MaterialRenderer, MaterialView)
+- **Soubory upraveny**: 3 (storage.js, ClientView.jsx, MaterialCard.jsx)
+- **Řádky kódu**: ~600+
+- **Nové funkce**: 4 (storage.js)
+- **localStorage key**: 1 (SHARED_MATERIALS)
+
+### 🔑 Klíčové Patterns
+
+**Pattern #1: ShareCode System**
+```javascript
+// Format: ABC123 (3 letters + 3 numbers)
+const shareCode = generateShareCode();
+// Letters: A-Z (excluding I, O)
+// Numbers: 0-9
+```
+
+**Pattern #2: QR Code Generation**
+```javascript
+const qrCode = await generateQRCode(shareCode);
+// Returns: data:image/png;base64,...
+// Size: 300×300px
+// Colors: dark: #556B2F, light: #FFFFFF
+```
+
+**Pattern #3: MaterialRenderer Usage**
+```javascript
+// V DailyView:
+<MaterialRenderer material={material} showTitle={false} />
+
+// V MaterialView:
+<MaterialRenderer material={material} showTitle={false} />
+// Title je zobrazen v headeru, ne v rendereru
+```
+
+**Pattern #4: Async createSharedMaterial**
+```javascript
+// Must await because of QR generation
+const shared = await createSharedMaterial(material, coachId);
+```
+
+### 🚀 FÁZE 2 - Budoucí implementace
+
+**Zaznamenáno v MASTER_TODO_V2.md:**
+
+1. **Autentizace klientek** (reuse z PaymentsPro)
+   - Login/signup flow
+   - Session management
+   - Protected client routes
+
+2. **Email systém** (SendGrid/Mailgun)
+   - Email notifikace při sdílení
+   - Reminder emails
+   - Welcome emails
+
+3. **Payment systém** (Stripe)
+   - Paid material access
+   - Subscription management
+   - Invoice generation
+
+4. **Client Dashboard**
+   - List všech sdílených materiálů
+   - Progress tracking
+   - Bookmarks/favorites
+
+5. **Analytics**
+   - Material view tracking
+   - Time spent tracking
+   - Completion rate
+
+**Odhad času FÁZE 2**: 15-20 hodin (s PaymentsPro auth reuse)
+
+### ✅ Testování
+
+**Test Flow**:
+1. ✅ Kouč klikne na Share2 ikonu v MaterialCard
+2. ✅ ShareMaterialModal se otevře se shareCode a QR kódem
+3. ✅ Copy/Download/Share funguje
+4. ✅ Klientka zadá kód na `/client/entry` (nebo naskenuje QR)
+5. ✅ Klientka vidí materiál na `/client/material/ABC123`
+6. ✅ MaterialRenderer zobrazí správný obsah (audio, PDF, video, atd.)
+7. ✅ Back button vrátí na `/client/entry`
+
+**Edge Cases**:
+- ✅ Invalid code → Error message + back button
+- ✅ Loading state → CircularProgress
+- ✅ Missing coach → Zobrazí jen materiál
+- ✅ Duplicate share → Creates new shareCode každý kliknutí
+
+### 🎓 Lessons Learned
+
+1. **Modulární komponenty eliminují duplicity**
+   - MaterialRenderer je použit v DailyView i MaterialView
+   - Změny na jednom místě → platí všude
+
+2. **Async storage funkce pro QR generation**
+   - QR knihovna vyžaduje async import
+   - `createSharedMaterial` musí být async
+
+3. **Case-insensitive shareCode matching**
+   - User zadá "abc123" → najde "ABC123"
+   - `.toUpperCase()` v `getSharedMaterialByCode`
+
+4. **Glassmorphism pattern consistency**
+   - ShareMaterialModal používá stejný pattern jako ShareProgramModal
+   - `createBackdrop()` + `createGlassDialog(isDark)`
+
+### ⚠️ DŮLEŽITÉ - Modularita
+
+**Materiál rendering je nyní centralizován:**
+
+```
+MaterialRenderer (shared)
+  ↓
+├─ DailyView → uses MaterialRenderer
+└─ MaterialView → uses MaterialRenderer
+```
+
+**Benefit:**
+- Změny v rendering logice → 1 soubor místo 2+
+- Konzistentní zobrazení všude
+- Snazší maintenance
+
+### 🔄 Následující kroky
+
+**Hotovo v Session 11:**
+- [x] ShareMaterialModal komponenta
+- [x] MaterialRenderer sdílená komponenta
+- [x] MaterialView client page
+- [x] storage.js shared materials funkce
+- [x] ClientView route
+- [x] MaterialCard Share2 propojení
+- [x] Testování flow
+- [x] Dokumentace (summary.md, claude.md, MASTER_TODO_V2.md)
+
+**Další session (Priorita 1):**
+- [ ] Error boundaries
+- [ ] LocalStorage warning při 80%+ využití
+- [ ] ClientsList stránka (seznam klientek kouče)
+- [ ] Mobile responsivita dalších stránek
+
+---
+
+**Status**: ✅ Session 11 dokončena (1.11.2025, 17:30)
+**PHASE 1**: ✅ Share Material funkční
+**PHASE 2**: 📝 Zaznamenáno v MASTER_TODO_V2.md
+**Dev Server**: ✅ Běží bez chyb na http://localhost:3000/
+**Doporučení**: Pokračovat na Error boundaries (Priorita 1) 🚀
+
+---
+
+## 📋 Session 11b: Modularity Cleanup & UI Polish (1.11.2025, večer)
+
+**Datum**: 1. listopadu 2025, 18:15 - 20:30
+**AI**: Claude Sonnet 4.5
+**Čas**: ~135 minut
+**Status**: ✅ Dokončeno
+
+### 🎯 Co bylo implementováno:
+
+#### 1. **CLAUDE.md - Povinný Modularity Workflow**
+- ✅ Přidán závazný checklist (níže v sekci MODULÁRNÍ SYSTÉMY)
+- ✅ 6bodový checklist pro všechny budoucí komponenty
+- ✅ Dokumentováno v sekci "POVINNÝ WORKFLOW - ZÁVAZEK AI ASISTENTA"
+
+#### 2. **MaterialCard.jsx - Debug Cleanup + UI Polish**
+**Soubor**: `src/modules/coach/components/coach/MaterialCard.jsx`
+
+**Změny**:
+- ✅ Odebrány debug toast notifikace (2×)
+- ✅ Odstraněna ExternalLink ikona (zbylé: Eye, Pencil, Share2, Trash2)
+- ✅ Action ikony zarovnány dolů pomocí `mt: 'auto'` na první ikoně
+- ✅ Parent Box změněn: `alignItems="flex-start"` → `"stretch"`
+
+**Debugging journey** (3× iterace):
+1. `justifyContent: 'flex-end'` → ❌ nefungoval (parent má flex-start)
+2. Spacer `<Box sx={{ flex: 1 }} />` → ❌ nefungoval (parent nemá výšku)
+3. `mt: 'auto'` na první ikoně → ✅ FUNGUJE! (flexbox feature)
+
+#### 3. **AddMaterialModal.jsx - Comprehensive Audit**
+**Soubor**: `src/modules/coach/components/coach/AddMaterialModal.jsx`
+
+**Změny**:
+- ✅ Border-radius standardizace (8 míst):
+  - BORDER_RADIUS.button (18px, deprecated) → BORDER_RADIUS.compact (16px)
+  - Přidány missing border-radius na 3× Alerty
+  - File upload boxes upgraded: compact → card (20px)
+- ✅ Odebrány zbytečné komentáře (6×): "Validace", "Success", atd.
+- ✅ File name display v edit modu: `📎 {editMaterial.fileName}`
+- ✅ URL display v edit modu:
+  - Clickable link s `target="_blank"`
+  - Service chip (YouTube, Spotify, atd.)
+  - Styled info box matching app design
+  - Instrukce: "Pokud chceš změnit odkaz, zadej nový níže"
+- ✅ Alert "Typ materiálu nelze změnit" repositioned nad heading "Nahraný soubor"
+
+### 📊 Statistiky:
+- Soubory upraveny: 3 (MaterialCard.jsx, AddMaterialModal.jsx, CLAUDE.md)
+- Řádky kódu odebrány: ~50 (debug logs, comments, ExternalLink icon)
+- Nové features: File name + URL display v edit modu
+- Border-radius fixes: 8 míst
+- UI improvements: Action ikony alignment, Alert positioning
+
+### 🎓 Lessons Learned:
+1. **Flexbox alignment**: `justifyContent: 'flex-end'` nefunguje bez `alignItems: 'stretch'`
+2. **Push to bottom**: `mt: 'auto'` je nejspolehlivější řešení
+3. **Border-radius deprecation**: BORDER_RADIUS.button (18px) deprecated → use compact (16px)
+4. **Modularity enforcement**: Checklist musí být explicitně vynucen v CLAUDE.md
+
+### ✅ Production Readiness:
+- [x] Žádné debug logy
+- [x] Konzistentní border-radius napříč komponentami
+- [x] Edit mode zobrazuje file name i URL
+- [x] Action ikony správně zarovnány
+- [x] Čistý, produkční kód
+
+---
+
+**Status**: ✅ Session 11b dokončena (1.11.2025, 20:30)
+**Dev Server**: ✅ Běží bez chyb
+**Doporučení**: Implementovat plnou strukturu pro třídění (Coaching Area + Topic + Style) 🚀
+
+---
+
+# 🔧 MODULÁRNÍ SYSTÉMY - KRITICKÁ PRAVIDLA
+
+> **⚠️ VŽDY KONTROLOVAT PŘI TVORBĚ NEBO ÚPRAVĚ KOMPONENT!**
+
+Tento projekt používá 6 modulárních systémů, které MUSÍ být konzistentně aplikovány všude. Při tvorbě nebo úpravě jakékoliv komponenty VŽDY zkontroluj a použij všechny relevantní systémy.
+
+**Gold Standard Reference**: `MaterialCard.jsx` - plně implementuje všech 6 systémů
+
+---
+
+## 🚨 POVINNÝ WORKFLOW - ZÁVAZEK AI ASISTENTA
+
+**DŮLEŽITÉ**: Když dostanu task "vytvoř komponentu X" nebo "uprav komponentu Y", **MUSÍM** na začátku odpovědi napsat:
+
+```
+🔍 MODULÁRNÍ CHECKLIST:
+✅ 1. BORDER_RADIUS - import BORDER_RADIUS from '@styles/borderRadius'
+✅ 2. Glassmorphism - createBackdrop(), createGlassDialog() nebo useGlassCard()
+✅ 3. QuickTooltip - všechny IconButtons wrapped
+✅ 4. Toast notifications - useNotification() hook
+✅ 5. Touch handlers - swipe, long-press, touch detection
+✅ 6. Path aliases - @styles, @shared, ne relativní cesty
+```
+
+**Pokud checklist VYNECHÁM:**
+- ❌ Uživatelka mě okamžitě zastaví
+- ❌ Musím se vrátit a projít checklist
+- ❌ Teprve pak můžu pokračovat v implementaci
+
+**Tento závazek platí od 1.11.2025, 18:15 - session po dokumentaci modulárních systémů.**
+
+---
+
+## 1️⃣ BORDER_RADIUS System
+
+**Proč**: Konzistentní zakulacení prvků napříč celou aplikací, proporcionální k velikosti prvků.
+
+### Import:
+```javascript
+import BORDER_RADIUS from '@styles/borderRadius';
+```
+
+### Dostupné konstanty:
+```javascript
+BORDER_RADIUS.minimal    // 8px  - Progress bary
+BORDER_RADIUS.small      // 12px - Menu items, malé prvky
+BORDER_RADIUS.compact    // 16px - Kontejnery, input fieldy, buttons
+BORDER_RADIUS.button     // 18px - Tlačítka (deprecated, use compact)
+BORDER_RADIUS.card       // 20px - Karty, panely (default)
+BORDER_RADIUS.dialog     // 20px - Dialogy, modaly
+BORDER_RADIUS.premium    // 24px - Velké prvky (notifications)
+BORDER_RADIUS.dayHeader  // 36px - Day header, embeds
+```
+
+### ✅ SPRÁVNĚ:
+```javascript
+<Card sx={{ borderRadius: BORDER_RADIUS.card }}>
+<Dialog PaperProps={{ sx: { borderRadius: BORDER_RADIUS.dialog } }}>
+<Button sx={{ borderRadius: BORDER_RADIUS.compact }}>
+<Alert sx={{ borderRadius: BORDER_RADIUS.compact }}>
+```
+
+### ❌ ŠPATNĚ:
+```javascript
+<Card sx={{ borderRadius: 2 }}>           // MUI spacing unit
+<Card sx={{ borderRadius: '20px' }}>      // Hardcoded value
+<Card sx={{ borderRadius: '1.25rem' }}>  // Hardcoded value
+```
+
+### Kontrolní Checklist:
+- [ ] Všechny Cards používají BORDER_RADIUS.card
+- [ ] Všechny Dialogs/Modals používají BORDER_RADIUS.dialog
+- [ ] Všechny Buttons používají BORDER_RADIUS.compact
+- [ ] Všechny Alerts používají BORDER_RADIUS.compact
+- [ ] Žádné hardcoded hodnoty (čísla nebo px/rem)
+
+---
+
+## 2️⃣ Glassmorphism Functions
+
+**Proč**: Jednotný glass efekt na dialozích a modalech, snadno modifikovatelný na jednom místě.
+
+### Import:
+```javascript
+import { createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';
+import BORDER_RADIUS from '@styles/borderRadius';
+import { useTheme } from '@mui/material';
+```
+
+### Dostupné funkce:
+
+#### `createBackdrop(blurAmount = 4)`
+Backdrop blur efekt pro Dialog/Modal:
+```javascript
+<Dialog
+  BackdropProps={{
+    sx: createBackdrop()  // Default 4px blur
+  }}
+>
+```
+
+#### `createGlassDialog(isDark = false, borderRadius = '20px')`
+Glassmorphism efekt pro Dialog/Drawer PaperProps:
+```javascript
+const theme = useTheme();
+const isDark = theme.palette.mode === 'dark';
+
+<Dialog
+  PaperProps={{
+    sx: createGlassDialog(isDark, BORDER_RADIUS.dialog)
+  }}
+>
+```
+
+#### `createGlow(isSelected = false, color = 'rgba(139, 188, 143, 0.6)')`
+Glow efekt (např. při hoveru nebo select):
+```javascript
+<Card sx={{ ...createGlow(isSelected) }}>
+```
+
+### ✅ SPRÁVNĚ:
+```javascript
+// MaterialCard Delete Dialog
+<Dialog
+  open={deleteDialogOpen}
+  onClose={() => setDeleteDialogOpen(false)}
+  BackdropProps={{ sx: createBackdrop() }}
+  PaperProps={{ sx: createGlassDialog(isDark, BORDER_RADIUS.dialog) }}
+>
+```
+
+### ❌ ŠPATNĚ:
+```javascript
+// Hardcoded glassmorphism
+<Dialog
+  BackdropProps={{
+    sx: {
+      backdropFilter: 'blur(4px)',
+      WebkitBackdropFilter: 'blur(4px)',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    }
+  }}
+  PaperProps={{
+    sx: {
+      backdropFilter: 'blur(20px) saturate(180%)',
+      backgroundColor: isDark ? 'rgba(26, 26, 26, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+      // ... 15 řádků hardcoded stylů
+    }
+  }}
+>
+```
+
+### Kontrolní Checklist:
+- [ ] Všechny Dialogs používají `createBackdrop()` v BackdropProps
+- [ ] Všechny Dialogs používají `createGlassDialog(isDark, BORDER_RADIUS.dialog)` v PaperProps
+- [ ] `isDark` je získán pomocí `useTheme()` hook
+- [ ] Žádné hardcoded glassmorphism styly
+
+---
+
+## 3️⃣ useGlassCard Hook
+
+**Proč**: Jednotný glass efekt na kartách, modifikovatelný centrálně.
+
+### Import:
+```javascript
+import { useGlassCard } from '@shared/hooks/useModernEffects';
+```
+
+### Dostupné varianty:
+```javascript
+const glassCardStyles = useGlassCard('subtle');   // Jemný efekt
+const glassCardStyles = useGlassCard('normal');   // Standardní efekt
+const glassCardStyles = useGlassCard('strong');   // Výrazný efekt
+```
+
+### ✅ SPRÁVNĚ:
+```javascript
+const ClientEntry = () => {
+  const glassCardStyles = useGlassCard('subtle');
+
+  return (
+    <Card sx={{
+      ...glassCardStyles,
+      width: '100%',
+      borderRadius: '32px',
+    }}>
+      {/* content */}
+    </Card>
+  );
+};
+```
+
+### ❌ ŠPATNĚ:
+```javascript
+<Card sx={{
+  backdropFilter: 'blur(40px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+  background: 'rgba(26, 26, 26, 0.5)',
+  // ... 20 řádků hardcoded
+}}>
+```
+
+### Kontrolní Checklist:
+- [ ] Karty na stránkách používají `useGlassCard()` hook
+- [ ] POZOR: Glassmorphism nefunguje na kartách přímo na stránce (bez backdrop)
+- [ ] Pro karty na stránce použij buď standardní MUI Card nebo `useGlassCard()`
+- [ ] Pro dialogy VŽDY použij `createGlassDialog()` místo `useGlassCard()`
+
+---
+
+## 4️⃣ QuickTooltip System
+
+**Proč**: Konzistentní tooltips pro lepší UX a accessibility, krátký delay (200ms).
+
+### Import:
+```javascript
+import QuickTooltip from '@shared/components/AppTooltip';
+```
+
+### ✅ SPRÁVNĚ:
+```javascript
+// Všechny IconButtons musí být wrapped v QuickTooltip
+<QuickTooltip title="Zobrazit detail">
+  <IconButton onClick={handlePreview}>
+    <Eye size={18} />
+  </IconButton>
+</QuickTooltip>
+
+<QuickTooltip title="Upravit">
+  <IconButton onClick={handleEdit}>
+    <Pencil size={18} />
+  </IconButton>
+</QuickTooltip>
+
+<QuickTooltip title="Smazat">
+  <IconButton onClick={handleDelete}>
+    <Trash2 size={18} />
+  </IconButton>
+</QuickTooltip>
+
+<QuickTooltip title="Sdílet s klientkou">
+  <IconButton onClick={handleShare}>
+    <Share2 size={18} />
+  </IconButton>
+</QuickTooltip>
+```
+
+### ❌ ŠPATNĚ:
+```javascript
+// IconButton bez tooltip
+<IconButton onClick={handlePreview}>
+  <Eye size={18} />
+</IconButton>
+
+// MUI Tooltip místo QuickTooltip
+<Tooltip title="...">
+  <IconButton>...</IconButton>
+</Tooltip>
+```
+
+### Kontrolní Checklist:
+- [ ] Všechny IconButtons jsou wrapped v QuickTooltip
+- [ ] Tooltips mají výstižný popis akce (verb: "Zobrazit", "Upravit", "Smazat")
+- [ ] NIKDY nepoužívat MUI Tooltip přímo (default delay je 500ms)
+
+---
+
+## 5️⃣ Toast Notification System
+
+**Proč**: Konzistentní feedback pro uživatele s audio efektem a glassmorphism designem.
+
+### Import:
+```javascript
+import { useNotification } from '@shared/context/NotificationContext';
+```
+
+### Hook Usage:
+```javascript
+const { showSuccess, showError, showInfo, showWarning } = useNotification();
+```
+
+### Dostupné metody:
+```javascript
+showSuccess(title, message)   // Zelená, notification.mp3
+showError(title, message)     // Červená, notification.mp3
+showInfo(title, message)      // Modrá, notification.mp3
+showWarning(title, message)   // Oranžová, notification.mp3
+```
+
+### ✅ SPRÁVNĚ:
+```javascript
+// Success toast při úspěšné akci
+const handleDelete = async () => {
+  try {
+    await deleteMaterial(material.id);
+    showSuccess('Smazáno!', `Materiál "${material.title}" byl úspěšně smazán`);
+  } catch (error) {
+    showError('Chyba', 'Nepodařilo se smazat materiál. Zkus to prosím znovu.');
+  }
+};
+
+// Info toast při dlouhé akci
+showInfo('Nahrávám...', 'Materiál se nahrává do Supabase Storage');
+
+// Warning toast při validaci
+if (!title.trim()) {
+  showWarning('Upozornění', 'Vyplň prosím název materiálu');
+  return;
+}
+```
+
+### ❌ ŠPATNĚ:
+```javascript
+// MUI Snackbar místo toast
+const [snackbarOpen, setSnackbarOpen] = useState(false);
+<Snackbar open={snackbarOpen} message="..." />
+
+// Console.log místo toast
+console.log('Material deleted successfully');
+
+// Alert() místo toast
+alert('Materiál byl smazán');
+```
+
+### Dual Feedback Pattern:
+Pro validaci používej **DUAL FEEDBACK** - inline Alert + toast:
+
+```javascript
+// 1. Inline Alert (vizuální indikátor v kontextu)
+const errorMsg = 'Kód nebyl nalezen';
+setError(errorMsg);  // zobrazí Alert komponentu
+
+// 2. Toast notifikace (globální + zvuk)
+showError('Neplatný kód', errorMsg);
+```
+
+### Kontrolní Checklist:
+- [ ] Všechny success akce mají toast notifikaci (delete, share, save, atd.)
+- [ ] Všechny error stavy mají toast notifikaci
+- [ ] Validace používá dual feedback (Alert + toast)
+- [ ] Toast messages jsou stručné a jasné
+- [ ] NIKDY nepoužívat MUI Snackbar nebo alert()
+
+---
+
+## 6️⃣ Touch Handlers System
+
+**Proč**: Optimalizace pro dotykové obrazovky s natural gestures (swipe, long-press).
+
+### Import:
+```javascript
+import { isTouchDevice, createSwipeHandlers, createLongPressHandler } from '@shared/utils/touchHandlers';
+```
+
+### Dostupné funkce:
+
+#### `isTouchDevice()`
+Detekce dotykového zařízení:
+```javascript
+const isTouch = isTouchDevice();
+
+// Použití v conditional styling
+sx={{
+  '&:hover': isTouch ? {} : {
+    transform: 'translateY(-4px)',
+  }
+}}
+```
+
+#### `createSwipeHandlers(config)`
+Swipe gestures (left/right):
+```javascript
+const swipeHandlers = createSwipeHandlers({
+  onSwipeLeft: () => {
+    if (isTouch) handleDelete();
+  },
+  onSwipeRight: () => {
+    if (isTouch) handleShare();
+  },
+  threshold: 80,  // Min distance in px
+});
+
+// Aplikace na komponentu
+<Card {...swipeHandlers}>
+```
+
+#### `createLongPressHandler(config)`
+Long-press gesture:
+```javascript
+const longPressHandlers = createLongPressHandler({
+  onLongPress: () => {
+    if (isTouch) handlePreview();
+  },
+  delay: 600,  // ms
+});
+
+// Aplikace na komponentu
+<Card {...longPressHandlers}>
+```
+
+### ✅ SPRÁVNĚ - MaterialCard Pattern:
+```javascript
+const MaterialCard = ({ material }) => {
+  const isTouch = isTouchDevice();
+  const { showSuccess } = useNotification();
+
+  // Swipe handlers
+  const swipeHandlers = createSwipeHandlers({
+    onSwipeLeft: () => {
+      if (isTouch) {
+        handleDeleteClick();
+        showSuccess('Gesture', 'Swipe left detekován');
+      }
+    },
+    onSwipeRight: () => {
+      if (isTouch) handleShareMaterial();
+    },
+    threshold: 80,
+  });
+
+  // Long press handler
+  const longPressHandlers = createLongPressHandler({
+    onLongPress: () => {
+      if (isTouch) {
+        setPreviewOpen(true);
+        showSuccess('Gesture', 'Long press detekován');
+      }
+    },
+    delay: 600,
+  });
+
+  return (
+    <Card
+      {...swipeHandlers}
+      {...longPressHandlers}
+      sx={{
+        // Disable hover na touch
+        '&:hover': isTouch ? {} : {
+          transform: 'translateY(-4px)',
+          boxShadow: '...',
+        }
+      }}
+    >
+      {/* content */}
+    </Card>
+  );
+};
+```
+
+### ❌ ŠPATNĚ:
+```javascript
+// Žádné touch handlers
+<Card onClick={handleClick}>
+
+// Hover efekty i na touch
+sx={{
+  '&:hover': {
+    transform: 'translateY(-4px)',  // Nefunguje dobře na touch
+  }
+}}
+
+// Hardcoded touch detection
+if (window.ontouchstart !== undefined) { ... }
+```
+
+### Kontrolní Checklist:
+- [ ] Karty s akcemi mají swipe gestures (left = delete, right = share)
+- [ ] Karty s preview mají long-press handler
+- [ ] Hover efekty jsou disabled na touch zařízeních (`isTouch ? {} : { ... }`)
+- [ ] Toast notifikace při detekci gesture (optional, pro debugging)
+- [ ] Threshold swipe je 80px+ (prevence náhodného triggeru)
+- [ ] Long-press delay je 600ms (dostatečně dlouhý)
+
+---
+
+## 📋 KONTROLNÍ CHECKLIST PRO KAŽDOU KOMPONENTU
+
+Při tvorbě nebo úpravě komponenty VŽDY projdi tento checklist:
+
+### ✅ 1. BORDER_RADIUS
+- [ ] Import: `import BORDER_RADIUS from '@styles/borderRadius';`
+- [ ] Všechny prvky používají konstanty (card, dialog, compact, atd.)
+- [ ] Žádné hardcoded hodnoty
+
+### ✅ 2. GLASSMORPHISM
+- [ ] Import: `import { createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';`
+- [ ] Dialogy používají `createBackdrop()` + `createGlassDialog(isDark, BORDER_RADIUS.dialog)`
+- [ ] `isDark` získán pomocí `useTheme()` hook
+- [ ] Pro karty: `useGlassCard()` hook
+
+### ✅ 3. QUICK TOOLTIP
+- [ ] Import: `import QuickTooltip from '@shared/components/AppTooltip';`
+- [ ] Všechny IconButtons wrapped v `<QuickTooltip title="...">`
+- [ ] Výstižné názvy akcí (verb)
+
+### ✅ 4. TOAST NOTIFICATIONS
+- [ ] Import: `import { useNotification } from '@shared/context/NotificationContext';`
+- [ ] Hook: `const { showSuccess, showError } = useNotification();`
+- [ ] Success toasts po úspěšných akcích
+- [ ] Error toasts při chybách
+- [ ] Validace s dual feedback (Alert + toast)
+
+### ✅ 5. TOUCH HANDLERS
+- [ ] Import: `import { isTouchDevice, createSwipeHandlers, createLongPressHandler } from '@shared/utils/touchHandlers';`
+- [ ] `const isTouch = isTouchDevice();`
+- [ ] Swipe gestures na kartách s akcemi
+- [ ] Long-press na kartách s preview
+- [ ] Hover disabled na touch: `'&:hover': isTouch ? {} : { ... }`
+
+### ✅ 6. PATH ALIASES
+- [ ] `@styles/borderRadius` - BORDER_RADIUS
+- [ ] `@shared/hooks/useModernEffects` - useGlassCard
+- [ ] `@shared/components/AppTooltip` - QuickTooltip
+- [ ] `@shared/context/NotificationContext` - useNotification
+- [ ] `@shared/utils/touchHandlers` - touch handlers
+- [ ] `../../../../shared/styles/modernEffects` - glassmorphism functions
+
+---
+
+## 🏆 GOLD STANDARD: MaterialCard.jsx
+
+**Soubor**: `/src/modules/coach/components/coach/MaterialCard.jsx`
+
+MaterialCard.jsx plně implementuje všech 6 modulárních systémů a slouží jako referenční příklad:
+
+### 1. BORDER_RADIUS ✅
+```javascript
+import BORDER_RADIUS from '@styles/borderRadius';
+
+// Card
+borderRadius: BORDER_RADIUS.card
+
+// Delete Dialog
+PaperProps={{ sx: { ...createGlassDialog(isDark, BORDER_RADIUS.dialog) } }}
+```
+
+### 2. GLASSMORPHISM ✅
+```javascript
+import { createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';
+
+// Delete Dialog
+<Dialog
+  BackdropProps={{ sx: createBackdrop() }}
+  PaperProps={{ sx: createGlassDialog(isDark, BORDER_RADIUS.dialog) }}
+>
+```
+
+### 3. QUICK TOOLTIP ✅
+```javascript
+import QuickTooltip from '@shared/components/AppTooltip';
+
+<QuickTooltip title="Zobrazit detail">
+  <IconButton onClick={handlePreview}>
+    <Eye size={18} />
+  </IconButton>
+</QuickTooltip>
+```
+
+### 4. TOAST NOTIFICATIONS ✅
+```javascript
+import { useNotification } from '@shared/context/NotificationContext';
+
+const { showSuccess, showError } = useNotification();
+
+// Delete success
+showSuccess('Smazáno!', `Materiál "${material.title}" byl úspěšně smazán`);
+
+// Delete error
+showError('Chyba', 'Nepodařilo se smazat materiál. Zkus to prosím znovu.');
+
+// Share success
+showSuccess('Připraveno!', `Materiál "${material.title}" je připraven ke sdílení 🎉`);
+
+// Gesture detected
+showSuccess('Gesture', 'Swipe left detekován - otevírám dialog pro smazání');
+```
+
+### 5. TOUCH HANDLERS ✅
+```javascript
+import { isTouchDevice, createSwipeHandlers, createLongPressHandler } from '@shared/utils/touchHandlers';
+
+const isTouch = isTouchDevice();
+
+const swipeHandlers = createSwipeHandlers({
+  onSwipeLeft: () => {
+    if (isTouch) handleDeleteClick();
+  },
+  onSwipeRight: () => {
+    if (isTouch) handleShareMaterial();
+  },
+  threshold: 80,
+});
+
+const longPressHandlers = createLongPressHandler({
+  onLongPress: () => {
+    if (isTouch) setPreviewOpen(true);
+  },
+  delay: 600,
+});
+
+<Card
+  {...swipeHandlers}
+  {...longPressHandlers}
+  sx={{
+    '&:hover': isTouch ? {} : { transform: 'translateY(-4px)' }
+  }}
+>
+```
+
+### 6. useGlassCard ✅
+MaterialCard používá vlastní glass efekt, ale jiné komponenty (např. ClientEntry) používají:
+```javascript
+import { useGlassCard } from '@shared/hooks/useModernEffects';
+const glassCardStyles = useGlassCard('subtle');
+```
+
+---
+
+## 🚨 CO NIKDY NEDĚLAT
+
+### ❌ Hardcoded Border-Radius
+```javascript
+// NIKDY!
+borderRadius: 2
+borderRadius: '20px'
+borderRadius: '1.25rem'
+```
+
+### ❌ Hardcoded Glassmorphism
+```javascript
+// NIKDY!
+sx={{
+  backdropFilter: 'blur(20px) saturate(180%)',
+  backgroundColor: 'rgba(26, 26, 26, 0.85)',
+  // ... 20 řádků
+}}
+```
+
+### ❌ IconButton bez Tooltip
+```javascript
+// NIKDY!
+<IconButton onClick={handleAction}>
+  <SomeIcon />
+</IconButton>
+```
+
+### ❌ MUI Snackbar nebo alert()
+```javascript
+// NIKDY!
+<Snackbar open={open} message="..." />
+alert('Success!');
+console.log('Success!');
+```
+
+### ❌ Hover bez touch check
+```javascript
+// NIKDY!
+sx={{
+  '&:hover': {
+    transform: 'translateY(-4px)',  // Bude fungovat i na touch!
+  }
+}}
+```
+
+### ❌ Spread operator s backdrop-filter
+```javascript
+// NIKDY!
+<Card sx={{ ...glassStyles }} />  // Nefunguje s backdrop-filter!
+
+// Správně:
+<Card sx={glassStyles} />
+```
+
+---
+
+## 💡 PRO FUTURE AI ASSISTANTS
+
+Když vytváříš nebo upravuješ komponentu:
+
+1. **VŽDY začni checklistem výše** - projdi všech 6 systémů
+2. **Podívej se na MaterialCard.jsx** - jak to implementuje?
+3. **Používej path aliases** - `@styles`, `@shared`, ne relativní cesty
+4. **Testuj v obou režimech** - light i dark mode
+5. **Testuj na touch zařízení** - swipe gestures, long-press
+6. **Dokumentuj změny** - summary.md, CLAUDE.md, MASTER_TODO_V2.md
+
+### Rychlý Test Checklist:
+```bash
+# 1. Importy správné?
+grep "BORDER_RADIUS" MaterialCard.jsx
+grep "createBackdrop" MaterialCard.jsx
+grep "QuickTooltip" MaterialCard.jsx
+grep "useNotification" MaterialCard.jsx
+grep "isTouchDevice" MaterialCard.jsx
+
+# 2. Žádné hardcoded hodnoty?
+grep "borderRadius: [0-9]" MaterialCard.jsx  # Mělo by být prázdné!
+grep "borderRadius: '[0-9]" MaterialCard.jsx  # Mělo by být prázdné!
+
+# 3. Všechny IconButtons mají tooltip?
+grep -A 2 "IconButton" MaterialCard.jsx | grep "QuickTooltip"
+```
+
+---
+
+**Poslední update**: 1. listopadu 2025, 18:00
+**Autor**: Lenka Roubalová + Claude Sonnet 4.5
+**Status**: ✅ Všech 6 modulárních systémů zdokumentováno
+**Gold Standard**: MaterialCard.jsx plně implementuje všech 6 systémů
+
+---
+
+> 💡 **REMEMBER**: Modularita = konzistence = snadná údržba = profesionální produkt!
+

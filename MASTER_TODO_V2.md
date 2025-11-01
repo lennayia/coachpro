@@ -4888,3 +4888,633 @@ CSS override na `.MuiAlert-message` je nejrychlejší způsob:
 **Připraveno na:** IconButton Tooltips (Session 11)  
 **Doporučení:** Pokračovat na HIGH priority úkoly (Tooltips) 🚀
 
+-------------
+
+
+---
+
+## 📋 SESSION 11: Share Material Functionality - PHASE 1 (1.11.2025)
+
+**Datum:** 1. listopadu 2025, 15:00-17:30
+**AI**: Claude Sonnet 4.5
+**Priorita**: HIGH - Client Material Sharing
+**Status**: ✅ PHASE 1 DOKONČENA
+
+### 🎯 Cíl
+
+Implementovat funkci "Sdílet s klientkou" pro jednotlivé materiály pomocí 6-místného kódu a QR kódu (podobně jako u programů).
+
+### ✅ Implementováno - PHASE 1
+
+#### Nové soubory (3):
+
+**1. ShareMaterialModal.jsx** (214 lines)
+- **Soubor**: `src/modules/coach/components/coach/ShareMaterialModal.jsx`
+- Modal pro zobrazení share kódu a QR kódu
+- Features:
+  - QR kód (200×200px s white border)
+  - 6-znakový shareCode (velké Typography)
+  - Material info (title, description, category, coach)
+  - Action buttons: Copy code, Download QR, Share material
+  - Glassmorphism design (`createBackdrop()`, `createGlassDialog()`)
+
+**2. MaterialRenderer.jsx** (313 lines) - KRITICKÝ pro modularitu!
+- **Soubor**: `src/modules/coach/components/shared/MaterialRenderer.jsx`
+- Sdílená komponenta pro renderování materiálů (eliminuje duplicity)
+- Props: `material`, `showTitle` (default: false)
+- Supported Material Types:
+  - Audio (CustomAudioPlayer)
+  - Video (HTML5 video)
+  - Image (img tag)
+  - PDF (PDFViewer)
+  - Document (DocumentViewer)
+  - Text (Typography)
+  - Link (YouTube, Vimeo, Spotify, SoundCloud, Instagram embeds)
+- Design:
+  - Všechny embeds používají `BORDER_RADIUS.dayHeader` (36px)
+  - Konzistentní styling s DailyView
+  - Dark/light mode support
+
+**3. MaterialView.jsx** (155 lines)
+- **Soubor**: `src/modules/coach/pages/MaterialView.jsx`
+- Client-facing page pro zobrazení sdílených materiálů
+- Route: `/client/material/:code`
+- Features:
+  - Loading state s CircularProgress
+  - Error handling pro invalid codes
+  - Coach info display (chip s "Od: [jméno kouče]")
+  - Glass card design (`presets.glassCard('normal')`)
+  - Back button → `/client/entry`
+  - Info Alert: "Tento materiál byl s tebou sdílen pomocí aplikace CoachPro."
+
+#### Upravené soubory (3):
+
+**4. storage.js** - Nové funkce (lines 196-234)
+- **Soubor**: `src/modules/coach/utils/storage.js`
+- Přidán localStorage key: `SHARED_MATERIALS: 'coachpro_shared_materials'`
+- 4 nové funkce:
+  - `getSharedMaterials(coachId)` - fetch shared materials
+  - `createSharedMaterial(material, coachId)` - async, generates shareCode + QR
+  - `getSharedMaterialByCode(shareCode)` - find by code (case-insensitive)
+  - `deleteSharedMaterial(id)` - remove shared material
+
+**Shared Material Object**:
+```javascript
+{
+  id: 'mat-123-shared-1730472000000',
+  materialId: 'mat-123',
+  material: { /* full material object */ },
+  shareCode: 'ABC123',  // 6-char code
+  qrCode: 'data:image/png;base64,...',
+  coachId: 'coach-id',
+  createdAt: '2025-11-01T15:30:00Z'
+}
+```
+
+**5. ClientView.jsx** - Nová route
+- **Soubor**: `src/modules/coach/pages/ClientView.jsx`
+- Přidána route: `<Route path="/material/:code" element={<MaterialView />} />`
+- Import: `import MaterialView from './MaterialView';`
+
+**6. MaterialCard.jsx** - Share2 ikona funkční
+- **Soubor**: `src/modules/coach/components/coach/MaterialCard.jsx`
+- Imports: `createSharedMaterial`, `ShareMaterialModal`
+- State: `shareModalOpen`, `sharedMaterialData`, `isSharing`
+- Handler: `handleShareMaterial` (async)
+- IconButton: `onClick={handleShareMaterial}`, `disabled={isSharing}`
+- Modal component added (lines 707-712)
+
+### 📊 Statistiky Session 11
+
+- **Soubory vytvořeny**: 3
+- **Soubory upraveny**: 3
+- **Řádky kódu**: ~600+
+- **Nové funkce**: 4 (storage.js)
+- **localStorage key**: 1 (SHARED_MATERIALS)
+
+### 🔑 Klíčové Patterns
+
+**Pattern #1: ShareCode System**
+```javascript
+// Format: ABC123 (3 letters + 3 numbers)
+const shareCode = generateShareCode();
+// Letters: A-Z (excluding I, O)
+// Numbers: 0-9
+```
+
+**Pattern #2: QR Code Generation**
+```javascript
+const qrCode = await generateQRCode(shareCode);
+// Returns: data:image/png;base64,...
+// Size: 300×300px, margin: 2
+// Colors: dark: #556B2F, light: #FFFFFF
+```
+
+**Pattern #3: MaterialRenderer Usage**
+```javascript
+// V DailyView:
+<MaterialRenderer material={material} showTitle={false} />
+
+// V MaterialView:
+<MaterialRenderer material={material} showTitle={false} />
+// Title je zobrazen v headeru, ne v rendereru
+```
+
+**Pattern #4: Async createSharedMaterial**
+```javascript
+// Must await because of QR generation
+const shared = await createSharedMaterial(material, coachId);
+```
+
+### ⚠️ DŮLEŽITÉ - Modularita
+
+**Materiál rendering je nyní centralizován:**
+
+```
+MaterialRenderer (shared)
+  ↓
+├─ DailyView → uses MaterialRenderer
+└─ MaterialView → uses MaterialRenderer
+```
+
+**Benefit:**
+- Změny v rendering logice → 1 soubor místo 2+
+- Konzistentní zobrazení všude
+- Snazší maintenance
+
+### ✅ Testování
+
+**Test Flow**:
+1. ✅ Kouč klikne na Share2 ikonu v MaterialCard
+2. ✅ ShareMaterialModal se otevře se shareCode a QR kódem
+3. ✅ Copy/Download/Share funguje
+4. ✅ Klientka zadá kód na `/client/entry` (nebo naskenuje QR)
+5. ✅ Klientka vidí materiál na `/client/material/ABC123`
+6. ✅ MaterialRenderer zobrazí správný obsah (audio, PDF, video, atd.)
+7. ✅ Back button vrátí na `/client/entry`
+
+**Edge Cases**:
+- ✅ Invalid code → Error message + back button
+- ✅ Loading state → CircularProgress
+- ✅ Missing coach → Zobrazí jen materiál
+- ✅ Duplicate share → Creates new shareCode každý kliknutí
+
+### 🎓 Lessons Learned
+
+1. **Modulární komponenty eliminují duplicity**
+   - MaterialRenderer je použit v DailyView i MaterialView
+   - Změny na jednom místě → platí všude
+
+2. **Async storage funkce pro QR generation**
+   - QR knihovna vyžaduje async import
+   - `createSharedMaterial` musí být async
+
+3. **Case-insensitive shareCode matching**
+   - User zadá "abc123" → najde "ABC123"
+   - `.toUpperCase()` v `getSharedMaterialByCode`
+
+4. **Glassmorphism pattern consistency**
+   - ShareMaterialModal používá stejný pattern jako ShareProgramModal
+   - `createBackdrop()` + `createGlassDialog(isDark)`
+
+---
+
+## 🚀 FÁZE 2: Share Material - Full System (Budoucí implementace)
+
+**Status**: 📝 Naplánováno
+**Odhad času**: 15-20 hodin (s PaymentsPro auth reuse)
+**Priorita**: Priority 2 (po MVP core features)
+
+### 🎯 Cíle FÁZE 2
+
+Rozšířit jednoduché sdílení materiálů o plnohodnotný systém s autentizací, email notifikacemi, platbami a analytics.
+
+### 📋 Komponenty FÁZE 2
+
+#### 1. **Autentizace klientek** (5-7 hodin)
+- [ ] Reuse PaymentsPro authentication systém
+- [ ] Client login/signup flow
+  - Email + password authentication
+  - Social login (Google, Apple) - optional
+  - Email verification
+- [ ] Session management
+  - JWT tokens
+  - Refresh token flow
+  - Protected routes
+- [ ] Client profile stránka
+  - Personal info
+  - Notification preferences
+  - Subscription status
+
+**Tech Stack**:
+- Auth: Supabase Auth (již máme Supabase)
+- Session: JWT tokens in httpOnly cookies
+- Frontend: React Router protected routes
+
+**Files to create**:
+- `src/modules/client/pages/ClientLogin.jsx`
+- `src/modules/client/pages/ClientSignup.jsx`
+- `src/modules/client/pages/ClientProfile.jsx`
+- `src/modules/client/context/ClientAuthContext.jsx`
+- `src/modules/client/utils/clientAuth.js`
+
+#### 2. **Email systém** (3-4 hodiny)
+- [ ] Email notifikace při sdílení materiálu
+  - Template: "Tvůj kouč ti sdílel nový materiál"
+  - CTA button → `/client/material/:code`
+  - Coach info, material preview
+- [ ] Reminder emails
+  - "Nezapomeň se podívat na materiál XYZ"
+  - Configurable frequency (1 den, 3 dny, 1 týden)
+- [ ] Welcome emails
+  - Onboarding série
+  - Jak používat platformu
+
+**Tech Stack**:
+- Email service: SendGrid nebo Mailgun
+- Templates: Handlebars/React Email
+- Queue: Supabase Edge Functions nebo Vercel Serverless
+
+**Files to create**:
+- `src/server/email/templates/materialShared.hbs`
+- `src/server/email/templates/reminder.hbs`
+- `src/server/email/templates/welcome.hbs`
+- `src/server/email/sendEmail.js`
+- `.env` additions: `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`
+
+#### 3. **Payment systém** (4-5 hodin)
+- [ ] Stripe integrace
+  - Checkout session creation
+  - Webhook handling (payment success/fail)
+  - Invoice generation
+- [ ] Paid material access
+  - Free preview (první 30 sekund audio, první stránka PDF)
+  - Pay-per-material ($1-10)
+  - Subscription model ($10/měsíc - unlimited access)
+- [ ] Payment status tracking
+  - `clientMaterialAccess` tabulka v Supabase
+  - Fields: clientId, materialId, accessType (free/paid/subscription), expiresAt
+
+**Tech Stack**:
+- Payment: Stripe
+- Backend: Vercel Serverless Functions nebo Supabase Edge Functions
+- Database: Supabase (new table: `client_material_access`)
+
+**Files to create**:
+- `src/server/stripe/createCheckout.js`
+- `src/server/stripe/webhooks.js`
+- `src/modules/client/pages/PaymentSuccess.jsx`
+- `src/modules/client/pages/PaymentCancel.jsx`
+- `src/modules/client/components/PaymentButton.jsx`
+- `.env` additions: `STRIPE_PUBLIC_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+
+#### 4. **Client Dashboard** (5-6 hodin)
+- [ ] List všech sdílených materiálů
+  - Filter by: Coach, Category, Type, Date
+  - Search bar
+  - Sort options (newest, oldest, A-Z)
+- [ ] Progress tracking
+  - Viewed/not viewed status
+  - Watch time (audio/video)
+  - Completion percentage (PDF pages read)
+- [ ] Bookmarks/Favorites
+  - Add to favorites
+  - Quick access from dashboard
+- [ ] Collections
+  - Client může organizovat materiály do kolekcí
+  - "Ranní rutina", "Večerní meditace", atd.
+
+**Files to create**:
+- `src/modules/client/pages/ClientDashboard.jsx`
+- `src/modules/client/components/MaterialsGrid.jsx`
+- `src/modules/client/components/MaterialCard.jsx` (client version)
+- `src/modules/client/components/CollectionModal.jsx`
+- `src/modules/client/utils/clientStorage.js`
+
+**Supabase Tables**:
+```sql
+-- Client Material Access
+CREATE TABLE client_material_access (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  client_id UUID REFERENCES clients(id),
+  material_id TEXT,
+  share_code TEXT,
+  coach_id UUID,
+  access_type TEXT, -- 'free', 'paid', 'subscription'
+  viewed BOOLEAN DEFAULT FALSE,
+  watch_time INTEGER DEFAULT 0, -- seconds
+  progress INTEGER DEFAULT 0, -- percentage
+  favorited BOOLEAN DEFAULT FALSE,
+  collection_id UUID,
+  accessed_at TIMESTAMP,
+  expires_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Client Collections
+CREATE TABLE client_collections (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  client_id UUID REFERENCES clients(id),
+  name TEXT,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+#### 5. **Analytics** (2-3 hodiny)
+- [ ] Material view tracking
+  - Unique views
+  - Repeat views
+  - Average view duration
+- [ ] Time spent tracking
+  - Total time per material
+  - Average time per client
+  - Heatmap (kdy klienti nejčastěji přistupují)
+- [ ] Completion rate
+  - % klientů, kteří dokončili materiál
+  - Drop-off points (kde klienti odcházejí)
+- [ ] Coach analytics dashboard
+  - Most popular materials
+  - Client engagement metrics
+  - Revenue per material
+
+**Files to create**:
+- `src/modules/coach/pages/AnalyticsDashboard.jsx`
+- `src/modules/coach/components/MaterialAnalytics.jsx`
+- `src/modules/coach/components/ClientEngagement.jsx`
+- `src/server/analytics/trackEvent.js`
+
+**Supabase Table**:
+```sql
+-- Analytics Events
+CREATE TABLE analytics_events (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_type TEXT, -- 'material_view', 'material_complete', 'audio_play', 'pdf_page_turn'
+  client_id UUID,
+  coach_id UUID,
+  material_id TEXT,
+  share_code TEXT,
+  metadata JSONB, -- { duration: 120, page: 5, etc. }
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+### 📊 FÁZE 2 Breakdown
+
+| Komponenta | Odhad času | Priorita | Dependencies |
+|------------|------------|----------|--------------|
+| Autentizace | 5-7 hodin | HIGH | Supabase Auth setup |
+| Email systém | 3-4 hodiny | MEDIUM | SendGrid account |
+| Payment systém | 4-5 hodin | HIGH | Stripe account |
+| Client Dashboard | 5-6 hodin | HIGH | Auth + Supabase tables |
+| Analytics | 2-3 hodiny | MEDIUM | Dashboard + tracking events |
+| **CELKEM** | **19-25 hodin** | - | - |
+
+**S PaymentsPro reuse**: **15-20 hodin** (úspora 4-5 hodin na auth)
+
+### 🗄️ Supabase Database Schema (FÁZE 2)
+
+```sql
+-- Clients table (extended)
+CREATE TABLE clients (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email TEXT UNIQUE NOT NULL,
+  name TEXT,
+  password_hash TEXT,
+  avatar_url TEXT,
+  notification_preferences JSONB DEFAULT '{"email": true, "push": false}',
+  subscription_status TEXT DEFAULT 'free', -- 'free', 'active', 'cancelled'
+  subscription_expires_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Client Material Access
+CREATE TABLE client_material_access (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  client_id UUID REFERENCES clients(id),
+  material_id TEXT,
+  share_code TEXT,
+  coach_id UUID,
+  access_type TEXT, -- 'free', 'paid', 'subscription'
+  viewed BOOLEAN DEFAULT FALSE,
+  watch_time INTEGER DEFAULT 0,
+  progress INTEGER DEFAULT 0,
+  favorited BOOLEAN DEFAULT FALSE,
+  collection_id UUID,
+  accessed_at TIMESTAMP,
+  expires_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Client Collections
+CREATE TABLE client_collections (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  client_id UUID REFERENCES clients(id),
+  name TEXT,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Analytics Events
+CREATE TABLE analytics_events (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_type TEXT,
+  client_id UUID,
+  coach_id UUID,
+  material_id TEXT,
+  share_code TEXT,
+  metadata JSONB,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Payments
+CREATE TABLE payments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  client_id UUID REFERENCES clients(id),
+  stripe_payment_intent_id TEXT UNIQUE,
+  amount INTEGER, -- v cents
+  currency TEXT DEFAULT 'czk',
+  status TEXT, -- 'pending', 'succeeded', 'failed'
+  material_id TEXT,
+  coach_id UUID,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+### 🔐 ENV Variables (FÁZE 2)
+
+```.env
+# Existing
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+
+# New for FÁZE 2
+VITE_STRIPE_PUBLIC_KEY=pk_test_...
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+SENDGRID_API_KEY=SG...
+SENDGRID_FROM_EMAIL=noreply@coachpro.cz
+
+# Optional
+VITE_GOOGLE_CLIENT_ID=...
+VITE_APPLE_CLIENT_ID=...
+```
+
+### 🚀 Deployment Plan (FÁZE 2)
+
+**Frontend**:
+- Vercel (existing)
+- Environment variables v Vercel dashboard
+
+**Backend/Serverless**:
+- Vercel Serverless Functions (`/api/stripe/webhook`, `/api/email/send`)
+- Nebo Supabase Edge Functions
+
+**Database**:
+- Supabase (existing)
+- Run SQL migrations
+
+**Third-party Services**:
+- Stripe (payment processing)
+- SendGrid (email delivery)
+- Optional: Google Analytics, Sentry
+
+### ✅ Production Readiness Checklist (FÁZE 2)
+
+**Auth**:
+- [ ] Email verification funguje
+- [ ] Password reset flow funguje
+- [ ] Session expiry handling
+- [ ] Protected routes redirect to login
+
+**Email**:
+- [ ] Email templates testovány
+- [ ] Unsubscribe link funguje
+- [ ] Email delivery rate >95%
+
+**Payment**:
+- [ ] Stripe test mode → live mode
+- [ ] Webhook signature verification
+- [ ] Failed payment handling
+- [ ] Refund flow
+
+**Client Dashboard**:
+- [ ] Responsive na mobile
+- [ ] Fast load time (<3s)
+- [ ] Search/filter funguje
+- [ ] Progress tracking accurate
+
+**Analytics**:
+- [ ] Event tracking funguje
+- [ ] Data retention policy (90 dní?)
+- [ ] GDPR compliance
+
+### 🎓 Lessons from FÁZE 1 (pro FÁZI 2)
+
+1. **Modulární komponenty** - MaterialRenderer pattern = WIN
+2. **Async functions** - QR generation taught us to handle async properly
+3. **Case-insensitive** - Important for user experience
+4. **Glassmorphism** - Consistent design pattern across modals
+5. **Supabase first** - Don't duplicate in localStorage if we can use DB
+
+### 🔄 Migration Path (FÁZE 1 → FÁZE 2)
+
+**Step 1: Database Setup** (1 hodina)
+```bash
+# Create Supabase tables
+psql -h db.xxx.supabase.co -U postgres -d postgres < migrations/002_client_auth.sql
+```
+
+**Step 2: Auth Implementation** (5-7 hodin)
+- Implement Supabase Auth
+- Protected routes
+- Client profile page
+
+**Step 3: Migrate Existing ShareCodes** (1 hodina)
+```javascript
+// Migration script: localStorage → Supabase
+const migrateSharedMaterials = async () => {
+  const localShared = getSharedMaterials();
+  for (const shared of localShared) {
+    await supabase.from('client_material_access').insert({
+      share_code: shared.shareCode,
+      material_id: shared.materialId,
+      coach_id: shared.coachId,
+      access_type: 'free',
+      created_at: shared.createdAt,
+    });
+  }
+};
+```
+
+**Step 4: Email + Payment** (7-9 hodin)
+- Stripe integration
+- SendGrid setup
+- Email templates
+
+**Step 5: Dashboard + Analytics** (7-9 hodin)
+- Client dashboard
+- Coach analytics
+- Event tracking
+
+**CELKEM**: 21-27 hodin (s migration overhead)
+
+---
+
+## ✅ **Session 11b: Modularity Cleanup & UI Polish (1.11.2025 večer)** - HOTOVO!
+
+**Datum:** 1. listopadu 2025, 18:15 - 20:30
+**Status:** ✅ Kompletně dokončeno
+**Čas:** ~135 minut
+
+### **11b.1 CLAUDE.md - Povinný Modularity Workflow**
+- ✅ Závazný checklist pro všechny budoucí komponenty
+- ✅ 6bodový checklist (BORDER_RADIUS, Glassmorphism, QuickTooltip, Toast, Touch, Path aliases)
+- ✅ Dokumentováno v CLAUDE.md (lines 4567-4587)
+
+### **11b.2 MaterialCard.jsx - Debug Cleanup**
+- ✅ Odebrány debug toast notifikace (2×)
+- ✅ Odstraněna ExternalLink ikona
+- ✅ Zbylé ikony: Eye, Pencil, Share2, Trash2
+- ✅ Action ikony zarovnány dolů (`mt: 'auto'` na první ikonu)
+- ✅ Parent Box změněn: `alignItems="flex-start"` → `"stretch"`
+
+**Debugging journey:**
+- Pokus 1: `justifyContent: 'flex-end'` → nefungoval
+- Pokus 2: `alignItems="stretch"` → nefungoval
+- Pokus 3: Spacer `<Box sx={{ flex: 1 }} />` → nefungoval
+- Pokus 4: `mt: 'auto'` na první ikoně → ✅ FUNGUJE!
+
+### **11b.3 AddMaterialModal.jsx - Comprehensive Audit**
+- ✅ Border-radius standardizace (8 míst)
+  - BORDER_RADIUS.button (deprecated) → BORDER_RADIUS.compact
+  - Přidány missing border-radius na Alerty
+  - File upload boxes: compact → card (20px)
+- ✅ Odebrány zbytečné komentáře (6×)
+- ✅ File name display v edit modu (📎 fileName)
+- ✅ URL display v edit modu (clickable link + service chip)
+- ✅ Alert "Typ materiálu nelze změnit" repositioned nad heading "Nahraný soubor"
+
+### **Statistiky:**
+- Soubory upraveny: 3 (MaterialCard.jsx, AddMaterialModal.jsx, CLAUDE.md)
+- Řádky kódu odebrány: ~50 (debug logs, comments, ExternalLink)
+- Nové features: File name + URL display v edit modu
+- Border-radius fixes: 8 míst
+- UI improvements: Action ikony alignment, Alert positioning
+
+### **Lessons Learned:**
+1. Flexbox `justifyContent: 'flex-end'` nefunguje bez `alignItems: 'stretch'`
+2. `mt: 'auto'` je nejspolehlivější způsob pro "push to bottom"
+3. BORDER_RADIUS.button (18px) deprecated → use BORDER_RADIUS.compact (16px)
+4. Modularity checklist musí být explicitně vynucen v CLAUDE.md
+
+---
+
+**Status**: ✅ Session 11b DOKONČENA + Session 11 (FÁZE 1) DOKONČENA
+**FÁZE 1**: ✅ Share Material via shareCode funguje
+**FÁZE 2**: 📝 Naplánováno (15-20 hodin)
+**Dev Server**: ✅ Běží bez chyb na http://localhost:3000/
+**Příští priorita**: Implementovat plnou strukturu pro třídění (Coaching Area + Topic + Style) 🚀
+

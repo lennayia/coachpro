@@ -22,7 +22,6 @@ import {
   Eye,
   Trash2,
   Pencil,
-  ExternalLink,
   Music,
   FileVideo,
   Image as ImageIcon,
@@ -34,15 +33,18 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDuration, formatFileSize, getCategoryLabel } from '@shared/utils/helpers';
-import { deleteMaterial, getCurrentUser, getPrograms, setCurrentClient } from '../../utils/storage';
+import { deleteMaterial, getCurrentUser, getPrograms, setCurrentClient, createSharedMaterial } from '../../utils/storage';
 import { generateUUID } from '../../utils/generateCode';
 import ServiceLogo from '../shared/ServiceLogo';
 import PreviewModal from '../shared/PreviewModal';
 import AddMaterialModal from './AddMaterialModal';
+import ShareMaterialModal from './ShareMaterialModal';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { createBackdrop, createGlassDialog, createIconButton, createClientPreviewButton } from '../../../../shared/styles/modernEffects';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
 import { QuickTooltip } from '@shared/components/AppTooltip';
+import { useNotification } from '@shared/context/NotificationContext';
+import { isTouchDevice, createSwipeHandlers, createLongPressHandler } from '@shared/utils/touchHandlers';
 
 const MaterialCard = ({
   material,
@@ -52,11 +54,16 @@ const MaterialCard = ({
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const glassCardStyles = useGlassCard('subtle');
+  const { showSuccess, showError } = useNotification();
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [sharedMaterialData, setSharedMaterialData] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const isVeryNarrow = useMediaQuery('(max-width:420px)');
+  const isTouch = isTouchDevice();
 
   const handleDeleteClick = () => {
     setDeleteDialogOpen(true);
@@ -66,14 +73,69 @@ const MaterialCard = ({
     setIsDeleting(true);
     try {
       await deleteMaterial(material.id);
+      showSuccess('Smazáno!', `Materiál "${material.title}" byl úspěšně smazán`);
       onUpdate();
       setDeleteDialogOpen(false);
     } catch (error) {
       console.error('Failed to delete material:', error);
+      showError('Chyba', 'Nepodařilo se smazat materiál. Zkus to prosím znovu.');
     } finally {
       setIsDeleting(false);
     }
   };
+
+  // Sdílení materiálu s klientkou
+  const handleShareMaterial = async () => {
+    setIsSharing(true);
+    try {
+      const currentUser = getCurrentUser();
+      if (!currentUser) {
+        console.error('No current user found');
+        showError('Chyba', 'Nejsi přihlášená. Zkus se znovu přihlásit.');
+        setIsSharing(false);
+        return;
+      }
+
+      // Vytvoř sdílený materiál s QR kódem a share code
+      const shared = await createSharedMaterial(material, currentUser.id);
+      setSharedMaterialData(shared);
+      setShareModalOpen(true);
+      showSuccess('Připraveno!', `Materiál "${material.title}" je připraven ke sdílení 🎉`);
+    } catch (error) {
+      console.error('Failed to create shared material:', error);
+      showError('Chyba', 'Nepodařilo se připravit materiál ke sdílení. Zkus to prosím znovu.');
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  // Touch gestures - Swipe handlers
+  const swipeHandlers = createSwipeHandlers({
+    onSwipeLeft: () => {
+      // Swipe left = smazat (destructive action)
+      if (isTouch) {
+        handleDeleteClick();
+      }
+    },
+    onSwipeRight: () => {
+      // Swipe right = sdílet (positive action)
+      if (isTouch) {
+        handleShareMaterial();
+      }
+    },
+    threshold: 80, // Větší threshold pro prevenci nechtěného triggeru
+  });
+
+  // Touch gestures - Long press handler
+  const longPressHandlers = createLongPressHandler({
+    onLongPress: () => {
+      // Long press = preview (explorační akce)
+      if (isTouch) {
+        setPreviewOpen(true);
+      }
+    },
+    delay: 600, // 600ms pro long press
+  });
 
   // Klientská preview - zobrazí materiál v klientském rozhraní
   const handleClientPreview = () => {
@@ -201,6 +263,8 @@ const MaterialCard = ({
     <>
       <Card
         elevation={0}
+        {...swipeHandlers}
+        {...longPressHandlers}
         sx={{
           ...glassCardStyles,
           height: '100%',
@@ -209,7 +273,8 @@ const MaterialCard = ({
           flexDirection: 'column',
           borderRadius: BORDER_RADIUS.card,
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          '&:hover': {
+          // Hover efekt jen pro non-touch zařízení
+          '&:hover': isTouch ? {} : {
             transform: 'translateY(-4px)',
             boxShadow: isDark
               ? '0 12px 24px rgba(0, 0, 0, 0.4)'
@@ -289,7 +354,7 @@ const MaterialCard = ({
           <Box
             display="flex"
             gap={isVeryNarrow ? 0.75 : 1}
-            alignItems="flex-start"
+            alignItems="stretch"
             flex={1}
           >
             {/* Levý sloupec: Text obsah (plná šířka) */}
@@ -510,35 +575,9 @@ const MaterialCard = ({
               alignItems="flex-end"
               gap={0}
               sx={{
-                flexShrink: 0,
-                height: '100%',
-                justifyContent: 'flex-start'
+                flexShrink: 0
               }}
             >
-              {/* Otevřít v novém okně - PRO VŠECHNY materiály */}
-              <QuickTooltip title="Otevřít v novém okně nebo kartě">
-                <IconButton
-                  size="small"
-                  component="a"
-                  href={material.content}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{
-                    ...createIconButton('secondary', isDark, 'small'),
-                    minWidth: 44,
-                    minHeight: 32,
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    alignItems: 'center',
-                    pr: 0,
-                    mt: 1,
-                    py: 0.5
-                  }}
-                >
-                  <ExternalLink size={isVeryNarrow ? 20 : 18} />
-                </IconButton>
-              </QuickTooltip>
-
               {/* Náhled */}
               <QuickTooltip title="Otevřít v náhledu">
                 <IconButton
@@ -546,6 +585,7 @@ const MaterialCard = ({
                   onClick={() => setPreviewOpen(true)}
                   sx={{
                     ...createIconButton('secondary', isDark, 'small'),
+                    mt: 'auto',
                     minWidth: 44,
                     minHeight: 32,
                     display: 'flex',
@@ -563,7 +603,8 @@ const MaterialCard = ({
               <QuickTooltip title="Sdílet s klientkou">
                 <IconButton
                   size="small"
-                  onClick={() => {/* TODO: Implementovat sdílení */}}
+                  onClick={handleShareMaterial}
+                  disabled={isSharing}
                   sx={{
                     ...createIconButton('secondary', isDark, 'small'),
                     minWidth: 44,
@@ -599,14 +640,13 @@ const MaterialCard = ({
                 </IconButton>
               </QuickTooltip>
 
-              {/* Smazat - separované dole */}
+              {/* Smazat */}
               <QuickTooltip title="Smazat materiál">
                 <IconButton
                   size="small"
                   onClick={handleDeleteClick}
                   sx={{
                     ...createIconButton('error', isDark, 'small'),
-                    mt: 'auto',
                     pt: 3,
                     minWidth: 44,
                     minHeight: 44,
@@ -675,6 +715,13 @@ const MaterialCard = ({
           onUpdate();
         }}
         editMaterial={material}
+      />
+
+      {/* Share Material Modal */}
+      <ShareMaterialModal
+        open={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        sharedMaterial={sharedMaterialData}
       />
     </>
   );

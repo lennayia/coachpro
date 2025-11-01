@@ -187,14 +187,12 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
       let thumbnail = null;
       let storagePath = null;
 
-      // Validace
       if (!title) {
         const errorMsg = 'Název materiálu je povinný';
         showError('Chyba validace', errorMsg);
         throw new Error(errorMsg);
       }
 
-      // Zpracování podle typu
       if (selectedType === 'link') {
         if (!linkUrl) {
           const errorMsg = 'URL je povinná';
@@ -310,7 +308,6 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
         }
       }
 
-      // Create material object
       const materialData = {
         id: isEditMode ? editMaterial.id : generateUUID(),
         coachId: currentUser.id,
@@ -337,10 +334,8 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
         }
       }
 
-      // Save to localStorage
       saveMaterial(materialData);
 
-      // Success
       showSuccess(
         'Hotovo!',
         isEditMode ? 'Materiál byl úspěšně upraven' : 'Materiál byl úspěšně přidán'
@@ -389,7 +384,7 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
   </Typography>
 
   {error && (
-    <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+    <Alert severity="error" sx={{ mb: 3, borderRadius: BORDER_RADIUS.compact }} onClose={() => setError('')}>
       {error}
     </Alert>
   )}
@@ -399,13 +394,6 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
     <Typography variant="subtitle2" mb={2} sx={{ fontWeight: 600 }}>
       Typ materiálu
     </Typography>
-
-    {/* Info při editaci file-based materiálů */}
-    {isEditMode && (selectedType === 'audio' || selectedType === 'video' || selectedType === 'pdf' || selectedType === 'image' || selectedType === 'document') && (
-      <Alert severity="info" sx={{ mb: 2 }}>
-        Typ materiálu nelze změnit. Můžeš ale nahradit soubor novým.
-      </Alert>
-    )}
 
     <Grid container spacing={2} mb={3}>
       {MATERIAL_TYPES.map((type) => {
@@ -463,6 +451,13 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
               {/* File upload (audio, video, pdf, image, document) */}
               {(selectedType === 'audio' || selectedType === 'video' || selectedType === 'pdf' || selectedType === 'image' || selectedType === 'document') && (
                 <>
+                  {/* Alert při editaci file-based materiálů */}
+                  {isEditMode && !file && (
+                    <Alert severity="info" sx={{ mb: 2, borderRadius: BORDER_RADIUS.compact }}>
+                      Typ materiálu nelze změnit. Můžeš ale nahradit soubor novým.
+                    </Alert>
+                  )}
+
                   <Typography variant="subtitle2" mb={2} sx={{ fontWeight: 600 }}>
                     {isEditMode && !file ? 'Nahraný soubor' : 'Nahrát soubor'}
                   </Typography>
@@ -477,7 +472,7 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
                           theme.palette.mode === 'dark'
                             ? 'rgba(143, 188, 143, 0.1)'
                             : 'rgba(85, 107, 47, 0.05)',
-                        borderRadius: BORDER_RADIUS.small,
+                        borderRadius: BORDER_RADIUS.card,
                         border: '1px solid',
                         borderColor: 'divider',
                       }}
@@ -485,6 +480,11 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
                       <Typography variant="body2" color="text.secondary" mb={1}>
                         ✓ Soubor je již nahraný
                       </Typography>
+                      {editMaterial?.fileName && (
+                        <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                          📎 {editMaterial.fileName}
+                        </Typography>
+                      )}
                       <Typography variant="caption" color="text.secondary">
                         Pokud chceš nahradit soubor, přetáhni sem nový nebo klikni níže
                       </Typography>
@@ -495,7 +495,7 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
                     sx={{
                       border: '2px dashed',
                       borderColor: dragActive ? 'primary.main' : 'divider',
-                      borderRadius: BORDER_RADIUS.compact,
+                      borderRadius: BORDER_RADIUS.card,
                       p: 4,
                       textAlign: 'center',
                       cursor: 'pointer',
@@ -564,6 +564,62 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
                     Odkaz na materiál
                   </Typography>
 
+                  {/* Info o existující URL při editaci */}
+                  {isEditMode && editMaterial?.content && (
+                    <Box
+                      p={2}
+                      mb={2}
+                      sx={{
+                        backgroundColor: (theme) =>
+                          theme.palette.mode === 'dark'
+                            ? 'rgba(143, 188, 143, 0.1)'
+                            : 'rgba(85, 107, 47, 0.05)',
+                        borderRadius: BORDER_RADIUS.card,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                      }}
+                    >
+                      <Typography variant="body2" color="text.secondary" mb={1}>
+                        ✓ Aktuální odkaz
+                      </Typography>
+                      <Typography
+                        component="a"
+                        href={editMaterial.content}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          mb: 1,
+                          wordBreak: 'break-all',
+                          color: 'primary.main',
+                          textDecoration: 'none',
+                          '&:hover': {
+                            textDecoration: 'underline'
+                          }
+                        }}
+                      >
+                        🔗 {editMaterial.content}
+                      </Typography>
+                      {editMaterial?.linkMeta && (
+                        <Chip
+                          label={editMaterial.linkMeta.label}
+                          size="small"
+                          sx={{
+                            mt: 1,
+                            borderRadius: BORDER_RADIUS.small,
+                            backgroundColor: `${editMaterial.linkMeta.color}20`,
+                            color: editMaterial.linkMeta.color,
+                            fontWeight: 600
+                          }}
+                        />
+                      )}
+                      <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+                        Pokud chceš změnit odkaz, zadej nový níže
+                      </Typography>
+                    </Box>
+                  )}
+
                   <TextField
   fullWidth
   label="URL adresa"
@@ -573,7 +629,6 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
     const url = e.target.value;
     setLinkUrl(url);
 
-    // Auto-detect typ služby
     if (isValidUrl(url)) {
       const detected = detectLinkType(url);
       setDetectedService(detected);
@@ -677,6 +732,7 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
   sx={{
     bgcolor: 'transparent',
     border: 'none',
+    borderRadius: BORDER_RADIUS.compact,
     boxShadow: `0 2px 8px ${detectedService.color}15`,
     '& .MuiAlert-icon': {
       color: detectedService.color,
@@ -757,7 +813,7 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
               py: 1.5,
               fontWeight: 600,
               textTransform: 'none',
-              borderRadius: BORDER_RADIUS.button,
+              borderRadius: BORDER_RADIUS.compact,
               border: '2px solid',
               borderColor: 'divider',
               color: 'text.primary',
@@ -783,7 +839,7 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
               py: 1.5,
               fontWeight: 600,
               textTransform: 'none',
-              borderRadius: BORDER_RADIUS.button,
+              borderRadius: BORDER_RADIUS.compact,
               position: 'relative',
               overflow: 'hidden',
               background: (theme) =>
