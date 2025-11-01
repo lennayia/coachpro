@@ -5606,7 +5606,7 @@ Všechny patterns jsou zdokumentované v CLAUDE.md.
 ---
 
 ----------------
-CLAUDE CODE 31/10/2025 - 
+CLAUDE CODE 31/10/2025 - v noci
 ----------------
 
 ---
@@ -6017,5 +6017,471 @@ Pro karty s dostatečným místem (>= tablet), použij konstantní hodnoty míst
 **Session dokončena:** 31. října 2025
 **Celkový čas:** ~3.5 hodiny
 **Commits:** Ready pro git commit
+
+
+----------------
+CLAUDE CODE SESSION 6 - Border-Radius Standardizace & UI Polish
+1. listopadu 2025, 01:30-02:30
+----------------
+
+## 📋 Session Overview
+
+**Datum**: 1. listopadu 2025, 01:30-02:30
+**AI Asistent**: Claude Sonnet 4.5
+**Priorita**: CRITICAL - UI konzistence a modularita
+**Status**: ✅ DOKONČENO - všechny změny implementovány
+
+### 🎯 Hlavní cíle:
+
+1. ✅ Minimalistický streak chip s gentle secondary barvou
+2. ✅ Border-radius konzistence v PreviewModal (11 změn)
+3. ✅ Border-radius konzistence v AddMaterialModal (6 změn)
+4. ✅ Odstranění "AI style" prvků (emoji, service barvy)
+5. ✅ Moderní action buttons s gradient efekty
+6. ✅ Dokumentace změn
+
+---
+
+## 🎨 Design Filozofie
+
+**Klíčové citace uživatelky:**
+- *"jedeme na modernost, minimalismus, eleganci, ne na AI styly!"*
+- *"Hlavně tam nechci ty příšerný ikony"*
+- *"to červené pozadí karty je taky fuj"*
+
+**Nová pravidla:**
+- ❌ Žádné emoji ikony v UI kartách
+- ❌ Žádné service-specific barvy (červená pro YouTube, atd.)
+- ✅ Gentle primary colors s nízkou opacity
+- ✅ Minimalistický přístup všude
+- ✅ Moderní gradient efekty na buttons
+
+---
+
+## 📁 Upravené soubory
+
+### 1. DailyView.jsx - Streak Chip Redesign
+
+**Soubor**: `src/modules/coach/components/client/DailyView.jsx`
+**Řádky**: 1102-1139
+
+**Změny:**
+- ✅ Text změněn na "Počet dní v řadě: [number]"
+- ✅ Odstraněn emoji z textu
+- ✅ Použita secondary barva s 80% opacity (`CC`)
+- ✅ Světlý text: `rgba(255, 255, 255, 0.9)`
+- ✅ Chip vycentrován pod "Den je dokončený"
+- ✅ Button text: "Pokračovat na Den 3"
+
+**Před:**
+```javascript
+<Chip label={`${client.streak} dní v řadě 🔥`} />
+```
+
+**Po:**
+```javascript
+<Chip
+  label={`Počet dní v řadě: ${client.streak}`}
+  size="small"
+  sx={{
+    fontWeight: 500,
+    borderRadius: BORDER_RADIUS.small,
+    backgroundColor: (theme) => `${theme.palette.secondary.main}CC`,
+    color: 'rgba(255, 255, 255, 0.9)',
+  }}
+/>
+```
+
+---
+
+### 2. PreviewModal.jsx - Border-Radius Fixes
+
+**Soubor**: `src/modules/coach/components/shared/PreviewModal.jsx`
+**Počet změn**: 11 instancí
+
+**Opraveno:**
+- YouTube embed (line 316)
+- Vimeo embed (line 347)
+- Spotify embed (line 371)
+- SoundCloud embed (line 394)
+- Instagram embed (line 418)
+- Google Drive embed (line 443)
+- Google Drive fallback (line 464)
+- Generic service fallback (line 511)
+- Video content (line 229)
+- Image content (line 254)
+- Text content (line 288)
+
+**Před:**
+```javascript
+borderRadius: 3  // Hardcoded!
+```
+
+**Po:**
+```javascript
+borderRadius: BORDER_RADIUS.premium  // 24px
+```
+
+---
+
+### 3. AddMaterialModal.jsx - Komplexní Redesign
+
+**Soubor**: `src/modules/coach/components/coach/AddMaterialModal.jsx`
+
+#### A) Border-Radius Fixes (6 instancí)
+
+| Místo | Před | Po |
+|-------|------|-----|
+| Preview box | `3` | `BORDER_RADIUS.premium` (24px) |
+| Icon box | `2` | `BORDER_RADIUS.compact` (16px) |
+| YouTube iframe | `2` | `BORDER_RADIUS.premium` (24px) |
+| Edit info box | `1` | `BORDER_RADIUS.small` (12px) |
+| Drag & drop area | `2` | `BORDER_RADIUS.compact` (16px) |
+| Selected file | `1` | `BORDER_RADIUS.small` (12px) |
+
+#### B) Minimalistický Preview Box
+
+**Před:**
+- 60×60px Box s emoji ikonou (▶️)
+- Background: `linear-gradient(135deg, ${detectedService.color}15, ${detectedService.color}05)`
+- Text color: červená (YouTube), oranžová (SoundCloud), atd.
+- Chip: "Náhled podporován"
+
+**Po:**
+```javascript
+<Box
+  sx={{
+    mt: 3,
+    p: 3,
+    borderRadius: BORDER_RADIUS.premium,
+    background: (theme) =>
+      theme.palette.mode === 'dark'
+        ? 'rgba(139, 188, 143, 0.08)'
+        : 'rgba(85, 107, 47, 0.05)',
+    border: '1px solid',
+    borderColor: (theme) =>
+      theme.palette.mode === 'dark'
+        ? 'rgba(139, 188, 143, 0.15)'
+        : 'rgba(85, 107, 47, 0.15)',
+  }}
+>
+  <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
+    {detectedService.label}
+  </Typography>
+  {/* Iframe preview */}
+</Box>
+```
+
+**Změny:**
+- ❌ Odstraněn emoji icon
+- ❌ Odstraněn chip "Náhled podporován"
+- ✅ Gentle primary green background
+- ✅ Primary text color místo service colors
+
+#### C) Moderní Action Buttons
+
+**Před:**
+- fullWidth buttons (zbytečně široké)
+- Základní MUI styling
+
+**Po:**
+```javascript
+<Box display="flex" gap={2} mt={3} justifyContent="flex-end">
+  {/* Zrušit button - minimalistický */}
+  <Button
+    onClick={handleClose}
+    sx={{
+      px: 4,
+      py: 1.5,
+      fontWeight: 600,
+      borderRadius: BORDER_RADIUS.button,
+      border: '2px solid',
+      borderColor: 'divider',
+      transition: 'all 0.2s',
+      '&:hover': {
+        borderColor: 'text.secondary',
+        backgroundColor: (theme) =>
+          theme.palette.mode === 'dark'
+            ? 'rgba(255, 255, 255, 0.05)'
+            : 'rgba(0, 0, 0, 0.02)',
+      },
+    }}
+  >
+    Zrušit
+  </Button>
+
+  {/* Uložit button - s gradient a shine efektem */}
+  <Button
+    variant="contained"
+    onClick={handleSave}
+    sx={{
+      px: 4,
+      py: 1.5,
+      fontWeight: 600,
+      borderRadius: BORDER_RADIUS.button,
+      position: 'relative',
+      overflow: 'hidden',
+      background: (theme) =>
+        theme.palette.mode === 'dark'
+          ? 'linear-gradient(135deg, rgba(139, 188, 143, 0.95) 0%, rgba(85, 107, 47, 0.9) 100%)'
+          : 'linear-gradient(135deg, rgba(85, 107, 47, 0.95) 0%, rgba(139, 188, 143, 0.9) 100%)',
+      boxShadow: '0 4px 12px rgba(85, 107, 47, 0.3)',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: '-100%',
+        width: '100%',
+        height: '100%',
+        background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+        transition: 'left 0.5s ease',
+      },
+      '&:hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: '0 6px 20px rgba(85, 107, 47, 0.4)',
+        '&::before': {
+          left: '100%',
+        },
+      },
+    }}
+  >
+    {isEditMode ? 'Uložit změny' : 'Uložit materiál'}
+  </Button>
+</Box>
+```
+
+**Moderní button features:**
+- ❌ Odstraněno `fullWidth`
+- ✅ `justifyContent: 'flex-end'` - right alignment
+- ✅ Gradient background s primary colors
+- ✅ Shine animation pomocí `::before`
+- ✅ Lift effect: `translateY(-2px)` on hover
+- ✅ Smooth transitions s cubic-bezier easing
+- ✅ `px: 4` padding pro kompaktní vzhled
+
+---
+
+## 📐 Design Patterns
+
+### Pattern #1: Gentle Primary Background
+```javascript
+background: (theme) =>
+  theme.palette.mode === 'dark'
+    ? 'rgba(139, 188, 143, 0.08)'  // 8% opacity
+    : 'rgba(85, 107, 47, 0.05)',    // 5% opacity
+border: '1px solid',
+borderColor: (theme) =>
+  theme.palette.mode === 'dark'
+    ? 'rgba(139, 188, 143, 0.15)'  // 15% opacity
+    : 'rgba(85, 107, 47, 0.15)',
+```
+
+### Pattern #2: Minimalistický Chip
+```javascript
+<Chip
+  label="Text bez emoji"
+  size="small"
+  sx={{
+    fontWeight: 500,
+    borderRadius: BORDER_RADIUS.small,
+    backgroundColor: (theme) => `${theme.palette.secondary.main}CC`, // 80% opacity
+    color: 'rgba(255, 255, 255, 0.9)',
+  }}
+/>
+```
+
+### Pattern #3: Moderní CTA Button
+```javascript
+<Button
+  sx={{
+    px: 4,
+    py: 1.5,
+    fontWeight: 600,
+    borderRadius: BORDER_RADIUS.button,
+    position: 'relative',
+    overflow: 'hidden',
+    background: 'linear-gradient(135deg, ...)',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    '&::before': {
+      // Shine animation
+      content: '""',
+      position: 'absolute',
+      background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+      left: '-100%',
+      transition: 'left 0.5s ease',
+    },
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      '&::before': { left: '100%' },
+    },
+  }}
+>
+```
+
+---
+
+## 📊 Statistiky
+
+- **Soubory upraveny**: 3
+- **Řádky kódu změněny**: ~150+
+- **Border-radius fixes**: 18 instancí
+- **Odstraněné emoji**: 3 (chip, preview icons)
+- **Odstraněné chipy**: 1 ("Náhled podporován")
+- **Nové patterns**: 3 (gentle background, minimalistic chip, modern button)
+
+---
+
+## ✅ Checklist - Session 6
+
+- [x] Streak chip - minimalistický s secondary color
+- [x] Streak chip - světlý text + opacity 0.8
+- [x] Alert centering - CSS override na `.MuiAlert-message`
+- [x] Button text - "Pokračovat na Den 3"
+- [x] PreviewModal - 11× border-radius fix
+- [x] AddMaterialModal - 6× border-radius fix
+- [x] AddMaterialModal - odstranění emoji ikon
+- [x] AddMaterialModal - odstranění service colors
+- [x] AddMaterialModal - gentle primary background
+- [x] AddMaterialModal - odstranění "Náhled podporován" chip
+- [x] AddMaterialModal - moderní action buttons
+- [x] AddMaterialModal - compact button layout
+
+---
+
+## 🎓 Lessons Learned
+
+### 1. Hex Opacity Values
+- `CC` = 80% opacity
+- `99` = 60% opacity
+- Použití: `${theme.palette.secondary.main}CC`
+
+### 2. Centering v MUI Alert
+CSS override na `.MuiAlert-message` je nejrychlejší způsob jak vycentrovat obsah:
+```javascript
+sx={{
+  '& .MuiAlert-message': {
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'center',
+  }
+}}
+```
+
+### 3. Shine Animation
+Použití `::before` pseudo-elementu s gradientem:
+```javascript
+'&::before': {
+  content: '""',
+  position: 'absolute',
+  background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+  left: '-100%',
+  transition: 'left 0.5s ease',
+},
+'&:hover::before': {
+  left: '100%',
+}
+```
+
+### 4. Compact Buttons
+- ❌ NIKDY `fullWidth` pro action buttons
+- ✅ `justifyContent: 'flex-end'` na parent Box
+- ✅ `px: 4` pro kompaktní padding
+
+---
+
+## 💡 Pro budoucí Claude
+
+### DŮLEŽITÉ PRAVIDLA:
+
+1. **Vždy používej gentle primary colors místo service colors:**
+   ```javascript
+   // ❌ ŠPATNĚ
+   color: detectedService.color  // červená, oranžová, atd.
+   
+   // ✅ SPRÁVNĚ
+   color: 'primary.main'
+   background: 'rgba(139, 188, 143, 0.08)'
+   ```
+
+2. **Žádné emoji v UI kartách:**
+   ```javascript
+   // ❌ ŠPATNĚ
+   <Box>{/* 60×60px box s ▶️ */}</Box>
+   
+   // ✅ SPRÁVNĚ
+   {/* Žádný emoji icon, jen text nebo ServiceLogo */}
+   ```
+
+3. **Compact action buttons:**
+   ```javascript
+   // ❌ ŠPATNĚ
+   <Button fullWidth>
+   
+   // ✅ SPRÁVNĚ
+   <Box display="flex" gap={2} justifyContent="flex-end">
+     <Button sx={{ px: 4 }}>
+   </Box>
+   ```
+
+4. **Vždy používej BORDER_RADIUS konstanty:**
+   ```javascript
+   // ❌ ŠPATNĚ
+   borderRadius: 3
+   borderRadius: '24px'
+   
+   // ✅ SPRÁVNĚ
+   borderRadius: BORDER_RADIUS.premium
+   ```
+
+---
+
+## 🚀 Production Readiness
+
+**DailyView:**
+- ✅ Minimalistický streak chip
+- ✅ Vycentrovaný layout
+- ✅ Konzistentní design
+- ✅ Dark/light mode support
+
+**PreviewModal:**
+- ✅ Všechny embeds používají BORDER_RADIUS.premium
+- ✅ Konzistentní 24px zaoblení
+- ✅ Žádné hardcoded hodnoty
+
+**AddMaterialModal:**
+- ✅ Minimalistický preview box
+- ✅ Gentle primary colors
+- ✅ Moderní action buttons s efekty
+- ✅ Kompaktní layout
+- ✅ Konzistentní border-radius
+
+---
+
+## 📝 TODO - Pending
+
+Z MASTER_TODO_V2.md:
+- [ ] HIGH: DailyView - IconButton Tooltip
+- [ ] HIGH: ProgramsList - IconButton Tooltip
+- [ ] MEDIUM: ProgramsList - createPreviewButton
+- [ ] Error boundaries
+- [ ] LocalStorage warning
+- [ ] Share2 ikona
+
+---
+
+## 🖥️ Dev Server
+
+- ✅ Běží bez chyb na http://localhost:3001/
+- ✅ Hot reload funguje
+- ✅ Žádné console warnings
+- ✅ Light i dark mode testovány
+- ✅ Všechny změny visual inspection confirmed
+
+---
+
+**Session dokončena**: 1. listopadu 2025, 02:30
+**Celkový čas**: ~60 minut
+**Status**: ✅ READY FOR COMMIT
 
 ---

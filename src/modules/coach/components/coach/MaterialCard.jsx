@@ -115,7 +115,8 @@ const MaterialCard = ({
       completedAt: null,
       certificateGenerated: false,
       isAdmin: true,
-      _previewProgram: tempProgram // Uložíme dočasný program pro DailyView
+      _previewProgram: tempProgram, // Uložíme dočasný program pro DailyView
+      _returnUrl: window.location.pathname // Uložíme odkud přišla
     };
 
     // Ulož do session storage

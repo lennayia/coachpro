@@ -31,6 +31,7 @@ import { generateUUID, generateShareCode, generateQRCode } from '../../utils/gen
 import { useNotification } from '@shared/context/NotificationContext';
 import { useTheme } from '@mui/material';
 import { createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';
+import BORDER_RADIUS from '@styles/borderRadius';
 
 const DURATION_OPTIONS = [7, 14, 21, 30];
 
@@ -286,7 +287,7 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
   fullWidth
   fullScreen={window.innerWidth < 600}
   BackdropProps={{ sx: createBackdrop() }}
-  PaperProps={{ sx: createGlassDialog(isDark, '20px') }}
+  PaperProps={{ sx: createGlassDialog(isDark, BORDER_RADIUS.dialog) }}
 >
         <DialogContent sx={{ p: 0 }}>
           {/* Header */}

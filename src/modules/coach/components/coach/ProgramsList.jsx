@@ -45,7 +45,7 @@ import { generateUUID } from '../../utils/generateCode';
 import { staggerContainer, staggerItem } from '@shared/styles/animations';
 import { formatDate, pluralize } from '@shared/utils/helpers';
 import BORDER_RADIUS from '@styles/borderRadius';
-import { createPreviewButton, createActionButton, createIconButton } from '../../../../shared/styles/modernEffects';
+import { createPreviewButton, createActionButton, createIconButton, createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';
 
 const ProgramsList = () => {
   const navigate = useNavigate();
@@ -153,6 +153,7 @@ const ProgramsList = () => {
       completedAt: null,
       certificateGenerated: false,
       isAdmin: true, // 🔑 admin preview režim
+      _returnUrl: window.location.pathname // Uložíme odkud přišla
     };
 
     // Ulož do session storage
@@ -459,6 +460,12 @@ const ProgramsList = () => {
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
+        BackdropProps={{
+          sx: createBackdrop()
+        }}
+        PaperProps={{
+          sx: createGlassDialog(isDark, BORDER_RADIUS.dialog)
+        }}
       >
         <DialogTitle>Smazat program?</DialogTitle>
         <DialogContent>

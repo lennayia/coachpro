@@ -1,5 +1,6 @@
 // Modern design effects - glassmorphism, animations, hover states
 // Centralizovaný systém pro moderní efekty
+import BORDER_RADIUS from '../../styles/borderRadius';
 
 const modernEffects = {
   // Glassmorphism efekty
@@ -301,7 +302,7 @@ export const createClientPreviewButton = (isDark = false) => ({
   px: 1.5,
   fontSize: '0.7rem',
   fontWeight: 600,
-  borderRadius: '10px',
+  borderRadius: BORDER_RADIUS.small,
   color: '#fff',
   background: isDark
     ? 'linear-gradient(135deg, rgba(139, 188, 143, 0.9) 0%, rgba(85, 107, 47, 0.85) 100%)'
@@ -343,6 +344,58 @@ export const createClientPreviewButton = (isDark = false) => ({
   },
 });
 
+// Světlé outlined tlačítko s moderními efekty (pro Admin badge, atd.)
+export const createOutlinedButton = (isDark = false) => ({
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: 0.5,
+  fontSize: '0.7rem',
+  position: 'relative',
+  overflow: 'hidden',
+  color: 'primary.main',
+  backdropFilter: 'blur(30px)',
+  background: isDark
+    ? 'rgba(255, 255, 255, 0.05)'
+    : 'rgba(255, 255, 255, 0.8)',
+  borderWidth: 2,
+  borderColor: isDark
+    ? 'rgba(255, 255, 255, 0.2)'
+    : 'rgba(0, 0, 0, 0.12)',
+  boxShadow: isDark
+    ? '0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+    : '0 4px 16px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: '-100%',
+    width: '100%',
+    height: '100%',
+    background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+    transition: 'left 0.5s ease',
+  },
+  '&:hover': {
+    transform: 'translateY(-2px) scale(1.02)',
+    background: isDark
+      ? 'rgba(255, 255, 255, 0.08)'
+      : 'rgba(255, 255, 255, 0.95)',
+    // Glow efekt místo ostrého borderu
+    boxShadow: isDark
+      ? '0 8px 24px rgba(139, 188, 143, 0.3), 0 0 20px rgba(139, 188, 143, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15)'
+      : '0 8px 24px rgba(85, 107, 47, 0.2), 0 0 20px rgba(85, 107, 47, 0.15), inset 0 1px 0 rgba(255, 255, 255, 1)',
+    borderColor: isDark
+      ? 'rgba(255, 255, 255, 0.25)'
+      : 'rgba(0, 0, 0, 0.15)',
+    '&::before': {
+      left: '100%',
+    },
+  },
+  '&:active': {
+    transform: 'translateY(-1px) scale(1.01)',
+  },
+});
+
 export default {
   glassmorphism,
   glassmorphismDark,
@@ -359,5 +412,6 @@ export default {
   createActionButton,
   createPreviewButton,
   createIconButton,
-  createClientPreviewButton,  // ← NOVÉ
+  createClientPreviewButton,
+  createOutlinedButton,  // ← NOVÉ
 };

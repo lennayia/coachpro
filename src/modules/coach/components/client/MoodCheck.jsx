@@ -1,5 +1,6 @@
 import { Card, CardContent, Typography, Box, IconButton } from '@mui/material';
 import { motion } from 'framer-motion';
+import BORDER_RADIUS from '@styles/borderRadius';
 
 const moods = [
   { emoji: '😊', label: 'Šťastná' },
@@ -19,10 +20,10 @@ const MoodCheck = ({ onMoodSelected }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Card sx={{ mb: 3 }}>
+      <Card sx={{ mb: 3, borderRadius: BORDER_RADIUS.dayHeader }}>
         <CardContent sx={{ textAlign: 'center', py: 3 }}>
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-            Jak se dneska máš? 💚
+            Jak se dneska máte? 💚
           </Typography>
           <Typography variant="body2" color="text.secondary" mb={3}>
             Klikni na emoji, které nejlépe vystihuje tvůj dnešní pocit

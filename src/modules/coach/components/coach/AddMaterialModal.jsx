@@ -43,6 +43,7 @@ import { detectLinkType, getEmbedUrl, isValidUrl, getThumbnailUrl, getYouTubeMet
 import { uploadFileToSupabase, isSupabaseConfigured } from '../../utils/supabaseStorage';
 import { useNotification } from '@shared/context/NotificationContext';
 import { createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';
+import BORDER_RADIUS from '@styles/borderRadius';
 
 const MATERIAL_TYPES = [
   { value: 'audio', label: 'Audio', icon: <AudioIcon sx={{ fontSize: 40 }} /> },
@@ -476,7 +477,7 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
                           theme.palette.mode === 'dark'
                             ? 'rgba(143, 188, 143, 0.1)'
                             : 'rgba(85, 107, 47, 0.05)',
-                        borderRadius: 1,
+                        borderRadius: BORDER_RADIUS.small,
                         border: '1px solid',
                         borderColor: 'divider',
                       }}
@@ -494,7 +495,7 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
                     sx={{
                       border: '2px dashed',
                       borderColor: dragActive ? 'primary.main' : 'divider',
-                      borderRadius: 2,
+                      borderRadius: BORDER_RADIUS.compact,
                       p: 4,
                       textAlign: 'center',
                       cursor: 'pointer',
@@ -545,7 +546,7 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
                           theme.palette.mode === 'dark'
                             ? 'rgba(143, 188, 143, 0.1)'
                             : 'rgba(85, 107, 47, 0.05)',
-                        borderRadius: 1,
+                        borderRadius: BORDER_RADIUS.small,
                       }}
                     >
                       <Typography variant="body2">
@@ -623,45 +624,25 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
   sx={{
     mt: 3,
     p: 3,
-    borderRadius: 3,
-    background: `linear-gradient(135deg, ${detectedService.color}15, ${detectedService.color}05)`,
-    boxShadow: `0 4px 16px ${detectedService.color}20, 0 0 0 1px ${detectedService.color}15`,  // ← Jemný glow
+    borderRadius: BORDER_RADIUS.premium,
+    background: (theme) =>
+      theme.palette.mode === 'dark'
+        ? 'rgba(139, 188, 143, 0.08)'
+        : 'rgba(85, 107, 47, 0.05)',
+    border: '1px solid',
+    borderColor: (theme) =>
+      theme.palette.mode === 'dark'
+        ? 'rgba(139, 188, 143, 0.15)'
+        : 'rgba(85, 107, 47, 0.15)',
   }}
 >
-                      <Box display="flex" alignItems="center" gap={2} mb={2}>
-                        <Box
-                          sx={{
-                            fontSize: 40,
-                            width: 60,
-                            height: 60,
-                            borderRadius: 2,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: `${detectedService.color}20`,
-                          }}
-                        >
-                          {detectedService.icon}
-                        </Box>
-                        <Box flexGrow={1}>
-                          <Typography variant="h6" sx={{ fontWeight: 700, color: detectedService.color }}>
-                            {detectedService.label}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Služba byla automaticky rozpoznána
-                          </Typography>
-                        </Box>
-                        {detectedService.embedSupport && (
-                          <Chip
-                            label="Náhled podporován"
-                            size="small"
-                            sx={{
-                              bgcolor: `${detectedService.color}30`,
-                              color: detectedService.color,
-                              fontWeight: 600,
-                            }}
-                          />
-                        )}
+                      <Box mb={2}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                          {detectedService.label}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Služba byla automaticky rozpoznána
+                        </Typography>
                       </Box>
 
                       {/* Preview pro embed-podporované služby */}
@@ -670,7 +651,7 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
                           sx={{
                             position: 'relative',
                             aspectRatio: detectedService.type === 'spotify' ? 'auto' : '16/9',
-                            borderRadius: 2,
+                            borderRadius: BORDER_RADIUS.premium,
                             overflow: 'hidden',
                             boxShadow: 3,
                             background: '#000',
@@ -767,16 +748,74 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
         </Box>
 
         {/* Action buttons */}
-        <Box display="flex" gap={2} mt={3}>
-          <Button onClick={handleClose} fullWidth disabled={loading}>
+        <Box display="flex" gap={2} mt={3} justifyContent="flex-end">
+          <Button
+            onClick={handleClose}
+            disabled={loading}
+            sx={{
+              px: 4,
+              py: 1.5,
+              fontWeight: 600,
+              textTransform: 'none',
+              borderRadius: BORDER_RADIUS.button,
+              border: '2px solid',
+              borderColor: 'divider',
+              color: 'text.primary',
+              transition: 'all 0.2s',
+              '&:hover': {
+                borderColor: 'text.secondary',
+                backgroundColor: (theme) =>
+                  theme.palette.mode === 'dark'
+                    ? 'rgba(255, 255, 255, 0.05)'
+                    : 'rgba(0, 0, 0, 0.02)',
+              },
+            }}
+          >
             Zrušit
           </Button>
           <Button
             variant="contained"
             onClick={handleSave}
-            fullWidth
             disabled={!canSave() || loading}
             startIcon={loading && <CircularProgress size={20} />}
+            sx={{
+              px: 4,
+              py: 1.5,
+              fontWeight: 600,
+              textTransform: 'none',
+              borderRadius: BORDER_RADIUS.button,
+              position: 'relative',
+              overflow: 'hidden',
+              background: (theme) =>
+                theme.palette.mode === 'dark'
+                  ? 'linear-gradient(135deg, rgba(139, 188, 143, 0.95) 0%, rgba(85, 107, 47, 0.9) 100%)'
+                  : 'linear-gradient(135deg, rgba(85, 107, 47, 0.95) 0%, rgba(139, 188, 143, 0.9) 100%)',
+              boxShadow: '0 4px 12px rgba(85, 107, 47, 0.3)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: '-100%',
+                width: '100%',
+                height: '100%',
+                background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+                transition: 'left 0.5s ease',
+              },
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 6px 20px rgba(85, 107, 47, 0.4)',
+                '&::before': {
+                  left: '100%',
+                },
+              },
+              '&:disabled': {
+                background: (theme) =>
+                  theme.palette.mode === 'dark'
+                    ? 'rgba(139, 188, 143, 0.3)'
+                    : 'rgba(85, 107, 47, 0.3)',
+              },
+            }}
           >
             {loading ? 'Ukládám...' : (isEditMode ? 'Uložit změny' : 'Uložit materiál')}
           </Button>

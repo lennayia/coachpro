@@ -10,6 +10,7 @@ import {
   animations,
   hoverEffects
 } from '../styles/modernEffects';
+import BORDER_RADIUS from '../../styles/borderRadius';
 
 export const useModernEffects = () => {
   const { mode } = useThemeMode();
@@ -47,7 +48,7 @@ export const useModernEffects = () => {
     // Card glassmorphism (pro ProgressGarden, DailyView atd.)
     glassCard: useCallback((intensity = 'normal') => ({
       ...glass(intensity),
-      borderRadius: '40px',
+      borderRadius: BORDER_RADIUS.glassPanel,
       position: 'relative',
       overflow: 'hidden',
     }), [glass]),
@@ -55,7 +56,7 @@ export const useModernEffects = () => {
     // Card s Nature theme tintem
     natureCard: useCallback((intensity = 'normal') => ({
       ...glass(intensity, true), // useNature = true
-      borderRadius: '40px',
+      borderRadius: BORDER_RADIUS.glassPanel,
       position: 'relative',
       overflow: 'hidden',
     }), [glass]),
@@ -63,7 +64,7 @@ export const useModernEffects = () => {
     // Modal/Dialog glassmorphism
     modal: useCallback(() => ({
       ...glass('strong'),
-      borderRadius: '32px',
+      borderRadius: BORDER_RADIUS.modal,
     }), [glass]),
 
     // Navbar/AppBar glassmorphism
@@ -85,16 +86,16 @@ export const useModernEffects = () => {
       ...glass('subtle'),
       ...hover('lift', 'subtle'),
       ...transition(['transform', 'box-shadow'], 'fast', 'easeOut'),
-      borderRadius: '18px',
+      borderRadius: BORDER_RADIUS.button,
       padding: '0.75rem 1.5rem'
     }), [glass, hover, transition]),
 
     // Input field glassmorphism
     input: useCallback(() => ({
       ...transition(['box-shadow', 'background'], 'fast', 'ease'),
-      borderRadius: '16px',
+      borderRadius: BORDER_RADIUS.input,
       '& .MuiOutlinedInput-root': {
-        borderRadius: '16px',
+        borderRadius: BORDER_RADIUS.input,
         ...(isDarkMode ? {
           background: 'rgba(26, 26, 26, 0.7)',
           backdropFilter: 'blur(20px)',

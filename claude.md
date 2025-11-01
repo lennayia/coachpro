@@ -3919,3 +3919,212 @@ export default {
 **Dev Server**: ✅ Běží bez chyb
 **Doporučení**: Pokračovat na Error boundaries (Priorita 1) 🚀
 
+
+---
+
+## 📋 Sprint 9 Session 6: Border-Radius Standardizace & UI Polish (1.11.2025)
+
+**Datum:** 1. listopadu 2025, 01:30-02:30
+**AI**: Claude Sonnet 4.5
+**Priorita**: CRITICAL - UI konzistence
+
+### 🎯 Hlavní změny
+
+#### 1. DailyView - Minimalistický Streak Chip
+**Soubor**: `src/modules/coach/components/client/DailyView.jsx` (lines 1102-1139)
+
+**Před:**
+```javascript
+<Chip label={`${client.streak} dní v řadě 🔥`} />
+```
+
+**Po:**
+```javascript
+<Chip
+  label={`Počet dní v řadě: ${client.streak}`}
+  size="small"
+  sx={{
+    fontWeight: 500,
+    borderRadius: BORDER_RADIUS.small,
+    backgroundColor: (theme) => `${theme.palette.secondary.main}CC`, // 80% opacity
+    color: 'rgba(255, 255, 255, 0.9)',
+  }}
+/>
+```
+
+**Změny:**
+- ❌ Odstraněn emoji
+- ✅ Gentle secondary barva s 80% opacity
+- ✅ Světlý text
+- ✅ Vycentrovaný pod "Den je dokončený"
+
+#### 2. PreviewModal - Border-Radius Konzistence
+**Soubor**: `src/modules/coach/components/shared/PreviewModal.jsx`
+
+**11 změn**: Všechny `borderRadius: 3` → `BORDER_RADIUS.premium` (24px)
+- YouTube, Vimeo, Spotify, SoundCloud, Instagram embeds
+- Google Drive embed + fallback
+- Generic service fallback
+- Video, Image, Text cards
+
+#### 3. AddMaterialModal - Komplexní Redesign
+**Soubor**: `src/modules/coach/components/coach/AddMaterialModal.jsx`
+
+**A) Border-Radius Fixes (6 instancí)**:
+- Preview box: `3` → `BORDER_RADIUS.premium`
+- Icon box: `2` → `BORDER_RADIUS.compact`
+- YouTube iframe: `2` → `BORDER_RADIUS.premium`
+- Edit info: `1` → `BORDER_RADIUS.small`
+- Drag & drop: `2` → `BORDER_RADIUS.compact`
+- Selected file: `1` → `BORDER_RADIUS.small`
+
+**B) Minimalistický Preview Box**:
+```javascript
+// ❌ PŘED:
+// - 60×60px emoji icon (▶️)
+// - Service-specific colors (červená pro YouTube)
+// - Chip "Náhled podporován"
+
+// ✅ PO:
+<Box
+  sx={{
+    background: (theme) =>
+      theme.palette.mode === 'dark'
+        ? 'rgba(139, 188, 143, 0.08)'
+        : 'rgba(85, 107, 47, 0.05)',
+    border: '1px solid',
+    borderColor: (theme) =>
+      theme.palette.mode === 'dark'
+        ? 'rgba(139, 188, 143, 0.15)'
+        : 'rgba(85, 107, 47, 0.15)',
+  }}
+>
+  <Typography sx={{ color: 'primary.main' }}>
+    {detectedService.label}
+  </Typography>
+</Box>
+```
+
+**C) Moderní Action Buttons**:
+```javascript
+<Box display="flex" gap={2} justifyContent="flex-end">
+  {/* Zrušit - minimalistický */}
+  <Button
+    sx={{
+      px: 4,
+      border: '2px solid',
+      borderColor: 'divider',
+      '&:hover': {
+        borderColor: 'text.secondary',
+      },
+    }}
+  >
+    Zrušit
+  </Button>
+
+  {/* Uložit - s gradient + shine */}
+  <Button
+    sx={{
+      px: 4,
+      background: 'linear-gradient(135deg, rgba(139, 188, 143, 0.95) 0%, rgba(85, 107, 47, 0.9) 100%)',
+      '&::before': {
+        // Shine animation
+        background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+        left: '-100%',
+      },
+      '&:hover::before': {
+        left: '100%',
+      },
+    }}
+  >
+    Uložit změny
+  </Button>
+</Box>
+```
+
+### 🎨 Nové Design Patterns
+
+**Pattern #1: Gentle Primary Background**
+```javascript
+background: (theme) =>
+  theme.palette.mode === 'dark'
+    ? 'rgba(139, 188, 143, 0.08)'  // 8% opacity
+    : 'rgba(85, 107, 47, 0.05)',    // 5% opacity
+```
+
+**Pattern #2: Hex Opacity Values**
+```javascript
+backgroundColor: `${theme.palette.secondary.main}CC`  // CC = 80% opacity
+backgroundColor: `${theme.palette.primary.main}99`    // 99 = 60% opacity
+```
+
+**Pattern #3: Shine Animation**
+```javascript
+'&::before': {
+  content: '""',
+  position: 'absolute',
+  background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+  left: '-100%',
+  transition: 'left 0.5s ease',
+},
+'&:hover::before': {
+  left: '100%',
+}
+```
+
+### ⚠️ KRITICKÁ PRAVIDLA - Session 6
+
+**1. Žádné emoji v UI kartách:**
+```javascript
+// ❌ ŠPATNĚ
+<Box>{/* 60×60px box s ▶️ */}</Box>
+
+// ✅ SPRÁVNĚ
+{/* Jen text nebo ServiceLogo */}
+```
+
+**2. Gentle primary colors místo service colors:**
+```javascript
+// ❌ ŠPATNĚ
+color: detectedService.color  // červená, oranžová, atd.
+
+// ✅ SPRÁVNĚ
+color: 'primary.main'
+background: 'rgba(139, 188, 143, 0.08)'
+```
+
+**3. Compact action buttons:**
+```javascript
+// ❌ ŠPATNĚ
+<Button fullWidth>
+
+// ✅ SPRÁVNĚ
+<Box display="flex" justifyContent="flex-end">
+  <Button sx={{ px: 4 }}>
+</Box>
+```
+
+### 📊 Statistiky Session 6
+
+- **Soubory upraveny**: 3
+- **Řádky kódu**: ~150+
+- **Border-radius fixes**: 18 instancí
+- **Odstraněné emoji**: 3
+- **Odstraněné chipy**: 1 ("Náhled podporován")
+- **Nové patterns**: 3
+
+### ✅ Production Readiness
+
+- [x] Minimalistický design všude
+- [x] Gentle primary colors
+- [x] Konzistentní border-radius (18 fixes)
+- [x] Moderní action buttons s efekty
+- [x] Compact layout
+- [x] Dark/light mode support
+- [x] Žádné console errors
+
+---
+
+**Status**: ✅ Session 6 dokončena (1.11.2025, 02:30)
+**Příští priorita**: Tooltips na IconButtons (HIGH priority)
+

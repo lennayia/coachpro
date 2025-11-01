@@ -125,8 +125,8 @@ const MaterialCardSkeleton = () => {
             {/* Velká ikona */}
             <Skeleton
               variant="circular"
-              width={isVeryNarrow ? 28 : { xs: 36, sm: 44 }}
-              height={isVeryNarrow ? 28 : { xs: 36, sm: 44 }}
+              width={isVeryNarrow ? 28 : 40}
+              height={isVeryNarrow ? 28 : 40}
             />
 
             {/* Action ikony (5×) */}

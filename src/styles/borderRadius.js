@@ -20,6 +20,12 @@ export const BORDER_RADIUS = {
   filter: '16px',      // Filter komponenty
   search: '16px',      // Search bary
 
+  // Glassmorphism elementy (Sprint 6.9)
+  glassPanel: '40px',  // Velké glassmorphism panely (completion screen, ProgressGarden)
+  dayHeader: '36px',   // Day header v DailyView (kompaktní výška)
+  streakBox: '33px',   // Streak box v completion screen (menší výška)
+  modal: '32px',       // Glassmorphism modaly
+
   // Pro responsive design
   mobile: {
     standard: '16px',

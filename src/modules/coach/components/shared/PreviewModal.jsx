@@ -226,7 +226,7 @@ const PreviewModal = ({ open, onClose, material }) => {
         return (
           <Box
             sx={{
-              borderRadius: BORDER_RADIUS.compact,
+              borderRadius: BORDER_RADIUS.premium,
               overflow: 'hidden',
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
               backgroundColor: '#000',
@@ -251,7 +251,7 @@ const PreviewModal = ({ open, onClose, material }) => {
         return (
           <Box
             sx={{
-              borderRadius: BORDER_RADIUS.compact,
+              borderRadius: BORDER_RADIUS.premium,
               overflow: 'hidden',
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
               textAlign: 'center',
@@ -285,7 +285,7 @@ const PreviewModal = ({ open, onClose, material }) => {
                 theme.palette.mode === 'dark'
                   ? 'rgba(255, 255, 255, 0.05)'
                   : 'rgba(0, 0, 0, 0.02)',
-              borderRadius: BORDER_RADIUS.compact,
+              borderRadius: BORDER_RADIUS.premium,
               maxHeight: '60vh',
               overflow: 'auto',
             }}
@@ -313,7 +313,7 @@ const PreviewModal = ({ open, onClose, material }) => {
               <Box
                 sx={{
                   aspectRatio: '16/9',
-                  borderRadius: 3,
+                  borderRadius: BORDER_RADIUS.premium,
                   overflow: 'hidden',
                   boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
                   background: '#000',
@@ -344,7 +344,7 @@ const PreviewModal = ({ open, onClose, material }) => {
               <Box
                 sx={{
                   aspectRatio: '16/9',
-                  borderRadius: 3,
+                  borderRadius: BORDER_RADIUS.premium,
                   overflow: 'hidden',
                   boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
                   background: '#000',
@@ -368,7 +368,7 @@ const PreviewModal = ({ open, onClose, material }) => {
             {material.linkType === 'spotify' && (
               <Box
                 sx={{
-                  borderRadius: 3,
+                  borderRadius: BORDER_RADIUS.premium,
                   overflow: 'hidden',
                   boxShadow: '0 8px 24px rgba(29,185,84,0.2)',
                   background: '#000',
@@ -391,7 +391,7 @@ const PreviewModal = ({ open, onClose, material }) => {
             {material.linkType === 'soundcloud' && (
               <Box
                 sx={{
-                  borderRadius: 3,
+                  borderRadius: BORDER_RADIUS.premium,
                   overflow: 'hidden',
                   boxShadow: '0 8px 24px rgba(255,85,0,0.2)',
                 }}
@@ -415,7 +415,7 @@ const PreviewModal = ({ open, onClose, material }) => {
                 sx={{
                   maxWidth: 540,
                   mx: 'auto',
-                  borderRadius: 3,
+                  borderRadius: BORDER_RADIUS.premium,
                   overflow: 'hidden',
                   boxShadow: '0 8px 24px rgba(228,64,95,0.2)',
                 }}
@@ -440,7 +440,7 @@ const PreviewModal = ({ open, onClose, material }) => {
               return embedUrl ? (
                 <Box
                   sx={{
-                    borderRadius: 3,
+                    borderRadius: BORDER_RADIUS.premium,
                     overflow: 'hidden',
                     boxShadow: '0 8px 24px rgba(66,133,244,0.2)',
                     background: '#fff',
@@ -461,7 +461,7 @@ const PreviewModal = ({ open, onClose, material }) => {
                 <Box
                   sx={{
                     p: 4,
-                    borderRadius: 3,
+                    borderRadius: BORDER_RADIUS.premium,
                     background: 'linear-gradient(135deg, #4285f415, #4285f405)',
                     border: '2px solid #4285f440',
                     textAlign: 'center',
@@ -508,7 +508,7 @@ const PreviewModal = ({ open, onClose, material }) => {
               <Box
                 sx={{
                   p: 4,
-                  borderRadius: 3,
+                  borderRadius: BORDER_RADIUS.premium,
                   background: `linear-gradient(135deg, ${material.linkMeta?.color || '#757575'}15, ${material.linkMeta?.color || '#757575'}05)`,
                   border: `2px solid ${material.linkMeta?.color || '#757575'}40`,
                   textAlign: 'center',

@@ -60,7 +60,7 @@ import { fadeIn, fadeInUp } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { getEmbedUrl } from '../../utils/linkDetection';
 import useModernEffects from '@shared/hooks/useModernEffects';
-import { createIconButtonHover } from '../../../../shared/styles/modernEffects';
+import { createIconButtonHover, createOutlinedButton } from '../../../../shared/styles/modernEffects';
 
 const DailyView = () => {
   const { presets, isDarkMode } = useModernEffects();
@@ -395,52 +395,20 @@ const DailyView = () => {
 
             {/* Admin режim indikátor + exit button */}
             {client?.isAdmin && (
-              <Box
-                onClick={() => navigate('/coach/programs')}
+              <Button
+                size="medium"
+                variant="outlined"
+                onClick={() => navigate(client._returnUrl || '/coach/programs')}
+                startIcon={<Eye size={14} />}
                 sx={{
                   ml: 2,
-                  px: 2,
-                  py: 0.5,
-                  cursor: 'pointer',
-                  borderRadius: BORDER_RADIUS.button,
-                  backdropFilter: 'blur(10px) saturate(150%)',
-                  WebkitBackdropFilter: 'blur(10px) saturate(150%)',
-                  backgroundColor: isDarkMode
-                    ? 'rgba(139, 188, 143, 0.15)'
-                    : 'rgba(85, 107, 47, 0.15)',
-                  border: '1px solid',
-                  borderColor: isDarkMode
-                    ? 'rgba(139, 188, 143, 0.3)'
-                    : 'rgba(85, 107, 47, 0.3)',
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    backgroundColor: isDarkMode
-                      ? 'rgba(139, 188, 143, 0.25)'
-                      : 'rgba(85, 107, 47, 0.25)',
-                    transform: 'translateY(-1px)',
-                  },
+                  px: 3,
+                  py: 1,
+                  ...createOutlinedButton(isDarkMode),
                 }}
               >
-                <Box
-                  display="flex"
-                  alignItems="center"
-                  gap={0.5}
-                  sx={{ color: 'primary.main' }}
-                >
-                  <Eye size={14} />
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontWeight: 600,
-                      fontSize: '0.7rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    Admin
-                  </Typography>
-                </Box>
-              </Box>
+                Admin
+              </Button>
             )}
           </Box>
 
@@ -469,7 +437,7 @@ const DailyView = () => {
         <motion.div variants={fadeIn} initial="hidden" animate="visible">
           {/* Viewing mode navigation */}
           {viewingDay && (
-            <Card sx={{ mb: 3, bgcolor: 'primary.main', color: 'white' }}>
+            <Card sx={{ mb: 3, bgcolor: 'primary.main', color: 'white', borderRadius: BORDER_RADIUS.card }}>
               <CardContent>
                 <Stack spacing={2}>
                   <Typography variant="body2" textAlign="center">
@@ -514,7 +482,7 @@ const DailyView = () => {
           )}
 
           {/* Day header */}
-          <Card sx={{ mb: 3, textAlign: 'center', borderRadius: '36px' }}>
+          <Card sx={{ mb: 3, textAlign: 'center', borderRadius: BORDER_RADIUS.dayHeader }}>
             <CardContent sx={{ py: 4 }}>
               <Typography variant="overline" color="text.secondary">
                 Den {viewingDay || client.currentDay}
@@ -548,7 +516,7 @@ const DailyView = () => {
                 animate="visible"
                 transition={{ delay: index * 0.1 }}
               >
-                <Card>
+                <Card sx={{ borderRadius: BORDER_RADIUS.dayHeader }}>
                   <CardContent>
                     <Box display="flex" alignItems="center" gap={2} mb={2}>
                       <Box sx={{ color: 'text.secondary' }}>
@@ -680,14 +648,14 @@ const DailyView = () => {
                     )}
 
                     {material.type === 'link' && (
-                      <Box>
+                      <Box sx={{ borderRadius: BORDER_RADIUS.dayHeader, overflow: 'hidden' }}>
                         {/* YouTube embed */}
                         {material.linkType === 'youtube' && (
                           <Box
                             sx={{
                               position: 'relative',
                               aspectRatio: '16/9',
-                              borderRadius: 3,
+                              borderRadius: BORDER_RADIUS.dayHeader,
                               overflow: 'hidden',
                               boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
                               background: '#000',
@@ -713,7 +681,7 @@ const DailyView = () => {
                             sx={{
                               position: 'relative',
                               aspectRatio: '16/9',
-                              borderRadius: 3,
+                              borderRadius: BORDER_RADIUS.dayHeader,
                               overflow: 'hidden',
                               boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
                               background: '#000',
@@ -737,7 +705,7 @@ const DailyView = () => {
                         {material.linkType === 'spotify' && (
                           <Box
                             sx={{
-                              borderRadius: 3,
+                              borderRadius: BORDER_RADIUS.dayHeader,
                               overflow: 'hidden',
                               boxShadow: '0 8px 24px rgba(29,185,84,0.2)',
                               background: '#000',
@@ -760,7 +728,7 @@ const DailyView = () => {
                         {material.linkType === 'soundcloud' && (
                           <Box
                             sx={{
-                              borderRadius: 3,
+                              borderRadius: BORDER_RADIUS.dayHeader,
                               overflow: 'hidden',
                               boxShadow: '0 8px 24px rgba(255,85,0,0.2)',
                             }}
@@ -784,7 +752,7 @@ const DailyView = () => {
                             sx={{
                               maxWidth: 540,
                               mx: 'auto',
-                              borderRadius: 3,
+                              borderRadius: BORDER_RADIUS.dayHeader,
                               overflow: 'hidden',
                               boxShadow: '0 8px 24px rgba(228,64,95,0.2)',
                             }}
@@ -809,7 +777,7 @@ const DailyView = () => {
                           <Box
                             sx={{
                               p: 4,
-                              borderRadius: 3,
+                              borderRadius: BORDER_RADIUS.dayHeader,
                               background: `linear-gradient(135deg, ${material.linkMeta?.color || '#757575'}15, ${material.linkMeta?.color || '#757575'}05)`,
                               border: `2px solid ${material.linkMeta?.color || '#757575'}40`,
                               textAlign: 'center',
@@ -913,7 +881,7 @@ const DailyView = () => {
                       mt: 4,
                       p: 3,
                       ...presets.glassCard('subtle'),
-                      borderRadius: '33px',
+                      borderRadius: BORDER_RADIUS.streakBox,
                     }}
                   >
                     <Typography
@@ -953,6 +921,7 @@ const DailyView = () => {
                   sx={{
                     px: 5,
                     py: 1.75,
+                    borderRadius: BORDER_RADIUS.standard,
                     fontWeight: 600,
                     textTransform: 'none',
                     position: 'relative',
@@ -1011,6 +980,7 @@ const DailyView = () => {
                   sx={{
                     px: 5,
                     py: 1.75,
+                    borderRadius: BORDER_RADIUS.standard,
                     fontWeight: 500,
                     textTransform: 'none',
                     position: 'relative',
@@ -1068,28 +1038,93 @@ const DailyView = () => {
               </Box>
             </Card>
           ) : !viewingDay && !dayCompleted ? (
-            <Button
-              fullWidth
-              variant="contained"
-              size="large"
-              startIcon={<CheckIcon />}
-              onClick={handleCompleteDay}
-              sx={{ mb: 4 }}
-            >
-              Označit den jako hotový
-            </Button>
+            <Box display="flex" justifyContent="center" mb={4}>
+              <Button
+                variant="contained"
+                size="large"
+                startIcon={<CheckIcon />}
+                onClick={handleCompleteDay}
+                sx={{
+                  px: 5,
+                  py: 1.75,
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  backdropFilter: 'blur(30px)',
+                  background: (theme) =>
+                    theme.palette.mode === 'dark'
+                      ? 'linear-gradient(135deg, rgba(139, 188, 143, 0.95) 0%, rgba(85, 107, 47, 0.9) 100%)'
+                      : 'linear-gradient(135deg, rgba(85, 107, 47, 0.95) 0%, rgba(139, 188, 143, 0.9) 100%)',
+                  border: '1px solid',
+                  borderColor: (theme) =>
+                    theme.palette.mode === 'dark'
+                      ? 'rgba(139, 188, 143, 0.5)'
+                      : 'rgba(85, 107, 47, 0.6)',
+                  boxShadow: (theme) =>
+                    theme.palette.mode === 'dark'
+                      ? '0 8px 32px rgba(139, 188, 143, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                      : '0 8px 32px rgba(85, 107, 47, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: '-100%',
+                    width: '100%',
+                    height: '100%',
+                    background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent)',
+                    transition: 'left 0.6s ease-in-out',
+                  },
+                  '&:hover': {
+                    transform: 'translateY(-4px) scale(1.02)',
+                    boxShadow: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? '0 12px 48px rgba(139, 188, 143, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
+                        : '0 12px 48px rgba(85, 107, 47, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+                    borderColor: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(139, 188, 143, 0.8)'
+                        : 'rgba(85, 107, 47, 0.8)',
+                    '&::before': {
+                      left: '100%',
+                    },
+                  },
+                  '&:active': {
+                    transform: 'translateY(-2px) scale(0.98)',
+                  },
+                }}
+              >
+                Označit den jako hotový
+              </Button>
+            </Box>
           ) : !viewingDay && dayCompleted ? (
-            <Alert severity="success" sx={{ mb: 4 }}>
-              <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Box>
-                  <AlertTitle>Skvělá práce! 🎉</AlertTitle>
-                  Den dokončen
+            <Alert
+              severity="success"
+              sx={{
+                mb: 4,
+                borderRadius: BORDER_RADIUS.premium,
+                '& .MuiAlert-message': {
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'center',
+                }
+              }}
+            >
+              <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
+                <Box display="flex" flexDirection="column" alignItems="center" gap={1}>
+                  <AlertTitle sx={{ textAlign: 'center' }}>Skvělá práce! Den je dokončený.</AlertTitle>
+
                   {client.streak > 1 && (
                     <Chip
-                      label={`🔥 ${client.streak} dní v řadě!`}
+                      label={`Počet dní v řadě: ${client.streak}`}
                       size="small"
-                      color="warning"
-                      sx={{ ml: 1 }}
+                      sx={{
+                        fontWeight: 500,
+                        borderRadius: BORDER_RADIUS.small,
+                        backgroundColor: (theme) => `${theme.palette.secondary.main}CC`,
+                        color: 'rgba(255, 255, 255, 0.9)',
+                      }}
                     />
                   )}
                 </Box>
@@ -1098,7 +1133,7 @@ const DailyView = () => {
                   endIcon={<NextIcon />}
                   onClick={handleNextDay}
                 >
-                  Den {client.currentDay + 1}
+                  Pokračovat na Den {client.currentDay + 1}
                 </Button>
               </Box>
             </Alert>
