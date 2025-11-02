@@ -186,8 +186,8 @@ const MaterialsLibrary = () => {
       >
         <Grid container spacing={3}>
           {filteredMaterials.map((material) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={material.id}>
-              <motion.div variants={staggerItem} style={{ height: '100%' }}>
+            <Grid item xs={12} xsm={6} sm={6} md={4} lg={3} key={material.id} sx={{ minWidth: 0 }}>
+              <motion.div variants={staggerItem} style={{ height: '100%', minWidth: 0 }}>
                 <MaterialCard
                   material={material}
                   onUpdate={refreshMaterials}

@@ -413,5 +413,5 @@ export default {
   createPreviewButton,
   createIconButton,
   createClientPreviewButton,
-  createOutlinedButton,  // ← NOVÉ
+  createOutlinedButton,
 };

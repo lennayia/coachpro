@@ -78,6 +78,41 @@ export const getCoachById = (id) => {
 };
 
 // ===== MATERIALS =====
+
+/**
+ * Material Object Schema
+ *
+ * @typedef {Object} Material
+ * @property {string} id - UUID
+ * @property {string} coachId - ID kouče
+ * @property {string} type - 'audio' | 'video' | 'pdf' | 'image' | 'document' | 'text' | 'link'
+ * @property {string} title - Název materiálu
+ * @property {string} description - Popis materiálu
+ * @property {string} content - Base64 string, Supabase URL nebo link URL
+ * @property {string} category - 'meditation' | 'affirmation' | 'exercise' | 'reflection' | 'other'
+ *
+ * // Coaching Taxonomy (NOVÉ od Session 12):
+ * @property {string} coachingArea - Oblast koučinku (POVINNÉ) - 'life' | 'career' | 'relationship' | 'health' | 'financial' | 'spiritual' | 'parenting' | 'other'
+ * @property {string[]} topics - Témata (VOLITELNÉ, doporučeno 3-5) - např. ['Sebevědomí', 'Motivace']
+ * @property {string} coachingStyle - Škola/přístup (POVINNÉ) - 'icf' | 'nlp' | 'ontological' | 'positive' | 'mindfulness' | 'systemic' | 'integrative' | 'general'
+ * @property {string} coachingAuthority - Koučovací škola/certifikace (VOLITELNÉ) - 'icf' | 'emcc' | 'ac' | 'erickson' | 'cti' | 'nlp-university' | 'ipec' | 'coaching-center' | 'institut-systemickeho-koucovani' | 'other' | 'none'
+ *
+ * // File-based materials:
+ * @property {number} [duration] - Délka v sekundách (audio/video)
+ * @property {number} [fileSize] - Velikost v bytes
+ * @property {string} [fileName] - Původní název souboru
+ * @property {number} [pageCount] - Počet stran (PDF/text)
+ * @property {string} [storagePath] - Supabase storage path
+ *
+ * // Link-specific:
+ * @property {string} [linkType] - 'youtube' | 'spotify' | 'google-drive' | ...
+ * @property {Object} [linkMeta] - { icon, label, color, embedSupport }
+ * @property {string} [thumbnail] - URL náhledu (YouTube)
+ *
+ * @property {string} createdAt - ISO timestamp
+ * @property {string} [updatedAt] - ISO timestamp (při editaci)
+ */
+
 export const getMaterials = (coachId = null) => {
   const materials = loadFromStorage(STORAGE_KEYS.MATERIALS, []);
   return coachId ? materials.filter(m => m.coachId === coachId) : materials;

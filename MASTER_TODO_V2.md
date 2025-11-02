@@ -5463,6 +5463,494 @@ const migrateSharedMaterials = async () => {
 
 ---
 
+## 🚀 **VIZE: COACHPRO MARKETPLACE - PROVIZNÍ PLATFORMA**
+
+**Datum diskuze**: 1. listopadu 2025, 21:00
+**Status**: 📝 Naplánováno pro FÁZI 2-3
+**Business Model**: SaaS marketplace s provizním modelem
+
+### 💡 **Koncept**
+
+CoachPro se transformuje z nástroje pro jednoho kouče na **marketplace platformu**, kde:
+- 👥 **Koučové** nabízejí své programy a materiály
+- 🔍 **Klienti** vybírají kouče podle taxonomie (oblast, témata, styl)
+- 💰 **Majitelka platformy** (Lenka) bere provizi z každého prodeje
+- 🤝 **Automatický matching** kouč ↔ klient podle preferencí
+
+### 💵 **Business Model**
+
+```
+Příklad transakce:
+Klient zakoupí program za 2000 Kč
+├─ 70% (1400 Kč) → Kouč (direct payout)
+├─ 28% (560 Kč)  → Majitelka platformy (Lenka)
+└─ ~2% (40 Kč)   → Stripe fee
+
+Provize: 28-30% (industry standard pro marketplace)
+```
+
+**Inspirace z jiných platforem:**
+- **Skillshare** - kurzy, provize 30%
+- **Udemy** - kurzy, marketplace model
+- **BetterHelp** - terapie, matching systém
+- **Airbnb** - marketplace, provize 15-20%
+
+---
+
+## 📋 **FÁZE 1: MVP PRO JEDNOHO KOUČE** (Aktuální sprint)
+
+**Cíl**: Ověřit celý workflow jako koučka před otevřením dalším koučům
+
+**Status**: 🔄 Probíhá (Session 12)
+
+### **Sprint 12: Coaching Taxonomy System** (2-3 dny)
+
+#### **12.1 Taxonomie - Základní implementace**
+- [x] Vytvořit `/src/shared/constants/coachingTaxonomy.js`
+  - [x] COACHING_AREAS (8 oblastí s ikonami Lucide React)
+  - [x] TOPICS (25+ témat, společná pro všechny oblasti)
+  - [x] COACHING_STYLES (8 stylů/škol)
+  - [x] Helper funkce (getAreaById, getAreaLabel, getStyleLabel)
+- [x] Rozšířit Material object schema v storage.js
+  - [x] coachingArea (POVINNÉ)
+  - [x] topics (VOLITELNÉ, array)
+  - [x] coachingStyle (POVINNÉ)
+- [x] AddMaterialModal.jsx - přidat selecty
+  - [x] Oblast koučinku (Autocomplete s ikonami)
+  - [x] Témata (Multi-select Autocomplete)
+  - [x] Koučovací styl (Autocomplete)
+  - [x] State management (init, edit, reset)
+  - [x] Material object creation
+
+#### **12.2 MaterialCard.jsx - Zobrazení taxonomie**
+- [ ] Import taxonomy helpers
+- [ ] Zobrazit coaching area s ikonou
+- [ ] Zobrazit topics jako chips (max 3 viditelné)
+- [ ] Zobrazit coaching style chip
+- [ ] Layout adjustments (fit do karty)
+- [ ] Responsive design (mobile/desktop)
+
+#### **12.3 MaterialsLibrary.jsx - Filtrování**
+- [ ] Samostatná sekce "Filtry" nad gridem
+- [ ] Filter: Oblast koučinku (clickable chips)
+- [ ] Filter: Témata (multi-select chips)
+- [ ] Filter: Koučovací styl (radio buttons nebo chips)
+- [ ] Kombinace filtrů (AND/OR logika)
+- [ ] Clear all filters button
+- [ ] Počítadla materiálů (např. "Životní koučink (15)")
+
+#### **12.4 TaxonomyOverview.jsx - Nová komponenta**
+- [ ] Vytvořit komponentu pro přehled taxonomie
+- [ ] Pro kouče: Dashboard s statistikami
+  - [ ] Oblasti koučinku (count per area)
+  - [ ] Nejčastější témata (top 10 s počty)
+  - [ ] Koučovací styly (breakdown)
+- [ ] Clickable přehledy → filtrování v MaterialsLibrary
+- [ ] Route: `/coach/taxonomy` (nová záložka v Sidebar)
+- [ ] Glassmorphism design
+- [ ] Charts/visualizace (optional - Chart.js nebo Recharts)
+
+**Odhad času**: 6-8 hodin
+**Priority**: MUST HAVE pro FÁZI 1
+
+---
+
+## 🏢 **FÁZE 2: MARKETPLACE MVP** (40-60 hodin)
+
+**Cíl**: Otevřít platformu dalším koučům, implementovat provizní systém
+
+**Status**: 📝 Naplánováno (po dokončení FÁZE 1)
+
+### **Sprint 13: Multi-Tenancy & Coach Profiles** (10-12 hodin)
+
+#### **13.1 Database Schema (Supabase)**
+```sql
+-- Coaches table (rozšíření existujícího)
+CREATE TABLE coaches (
+  id UUID PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  bio TEXT,
+  avatar_url TEXT,
+
+  -- Taxonomy profil
+  coaching_areas TEXT[] NOT NULL, -- ['life', 'career']
+  main_topics TEXT[],             -- ['Sebevědomí', 'Motivace']
+  coaching_styles TEXT[],         -- ['nlp', 'icf']
+
+  -- Marketplace
+  is_approved BOOLEAN DEFAULT false,
+  is_active BOOLEAN DEFAULT true,
+  commission_rate DECIMAL DEFAULT 0.30, -- 30%
+
+  -- Stripe Connect
+  stripe_account_id TEXT,
+  stripe_onboarding_complete BOOLEAN DEFAULT false,
+
+  -- Stats
+  total_programs INT DEFAULT 0,
+  total_clients INT DEFAULT 0,
+  average_rating DECIMAL,
+
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Coach Public Profiles (veřejně viditelné)
+CREATE TABLE coach_profiles (
+  id UUID PRIMARY KEY REFERENCES coaches(id),
+  slug TEXT UNIQUE NOT NULL, -- URL: /coaches/jana-novakova
+  public_bio TEXT,
+  certifications TEXT[],
+  experience_years INT,
+  languages TEXT[] DEFAULT ARRAY['cs'],
+  timezone TEXT DEFAULT 'Europe/Prague',
+
+  -- SEO
+  meta_title TEXT,
+  meta_description TEXT,
+
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Reviews & Ratings
+CREATE TABLE reviews (
+  id UUID PRIMARY KEY,
+  coach_id UUID REFERENCES coaches(id),
+  client_id UUID REFERENCES clients(id),
+  program_id UUID REFERENCES programs(id),
+
+  rating INT CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT,
+  is_approved BOOLEAN DEFAULT false, -- Moderace
+
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Transactions (provize tracking)
+CREATE TABLE transactions (
+  id UUID PRIMARY KEY,
+  coach_id UUID REFERENCES coaches(id),
+  client_id UUID REFERENCES clients(id),
+  program_id UUID REFERENCES programs(id),
+
+  amount_total DECIMAL NOT NULL,      -- 2000 Kč
+  amount_coach DECIMAL NOT NULL,      -- 1400 Kč (70%)
+  amount_platform DECIMAL NOT NULL,   -- 560 Kč (28%)
+  amount_stripe_fee DECIMAL NOT NULL, -- 40 Kč (2%)
+
+  stripe_payment_intent TEXT,
+  stripe_transfer_id TEXT, -- Transfer to coach
+
+  status TEXT DEFAULT 'pending', -- pending, completed, refunded
+
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+#### **13.2 Coach Registration & Onboarding**
+- [ ] Coach registration page (`/register/coach`)
+- [ ] Multi-step onboarding form:
+  1. Osobní údaje (jméno, email, heslo)
+  2. Taxonomie profil (oblasti, témata, styly)
+  3. Bio & Certifikace
+  4. Stripe Connect onboarding
+  5. Approval pending screen
+- [ ] Admin approval queue (pro Lenku)
+- [ ] Email notifications (schválení, odmítnutí)
+
+#### **13.3 Coach Public Profiles**
+- [ ] Veřejná stránka `/coaches/:slug`
+- [ ] Zobrazení taxonomie (oblasti, témata, styly)
+- [ ] Seznam programů kouče
+- [ ] Reviews & ratings
+- [ ] "Kontaktovat kouče" button
+- [ ] Social proof (počet klientů, hodnocení)
+
+### **Sprint 14: Stripe Connect Integration** (10-12 hodin)
+
+#### **14.1 Stripe Connect Setup**
+- [ ] Stripe Connect account setup (Lenka)
+- [ ] Custom Stripe Connect onboarding flow
+- [ ] Webhook handling (`/api/stripe/connect-webhook`)
+- [ ] Coach payout configuration (70% split)
+- [ ] Platform fee configuration (28%)
+
+#### **14.2 Payment Flow**
+```javascript
+// Client pays 2000 Kč
+const paymentIntent = await stripe.paymentIntents.create({
+  amount: 200000, // 2000 Kč (in haléře)
+  currency: 'czk',
+  application_fee_amount: 56000, // 560 Kč (28% platform fee)
+  transfer_data: {
+    destination: coach.stripe_account_id, // Coach dostane 1400 Kč
+  },
+});
+```
+
+- [ ] Checkout flow pro klienty
+- [ ] Automatic split payments
+- [ ] Invoice generování (pro kouče i klienty)
+- [ ] Refund handling
+- [ ] Payout tracking dashboard (pro kouče)
+
+### **Sprint 15: Marketplace Frontend** (10-12 hodin)
+
+#### **15.1 Landing Page**
+- [ ] Hero section s value proposition
+- [ ] "Najdi svého kouče" CTA
+- [ ] Taxonomy selector (interaktivní)
+- [ ] Testimonials
+- [ ] FAQ
+- [ ] SEO optimalizace
+
+#### **15.2 Coach Discovery**
+- [ ] `/coaches` - seznam všech koučů
+- [ ] Filtrování podle taxonomie:
+  - Oblast koučinku (chips)
+  - Témata (multi-select)
+  - Koučovací styl (dropdown)
+  - Jazyk (cs, en)
+  - Rating (4+ stars)
+- [ ] Sorting (rating, price, newest)
+- [ ] Pagination
+- [ ] "Žádní koučové" empty state
+
+#### **15.3 Matching System**
+- [ ] Client onboarding quiz:
+  1. "Co tě zajímá?" (oblast)
+  2. "Jaká témata?" (topics)
+  3. "Preferuješ nějaký přístup?" (styl)
+- [ ] Matching algoritmus (váhování preferencí)
+- [ ] "Doporučení koučové" dashboard
+- [ ] "Proč tento kouč?" explainer
+
+### **Sprint 16: Client Auth & Dashboard** (10-12 hodin)
+
+#### **16.1 Client Authentication**
+- [ ] Supabase Auth pro klienty
+- [ ] Registration page (`/register/client`)
+- [ ] Login page (`/login`)
+- [ ] Email verification
+- [ ] Password reset flow
+- [ ] Protected routes
+
+#### **16.2 Client Dashboard**
+- [ ] `/client/dashboard` - přehled zakoupených programů
+- [ ] Progress tracking per program
+- [ ] "Najdi dalšího kouče" CTA
+- [ ] Purchase history
+- [ ] Profile settings
+- [ ] Cancel subscription (pokud subscription model)
+
+#### **16.3 Purchase Flow**
+- [ ] Výběr programu (z profilu kouče)
+- [ ] Checkout stránka
+- [ ] Stripe payment (2000 Kč)
+- [ ] Success page → redirect to program
+- [ ] Email notification (kouč + klient)
+
+### **Sprint 17: Admin Panel (pro Lenku)** (8-10 hodin)
+
+#### **17.1 Coach Management**
+- [ ] `/admin/coaches` - seznam všech koučů
+- [ ] Approval queue (neschválení koučové)
+- [ ] Schválit/Odmítnout kouče
+- [ ] Deaktivovat/Aktivovat kouče
+- [ ] Upravit commission rate (per coach)
+- [ ] View coach stats
+
+#### **17.2 Content Moderation**
+- [ ] Review queue (neschválené recenze)
+- [ ] Schválit/Odmítnout review
+- [ ] Flag inappropriate materials
+- [ ] Delete materials (emergency)
+
+#### **17.3 Analytics & Reporting**
+- [ ] Dashboard s klíčovými metrikami:
+  - Total revenue (celkový obrat)
+  - Platform earnings (tvoje provize)
+  - Active coaches (počet aktivních koučů)
+  - Active clients (počet aktivních klientů)
+  - Conversion rate (návštěvníci → platící klienti)
+- [ ] Revenue charts (měsíční, roční)
+- [ ] Top coaches (nejvíce prodejů)
+- [ ] Export reports (CSV, PDF)
+
+**Odhad času FÁZE 2**: 40-50 hodin
+**Náklady**: Stripe fees (~2%), SendGrid (~$10/měsíc), Supabase (existující)
+**Legal**: Potřeba T&C, Privacy Policy, Commission Agreement, GDPR compliance
+
+---
+
+## 🌍 **FÁZE 3: SCALING & MARKETING** (100+ hodin)
+
+**Cíl**: Škálovat platformu, získat první zákazníky, optimalizovat business
+
+**Status**: 📝 Budoucí plán (po úspěšném launch FÁZE 2)
+
+### **Sprint 18: SEO & Marketing** (20-30 hodin)
+
+#### **18.1 SEO Optimalizace**
+- [ ] Sitemap generation
+- [ ] Meta tags pro všechny stránky
+- [ ] Open Graph images
+- [ ] Schema.org markup (Organization, Person, Service)
+- [ ] Blog (články o koučinku, SEO traffic)
+- [ ] Landing pages pro každou oblast koučinku
+  - `/oblasti/zivotni-koucing`
+  - `/oblasti/karierni-koucing`
+  - atd.
+
+#### **18.2 Content Marketing**
+- [ ] Blog strategie (10-20 článků)
+- [ ] Case studies (příběhy úspěšných klientů)
+- [ ] Video content (YouTube)
+- [ ] Podcast interviews s kouči
+- [ ] Social media presence (Instagram, LinkedIn)
+
+#### **18.3 Paid Marketing**
+- [ ] Google Ads (keywords: koučink, kouč, osobní rozvoj)
+- [ ] Facebook/Instagram Ads
+- [ ] Retargeting campaigns
+- [ ] Affiliate program (20% komise za přivedeného klienta)
+
+### **Sprint 19: Partnerships** (10-15 hodin)
+
+#### **19.1 Koučovací Školy**
+- [ ] Partnerství s ICF ČR
+- [ ] Partnerství s koučovacími školami (Škola koučování, atd.)
+- [ ] "Absolventský program" - slevy pro čerstvé kouče
+- [ ] Certifikáty na platformě
+
+#### **19.2 Corporate Partnerships**
+- [ ] B2B balíčky (firmy kupují koučink pro zaměstnance)
+- [ ] Wellness programs
+- [ ] HR integrace
+
+### **Sprint 20: Advanced Features** (30-40 hodin)
+
+#### **20.1 Video Sessions**
+- [ ] Integrace Zoom/Google Meet
+- [ ] Booking system (1:1 sessions)
+- [ ] Calendar integration
+- [ ] Automated reminders
+
+#### **20.2 Community Features**
+- [ ] Forum pro klienty
+- [ ] Group coaching sessions
+- [ ] Peer support groups
+- [ ] Events & workshops
+
+#### **20.3 Mobile App**
+- [ ] React Native app (iOS + Android)
+- [ ] Push notifications
+- [ ] Offline mode (stažené materiály)
+- [ ] In-app purchases
+
+### **Sprint 21: Analytics & Optimization** (10-15 hodin)
+
+#### **21.1 Advanced Analytics**
+- [ ] Google Analytics 4
+- [ ] Mixpanel/Amplitude
+- [ ] Funnel analysis
+- [ ] A/B testing (pricing, landing pages)
+- [ ] Cohort analysis
+
+#### **21.2 Performance Optimization**
+- [ ] CDN (Cloudflare)
+- [ ] Image optimization (WebP, lazy loading)
+- [ ] Code splitting
+- [ ] Lighthouse score 90+ (všechny metriky)
+
+**Odhad času FÁZE 3**: 100-150 hodin
+**Náklady měsíčně**: Marketing ($500-2000), Tools ($100), Infrastructure ($50)
+
+---
+
+## 💰 **BUSINESS PROJEKCE**
+
+### **Optimistic Scenario (18 měsíců)**
+
+```
+Měsíc 1-3 (FÁZE 1 dokončení):
+- Lenka testuje platformu jako koučka
+- Gain 5-10 klientů (vlastní síť)
+- Revenue: 10 000 - 20 000 Kč/měsíc (100% Lenka)
+
+Měsíc 4-6 (FÁZE 2 launch):
+- Onboarding prvních 5 koučů
+- Každý kouč průměrně 3 klienti/měsíc
+- Průměrná cena programu: 2000 Kč
+- Revenue celkem: 5 koučů × 3 klienti × 2000 = 30 000 Kč/měsíc
+- Lenka's cut (30%): 9 000 Kč/měsíc
+
+Měsíc 7-12 (Growth):
+- 20 aktivních koučů
+- Průměrně 5 klientů/kouč/měsíc
+- Revenue: 20 × 5 × 2000 = 200 000 Kč/měsíc
+- Lenka's cut: 60 000 Kč/měsíc
+
+Měsíc 13-18 (Scaling):
+- 50 aktivních koučů
+- Průměrně 8 klientů/kouč/měsíc
+- Revenue: 50 × 8 × 2000 = 800 000 Kč/měsíc
+- Lenka's cut: 240 000 Kč/měsíc
+```
+
+### **Realistic Scenario**
+
+- 50% of Optimistic = 120 000 Kč/měsíc po 18 měsících
+- Stále velmi slušný výsledek!
+
+---
+
+## ⚖️ **LEGAL & COMPLIANCE CHECKLIST**
+
+### **Před FÁZE 2 launch:**
+- [ ] Živnostenský list (nebo s.r.o.)
+- [ ] Obchodní podmínky (T&C)
+  - [ ] Commission Agreement s kouči
+  - [ ] Refund policy
+  - [ ] Content guidelines
+- [ ] Privacy Policy (GDPR compliant)
+- [ ] Cookie consent
+- [ ] Invoice system (fakturace koučů)
+- [ ] Accounting setup (účetní software)
+- [ ] Insurance (podnikatelské pojištění)
+
+### **Konzultace:**
+- [ ] Právník (smlouvy, T&C)
+- [ ] Účetní (DPH, daně z provizí)
+- [ ] Finančák (Stripe compliance, AML)
+
+**Odhad nákladů**: 15 000 - 30 000 Kč (jednorázově)
+
+---
+
+## 🎯 **KEY SUCCESS METRICS**
+
+### **FÁZE 1 (MVP):**
+- ✅ Fungující taxonomy system
+- ✅ 10+ vlastních materiálů
+- ✅ 5+ vlastních klientů
+- ✅ Pozitivní feedback od klientů
+
+### **FÁZE 2 (Marketplace):**
+- 🎯 5 schválených koučů (prvních 6 měsíců)
+- 🎯 50+ aktivních klientů
+- 🎯 100 000 Kč celkový revenue/měsíc
+- 🎯 4.5+ star average rating
+
+### **FÁZE 3 (Scaling):**
+- 🎯 50+ aktivních koučů
+- 🎯 500+ aktivních klientů
+- 🎯 500 000 Kč+ revenue/měsíc
+- 🎯 Break-even (náklady < výnosy)
+
+---
+
 ## ✅ **Session 11b: Modularity Cleanup & UI Polish (1.11.2025 večer)** - HOTOVO!
 
 **Datum:** 1. listopadu 2025, 18:15 - 20:30
@@ -5517,4 +6005,220 @@ const migrateSharedMaterials = async () => {
 **FÁZE 2**: 📝 Naplánováno (15-20 hodin)
 **Dev Server**: ✅ Běží bez chyb na http://localhost:3000/
 **Příští priorita**: Implementovat plnou strukturu pro třídění (Coaching Area + Topic + Style) 🚀
+
+---
+
+## ✅ **Session 11c: MaterialCard Single-Column Layout & Responsive Fix (2.11.2025)** - HOTOVO!
+
+**Datum:** 2. listopadu 2025, dopoledne
+**AI:** Claude Sonnet 4.5
+**Čas:** ~3 hodiny
+**Status:** ✅ DOKONČENO
+
+### **Kontext - Broken State**
+
+**CRITICAL**: Session 11b rozbila projekt!
+- MaterialCard.jsx kompletně změněn (~240 řádků smazáno)
+- Responsiveness pro 320-420px ztracena (ladění ~2 dny)
+- User: "V předchozí konverzaci se nám povedlo projekt rozhodit"
+
+### **11c.1 Git Restore**
+
+- ✅ `git restore --source=f561f83 MaterialCard.jsx`
+- ✅ `git restore --source=f561f83 MaterialsLibrary.jsx`
+- ✅ Ověřen stav před pokračováním
+
+### **11c.2 Step-by-Step Workflow LESSON**
+
+**Problém:**
+- Attempt #1: Implementoval rows 1-4 najednou → ❌ broken
+- Attempt #2: Po Row 1 approval udělal rows 2-8 → ❌ broken
+- User: "To fakt nejde. A ty uděláš první a druhý řádek, já řeknu ok, a ty pak děláš všechno najednout."
+
+**Solution:**
+```
+1. Implementuj JEDEN řádek
+2. Čekej na "ano, [next row]" approval
+3. Teprve pak pokračuj
+```
+
+### **11c.3 MaterialCard Single-Column Layout - 8 Rows**
+
+- ✅ **Row 1**: Large icon left + action icons right (Eye, Pencil, Share2, Trash2)
+- ✅ **Row 2**: Category chip (minimalistický uppercase style)
+- ✅ **Row 3**: Metadata horizontal (duration/pages + file size)
+- ✅ **Row 4**: URL/filename with ellipsis (7 attempts - ellipsis hell!)
+- ✅ **Row 5**: Material title (2 lines, ellipsis)
+- ✅ **Row 6**: Description (3 lines, ellipsis)
+- ✅ **Row 7**: Taxonomy chips - PLACEHOLDER (čeká na implementaci)
+- ✅ **Row 8**: "Jak to vidí klientka" button
+
+**Removed:**
+- ✅ Entire old 2-column layout (~100 lines deleted)
+
+### **11c.4 Ellipsis Hell - 7 Attempts**
+
+**Problem:** Long URLs overflowed card on small screens
+
+**User feedback sequence:**
+- "tak a tady je ta chyba - už to na malých je vpravo ořezané"
+- "pořád ne"
+- "bohužel ne"
+- "nic"
+- "ok, a je to správný přístup?"
+
+**Final Solution (Attempt #7):**
+```javascript
+// minWidth: 0 CASCADE na všech úrovních!
+<Grid item sx={{ minWidth: 0 }}>
+  <motion.div style={{ minWidth: 0 }}>
+    <Card>
+      <CardContent>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ ...createTextEllipsis(1) }}>
+```
+
+**Root Cause:** CSS flexbox requires `minWidth: 0` on ENTIRE parent chain!
+
+### **11c.5 Responsive.js Module Created**
+
+**User question:** "Dobře, ale nepatří to do našeho modulu pro responzivitu spíš?"
+
+**Created:** `/src/shared/styles/responsive.js`
+
+```javascript
+export const createTextEllipsis = (lines = 1) => ({
+  display: '-webkit-box',
+  WebkitLineClamp: lines,
+  WebkitBoxOrient: 'vertical',
+  overflow: 'hidden',
+  wordBreak: 'break-word',
+  overflowWrap: 'anywhere',
+  minWidth: 0,
+});
+```
+
+**Why new file?**
+- Plain function (not React hook)
+- Solves responsive problem
+- Room for future utilities
+- Proper separation of concerns
+
+**Cleanup:**
+- ✅ Removed createTextEllipsis from modernEffects.js
+
+### **11c.6 Custom Breakpoint - xsm: 480px**
+
+**User:** "Já ale přemýšlím, jestli by se neměly ukazovat 2 karty už dřív než na 600 px"
+
+**Implemented in natureTheme.js:**
+```javascript
+breakpoints: {
+  values: {
+    xs: 0,
+    xsm: 480,    // ← Custom breakpoint pro 2 karty
+    sm: 600,
+    md: 900,
+    lg: 1200,
+    xl: 1536,
+  }
+}
+```
+
+**Grid updated:**
+```javascript
+<Grid item xs={12} xsm={6} sm={6} md={4} lg={3} sx={{ minWidth: 0 }}>
+```
+
+**User question:** "ješttě mi řekni, jesli toto nepatří do responsivního modulu"
+
+**Answer:** NO - breakpoints MUST stay in theme (MUI API requirement)
+
+### **Soubory**
+
+**Vytvořené (1):**
+- `/src/shared/styles/responsive.js` - Modular responsive utilities
+
+**Upravené (3):**
+- `MaterialCard.jsx` - Complete refactor to single-column (8 rows)
+- `MaterialsLibrary.jsx` - Grid with xsm breakpoint + minWidth: 0
+- `natureTheme.js` - Custom xsm: 480 breakpoint
+
+### **Statistiky**
+
+- **Řádky kódu**: Deleted ~100, Added ~150
+- **Debugging time**: ~90 minut (ellipsis hell)
+- **Total time**: ~3 hodiny
+
+### **KRITICKÉ LEKCE**
+
+#### **1. Step-by-Step Workflow is MANDATORY**
+```
+❌ ŠPATNĚ: Implement rows 1-4 at once
+✅ SPRÁVNĚ: ONE row → wait for approval → next row
+```
+
+#### **2. CSS Flexbox Ellipsis = minWidth: 0 CASCADE**
+```javascript
+// MUSÍ BÝT NA VŠECH ÚROVNÍCH!
+Grid item → motion.div → Card → CardContent → Box → Typography
+```
+
+#### **3. WebKit Line-Clamp Pattern**
+```javascript
+{
+  display: '-webkit-box',
+  WebkitLineClamp: lines,
+  WebkitBoxOrient: 'vertical',
+  overflow: 'hidden',
+  wordBreak: 'break-word',
+  overflowWrap: 'anywhere',
+  minWidth: 0,
+}
+```
+
+#### **4. Separation of Concerns**
+```
+React Hooks → /src/shared/hooks/
+Plain Functions → /src/shared/styles/
+Theme Config → /src/shared/themes/
+```
+
+#### **5. MUI Breakpoints = Theme Only**
+Cannot be extracted to responsive.js - MUI needs them at initialization
+
+#### **6. Git Restore Strategy**
+```bash
+git restore --source=f561f83 path/to/file.jsx
+git diff  # VŽDY zkontrolovat před pokračováním
+```
+
+### **Production Readiness**
+
+- [x] Single-column layout (8 rows)
+- [x] Responsiveness 320px+ preserved
+- [x] Touch targets 44×44px
+- [x] Ellipsis working everywhere
+- [x] Custom breakpoint xsm: 480px
+- [x] Modular responsive system
+- [x] All 6 modular systems applied
+- [x] Clean code, no duplicates
+- [x] Dark/light mode tested
+- [x] No console errors
+
+### **Pending (Row 7)**
+
+- [ ] Taxonomy system implementation
+- [ ] Coaching Area chip
+- [ ] Topic chips
+- [ ] Style chip
+
+---
+
+**Status**: ✅ Session 11c DOKONČENA
+**MaterialCard**: Single-column layout plně funkční
+**Responsiveness**: 320px+ zachována
+**Dev Server**: ✅ Běží bez chyb
+**Dokumentace**: ✅ summary.md + claude.md + MASTER_TODO_V2.md aktualizovány
+**Příští priorita**: Implementovat Taxonomy systém (Row 7 v MaterialCard) 🚀
 

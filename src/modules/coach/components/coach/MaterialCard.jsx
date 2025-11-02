@@ -41,6 +41,7 @@ import AddMaterialModal from './AddMaterialModal';
 import ShareMaterialModal from './ShareMaterialModal';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { createBackdrop, createGlassDialog, createIconButton, createClientPreviewButton } from '../../../../shared/styles/modernEffects';
+import { createTextEllipsis } from '../../../../shared/styles/responsive';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
 import { QuickTooltip } from '@shared/components/AppTooltip';
 import { useNotification } from '@shared/context/NotificationContext';
@@ -269,6 +270,7 @@ const MaterialCard = ({
           ...glassCardStyles,
           height: '100%',
           minHeight: 280,
+          minWidth: 0,
           display: 'flex',
           flexDirection: 'column',
           borderRadius: BORDER_RADIUS.card,
@@ -287,35 +289,14 @@ const MaterialCard = ({
             flexGrow: 1,
             p: 3,
             pr: 2.5,
+            minWidth: 0,
+            overflow: 'hidden',
             '&:last-child': { pb: 3 }
           }}
         >
-          {/* Horní řádek: Kategorie chip + Ikona/Logo (proklikávací) */}
-          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={0}>
-            <Chip
-              label={getCategoryLabel(material.category)}
-              size="small"
-              sx={{
-                height: isVeryNarrow ? 14 : 16,
-                fontSize: isVeryNarrow ? '0.55rem' : '0.6rem',
-                fontWeight: 500,
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                backgroundColor: isDark
-                  ? 'rgba(139, 188, 143, 0.15)'
-                  : 'rgba(139, 188, 143, 0.12)',
-                border: 'none',
-                color: isDark ? 'rgba(139, 188, 143, 0.95)' : 'rgba(85, 107, 47, 0.95)',
-                '& .MuiChip-label': {
-                  px: isVeryNarrow ? 0.5 : 0.75,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }
-              }}
-            />
-
-            {/* Ikona/Logo v pravém rohu - PROKLIKÁVACÍ (otevře přímo) */}
+          {/* Řádek 1: Velká ikona vlevo + Akční ikony vpravo */}
+          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1.5}>
+            {/* Velká ikona/logo VLEVO - PROKLIKÁVACÍ */}
             <QuickTooltip title={
               material.type === 'link' && material.linkMeta?.label
                 ? `Otevřít na ${material.linkMeta.label}`
@@ -339,7 +320,6 @@ const MaterialCard = ({
                 rel="noopener noreferrer"
                 sx={{
                   p: 0,
-                  mr: -0.5,
                   '&:hover': {
                     backgroundColor: isDark ? 'rgba(139, 188, 143, 0.1)' : 'rgba(139, 188, 143, 0.08)',
                   }
@@ -348,319 +328,241 @@ const MaterialCard = ({
                 {renderIcon()}
               </IconButton>
             </QuickTooltip>
-          </Box>
 
-          {/* Hlavní content: Text obsah | Akční ikony */}
-          <Box
-            display="flex"
-            gap={isVeryNarrow ? 0.75 : 1}
-            alignItems="stretch"
-            flex={1}
-          >
-            {/* Levý sloupec: Text obsah (plná šířka) */}
-            <Box
-              display="flex"
-              flexDirection="column"
-              gap={0.5}
-              sx={{
-                flex: '1 1 0px',
-                minWidth: 0,
-                width: 0,
-                overflow: 'hidden',
-                mt: -2,
-              }}
-            >
-                {/* Řádek 1: URL nebo fileName (vždy přítomen, i když prázdný) */}
-                <Box
-                  display="flex"
-                  alignItems="center"
-                  gap={0.5}
-                  sx={{
-                    minWidth: 0,
-                    overflow: 'hidden',
-                    minHeight: '1.2em',
-                  }}
-                >
-                  {(material.type === 'link' && material.content) ? (
-                    <>
-                      <Link2
-                        size={isVeryNarrow ? 11 : 12}
-                        style={{ flexShrink: 0 }}
-                        color={theme.palette.text.secondary}
-                      />
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: 'text.secondary',
-                          fontSize: '0.7rem',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          minWidth: 0,
-                        }}
-                      >
-                        {material.content}
-                      </Typography>
-                    </>
-                  ) : material.fileName ? (
-                    <>
-                      <Paperclip
-                        size={isVeryNarrow ? 11 : 12}
-                        style={{ flexShrink: 0 }}
-                        color={theme.palette.text.secondary}
-                      />
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: 'text.secondary',
-                          fontSize: '0.7rem',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          minWidth: 0,
-                        }}
-                      >
-                        {material.fileName}
-                      </Typography>
-                    </>
-                  ) : (
-                    <Typography variant="caption" sx={{ visibility: 'hidden', fontSize: '0.7rem' }}>
-                      &nbsp;
-                    </Typography>
-                  )}
-                </Box>
-
-                {/* Řádek 2: Velikost souboru (vždy přítomen, i když prázdný) */}
-                <Box
-                  display="flex"
-                  alignItems="center"
-                  gap={0.5}
-                  sx={{ minHeight: '1.2em' }}
-                >
-                  {material.fileSize ? (
-                    <>
-                      <HardDrive
-                        size={isVeryNarrow ? 11 : 12}
-                        style={{ flexShrink: 0 }}
-                        color={theme.palette.text.secondary}
-                      />
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: 'text.secondary',
-                          fontSize: '0.7rem',
-                        }}
-                      >
-                        {formatFileSize(material.fileSize)}
-                      </Typography>
-                    </>
-                  ) : (
-                    <Typography variant="caption" sx={{ visibility: 'hidden', fontSize: '0.7rem' }}>
-                      &nbsp;
-                    </Typography>
-                  )}
-                </Box>
-
-                {/* Řádek 3: Duration nebo počet stran (vždy přítomen, i když prázdný) */}
-                <Box
-                  display="flex"
-                  alignItems="center"
-                  gap={0.5}
-                  sx={{ minHeight: '1.2em' }}
-                >
-                  {material.duration ? (
-                    <>
-                      <Clock
-                        size={isVeryNarrow ? 11 : 12}
-                        style={{ flexShrink: 0 }}
-                        color={theme.palette.text.secondary}
-                      />
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: 'text.secondary',
-                          fontSize: '0.7rem',
-                        }}
-                      >
-                        {formatDuration(material.duration)}
-                      </Typography>
-                    </>
-                  ) : material.pageCount ? (
-                    <>
-                      <FileText
-                        size={isVeryNarrow ? 11 : 12}
-                        style={{ flexShrink: 0 }}
-                        color={theme.palette.text.secondary}
-                      />
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: 'text.secondary',
-                          fontSize: '0.7rem',
-                        }}
-                      >
-                        {material.pageCount} {material.pageCount === 1 ? 'strana' : material.pageCount < 5 ? 'strany' : 'stran'}
-                      </Typography>
-                    </>
-                  ) : (
-                    <Typography variant="caption" sx={{ visibility: 'hidden', fontSize: '0.7rem' }}>
-                      &nbsp;
-                    </Typography>
-                  )}
-                </Box>
-
-                {/* 4. Název materiálu */}
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontSize: isVeryNarrow ? '0.95rem' : { xs: '0.95rem', sm: '1rem' },
-                    fontWeight: 600,
-                    color: 'text.primary',
-                    lineHeight: 1.3,
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    overflowWrap: 'anywhere',
-                    wordBreak: 'break-word',
-                    hyphens: 'auto',
-                    minWidth: 0,
-                    minHeight: '2.6em', // 2 řádky × 1.3 lineHeight
-                    mt: 0.5,
-                  }}
-                >
-                  {material.title}
-                </Typography>
-
-                {/* 5. Popis */}
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: 'text.secondary',
-                    fontSize: isVeryNarrow ? '0.75rem' : { xs: '0.8rem', sm: '0.825rem' },
-                    lineHeight: 1.4,
-                    display: '-webkit-box',
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    overflowWrap: 'anywhere',
-                    wordBreak: 'break-word',
-                    hyphens: 'auto',
-                    minWidth: 0,
-                    minHeight: '4.2em', // 3 řádky × 1.4 lineHeight
-                  }}
-                >
-                  {material.description || '\u00A0'}
-                </Typography>
-
-                {/* Tlačítko "Jak to vidí klientka" */}
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<User size={14} />}
-                  onClick={handleClientPreview}
-                  sx={{
-                    mt: 1.5,
-                    ...createClientPreviewButton(isDark)
-                  }}
-                >
-                  Jak to vidí klientka
-                </Button>
-            </Box>
-
-            {/* Pravý sloupec: Akční ikony */}
-            <Box
-              display="flex"
-              flexDirection="column"
-              alignItems="flex-end"
-              gap={0}
-              sx={{
-                flexShrink: 0
-              }}
-            >
-              {/* Náhled */}
-              <QuickTooltip title="Otevřít v náhledu">
+            {/* Akční ikony VPRAVO */}
+            <Box display="flex" alignItems="center" gap={isVeryNarrow ? 0.5 : 0.75}>
+              <QuickTooltip title="Zobrazit detail">
                 <IconButton
-                  size="small"
                   onClick={() => setPreviewOpen(true)}
-                  sx={{
-                    ...createIconButton('secondary', isDark, 'small'),
-                    mt: 'auto',
-                    minWidth: 44,
-                    minHeight: 32,
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    alignItems: 'center',
-                    pr: 0,
-                    py: 0.5
-                  }}
+                  sx={createIconButton('secondary', isDark, 'small')}
                 >
-                  <Eye size={isVeryNarrow ? 20 : 18} />
+                  <Eye size={isVeryNarrow ? 16 : 18} />
                 </IconButton>
               </QuickTooltip>
 
-              {/* Sdílet s klientkou */}
-              <QuickTooltip title="Sdílet s klientkou">
-                <IconButton
-                  size="small"
-                  onClick={handleShareMaterial}
-                  disabled={isSharing}
-                  sx={{
-                    ...createIconButton('secondary', isDark, 'small'),
-                    minWidth: 44,
-                    minHeight: 32,
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    alignItems: 'center',
-                    pr: 0,
-                    py: 0.5
-                  }}
-                >
-                  <Share2 size={isVeryNarrow ? 20 : 18} />
-                </IconButton>
-              </QuickTooltip>
-
-              {/* Editace */}
               <QuickTooltip title="Upravit materiál">
                 <IconButton
-                  size="small"
                   onClick={() => setEditOpen(true)}
-                  sx={{
-                    ...createIconButton('secondary', isDark, 'small'),
-                    minWidth: 44,
-                    minHeight: 32,
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    alignItems: 'center',
-                    pr: 0,
-                    py: 0.5
-                  }}
+                  sx={createIconButton('secondary', isDark, 'small')}
                 >
-                  <Pencil size={isVeryNarrow ? 20 : 18} />
+                  <Pencil size={isVeryNarrow ? 16 : 18} />
                 </IconButton>
               </QuickTooltip>
 
-              {/* Smazat */}
+              <QuickTooltip title="Sdílet s klientkou">
+                <IconButton
+                  onClick={handleShareMaterial}
+                  disabled={isSharing}
+                  sx={createIconButton('secondary', isDark, 'small')}
+                >
+                  <Share2 size={isVeryNarrow ? 16 : 18} />
+                </IconButton>
+              </QuickTooltip>
+
               <QuickTooltip title="Smazat materiál">
                 <IconButton
-                  size="small"
                   onClick={handleDeleteClick}
-                  sx={{
-                    ...createIconButton('error', isDark, 'small'),
-                    pt: 3,
-                    minWidth: 44,
-                    minHeight: 44,
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    alignItems: 'center',
-                    pr: 0
-                  }}
+                  sx={createIconButton('error', isDark, 'small')}
                 >
-                  <Trash2 size={isVeryNarrow ? 20 : 18} />
+                  <Trash2 size={isVeryNarrow ? 16 : 18} />
                 </IconButton>
               </QuickTooltip>
             </Box>
           </Box>
+
+          {/* Řádek 2: Chip kategorie */}
+          <Box mb={1}>
+            <Chip
+              label={getCategoryLabel(material.category)}
+              size="small"
+              sx={{
+                height: isVeryNarrow ? 14 : 16,
+                fontSize: isVeryNarrow ? '0.55rem' : '0.6rem',
+                fontWeight: 500,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                backgroundColor: isDark
+                  ? 'rgba(139, 188, 143, 0.15)'
+                  : 'rgba(139, 188, 143, 0.12)',
+                border: 'none',
+                color: isDark ? 'rgba(139, 188, 143, 0.95)' : 'rgba(85, 107, 47, 0.95)',
+                '& .MuiChip-label': {
+                  px: isVeryNarrow ? 0.5 : 0.75,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }
+              }}
+            />
+          </Box>
+
+          {/* Řádek 3: Metadata vedle sebe */}
+          <Box display="flex" alignItems="center" gap={1.5} mb={1} flexWrap="wrap">
+            {/* Duration nebo počet stran */}
+            {(material.duration || material.pageCount) && (
+              <Box display="flex" alignItems="center" gap={0.5}>
+                {material.duration ? (
+                  <>
+                    <Clock
+                      size={isVeryNarrow ? 11 : 12}
+                      style={{ flexShrink: 0 }}
+                      color={theme.palette.text.secondary}
+                    />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: 'text.secondary',
+                        fontSize: '0.7rem',
+                      }}
+                    >
+                      {formatDuration(material.duration)}
+                    </Typography>
+                  </>
+                ) : (
+                  <>
+                    <FileText
+                      size={isVeryNarrow ? 11 : 12}
+                      style={{ flexShrink: 0 }}
+                      color={theme.palette.text.secondary}
+                    />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: 'text.secondary',
+                        fontSize: '0.7rem',
+                      }}
+                    >
+                      {material.pageCount} {material.pageCount === 1 ? 'strana' : material.pageCount < 5 ? 'strany' : 'stran'}
+                    </Typography>
+                  </>
+                )}
+              </Box>
+            )}
+
+            {/* Velikost souboru */}
+            {material.fileSize && (
+              <Box display="flex" alignItems="center" gap={0.5}>
+                <HardDrive
+                  size={isVeryNarrow ? 11 : 12}
+                  style={{ flexShrink: 0 }}
+                  color={theme.palette.text.secondary}
+                />
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'text.secondary',
+                    fontSize: '0.7rem',
+                  }}
+                >
+                  {formatFileSize(material.fileSize)}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+
+          {/* Řádek 4: URL nebo název souboru */}
+          <Box
+            display="flex"
+            alignItems="center"
+            gap={0.5}
+            mb={1}
+            sx={{
+              minHeight: '1.2em',
+              minWidth: 0,
+              maxWidth: '100%',
+              width: '100%',
+              overflow: 'hidden'
+            }}
+          >
+            {(material.type === 'link' && material.content) ? (
+              <>
+                <Link2
+                  size={isVeryNarrow ? 11 : 12}
+                  style={{ flexShrink: 0 }}
+                  color={theme.palette.text.secondary}
+                />
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'text.secondary',
+                    fontSize: '0.7rem',
+                    flex: 1,
+                    ...createTextEllipsis(1),
+                  }}
+                >
+                  {material.content}
+                </Typography>
+              </>
+            ) : material.fileName ? (
+              <>
+                <Paperclip
+                  size={isVeryNarrow ? 11 : 12}
+                  style={{ flexShrink: 0 }}
+                  color={theme.palette.text.secondary}
+                />
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'text.secondary',
+                    fontSize: '0.7rem',
+                    flex: 1,
+                    ...createTextEllipsis(1),
+                  }}
+                >
+                  {material.fileName}
+                </Typography>
+              </>
+            ) : null}
+          </Box>
+
+          {/* Řádek 5: Název materiálu */}
+          <Typography
+            variant="h6"
+            sx={{
+              fontSize: isVeryNarrow ? '0.95rem' : { xs: '0.95rem', sm: '1rem' },
+              fontWeight: 600,
+              color: 'text.primary',
+              lineHeight: 1.3,
+              minHeight: '2.6em',
+              mt: 0.5,
+              mb: 1,
+              ...createTextEllipsis(2),
+            }}
+          >
+            {material.title}
+          </Typography>
+
+          {/* Řádek 6: Popis */}
+          <Typography
+            variant="body2"
+            sx={{
+              color: 'text.secondary',
+              fontSize: isVeryNarrow ? '0.75rem' : { xs: '0.8rem', sm: '0.825rem' },
+              lineHeight: 1.4,
+              minHeight: '4.2em',
+              mb: 1,
+              ...createTextEllipsis(3),
+            }}
+          >
+            {material.description || '\u00A0'}
+          </Typography>
+
+          {/* Řádek 7: Taxonomy chips - TODO: implementovat až bude taxonomy systém */}
+
+          {/* Řádek 8: Tlačítko "Jak to vidí klientka" */}
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<User size={14} />}
+            onClick={handleClientPreview}
+            sx={{
+              mt: 1.5,
+              ...createClientPreviewButton(isDark)
+            }}
+          >
+            Jak to vidí klientka
+          </Button>
+
         </CardContent>
       </Card>
 

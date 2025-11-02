@@ -51,6 +51,16 @@ export const createNatureTheme = (mode = 'light') => {
   const colors = natureColors[mode];
 
   const baseTheme = createTheme({
+    breakpoints: {
+      values: {
+        xs: 0,
+        xsm: 480,    // ← Custom breakpoint pro 2 karty
+        sm: 600,
+        md: 900,
+        lg: 1200,
+        xl: 1536,
+      },
+    },
     palette: {
       mode,
       primary: {
