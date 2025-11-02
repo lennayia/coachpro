@@ -93,9 +93,9 @@ export const getCoachById = (id) => {
  *
  * // Coaching Taxonomy (NOVÉ od Session 12):
  * @property {string} coachingArea - Oblast koučinku (POVINNÉ) - 'life' | 'career' | 'relationship' | 'health' | 'financial' | 'spiritual' | 'parenting' | 'other'
- * @property {string[]} topics - Témata (VOLITELNÉ, doporučeno 3-5) - např. ['Sebevědomí', 'Motivace']
- * @property {string} coachingStyle - Škola/přístup (POVINNÉ) - 'icf' | 'nlp' | 'ontological' | 'positive' | 'mindfulness' | 'systemic' | 'integrative' | 'general'
- * @property {string} coachingAuthority - Koučovací škola/certifikace (VOLITELNÉ) - 'icf' | 'emcc' | 'ac' | 'erickson' | 'cti' | 'nlp-university' | 'ipec' | 'coaching-center' | 'institut-systemickeho-koucovani' | 'other' | 'none'
+ * @property {string[]} [topics] - Témata (VOLITELNÉ, doporučeno 3-5) - např. ['Sebevědomí', 'Motivace']
+ * @property {string} [coachingStyle] - Škola/přístup (VOLITELNÉ) - 'icf' | 'nlp' | 'ontological' | 'positive' | 'mindfulness' | 'systemic' | 'integrative' | 'general'
+ * @property {string} [coachingAuthority] - Koučovací škola/certifikace (VOLITELNÉ) - 'icf' | 'emcc' | 'ac' | 'erickson' | 'cti' | 'nlp-university' | 'ipec' | 'coaching-center' | 'institut-systemickeho-koucovani' | 'other' | 'none'
  *
  * // File-based materials:
  * @property {number} [duration] - Délka v sekundách (audio/video)

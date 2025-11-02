@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -34,6 +34,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { formatDuration, formatFileSize, getCategoryLabel } from '@shared/utils/helpers';
 import { deleteMaterial, getCurrentUser, getPrograms, setCurrentClient, createSharedMaterial } from '../../utils/storage';
+import { getAreaLabel, getAreaIcon, getStyleLabel, getAuthorityLabel } from '@shared/constants/coachingTaxonomy';
 import { generateUUID } from '../../utils/generateCode';
 import ServiceLogo from '../shared/ServiceLogo';
 import PreviewModal from '../shared/PreviewModal';
@@ -547,7 +548,116 @@ const MaterialCard = ({
             {material.description || '\u00A0'}
           </Typography>
 
-          {/* Řádek 7: Taxonomy chips - TODO: implementovat až bude taxonomy systém */}
+          {/* Řádek 7: Taxonomy chips */}
+          {material.coachingArea && (
+            <Box display="flex" flexWrap="wrap" gap={0.5} mb={1.5}>
+              {/* Coaching Area chip s ikonou */}
+              <Chip
+                icon={React.createElement(getAreaIcon(material.coachingArea), {
+                  size: isVeryNarrow ? 10 : 11,
+                  style: { marginLeft: '6px' }
+                })}
+                label={getAreaLabel(material.coachingArea)}
+                size="small"
+                sx={{
+                  height: isVeryNarrow ? 16 : 18,
+                  fontSize: isVeryNarrow ? '0.6rem' : '0.65rem',
+                  fontWeight: 500,
+                  backgroundColor: isDark
+                    ? 'rgba(139, 188, 143, 0.2)'
+                    : 'rgba(139, 188, 143, 0.15)',
+                  border: 'none',
+                  color: isDark
+                    ? 'rgba(139, 188, 143, 0.95)'
+                    : 'rgba(85, 107, 47, 0.95)',
+                }}
+              />
+
+              {/* Topics chips - max 3 viditelné */}
+              {material.topics && material.topics.length > 0 && (
+                <>
+                  {material.topics.slice(0, 3).map((topic, index) => (
+                    <Chip
+                      key={index}
+                      label={topic}
+                      size="small"
+                      sx={{
+                        height: isVeryNarrow ? 16 : 18,
+                        fontSize: isVeryNarrow ? '0.6rem' : '0.65rem',
+                        fontWeight: 400,
+                        backgroundColor: isDark
+                          ? 'rgba(255, 255, 255, 0.08)'
+                          : 'rgba(0, 0, 0, 0.06)',
+                        border: 'none',
+                        color: 'text.secondary',
+                      }}
+                    />
+                  ))}
+
+                  {/* "+X dalších" chip pokud je více než 3 topics */}
+                  {material.topics.length > 3 && (
+                    <Chip
+                      label={`+${material.topics.length - 3} dalších`}
+                      size="small"
+                      sx={{
+                        height: isVeryNarrow ? 16 : 18,
+                        fontSize: isVeryNarrow ? '0.6rem' : '0.65rem',
+                        fontWeight: 500,
+                        backgroundColor: isDark
+                          ? 'rgba(255, 255, 255, 0.06)'
+                          : 'rgba(0, 0, 0, 0.04)',
+                        border: '1px dashed',
+                        borderColor: isDark
+                          ? 'rgba(255, 255, 255, 0.15)'
+                          : 'rgba(0, 0, 0, 0.15)',
+                        color: 'text.secondary',
+                      }}
+                    />
+                  )}
+                </>
+              )}
+
+              {/* Coaching Style chip - pokud definován */}
+              {material.coachingStyle && (
+                <Chip
+                  label={getStyleLabel(material.coachingStyle)}
+                  size="small"
+                  sx={{
+                    height: isVeryNarrow ? 16 : 18,
+                    fontSize: isVeryNarrow ? '0.6rem' : '0.65rem',
+                    fontWeight: 500,
+                    backgroundColor: isDark
+                      ? 'rgba(188, 143, 143, 0.2)'
+                      : 'rgba(188, 143, 143, 0.15)',
+                    border: 'none',
+                    color: isDark
+                      ? 'rgba(188, 143, 143, 0.95)'
+                      : 'rgba(150, 90, 90, 0.95)',
+                  }}
+                />
+              )}
+
+              {/* Coaching Authority chip - pokud definován */}
+              {material.coachingAuthority && (
+                <Chip
+                  label={getAuthorityLabel(material.coachingAuthority)}
+                  size="small"
+                  sx={{
+                    height: isVeryNarrow ? 16 : 18,
+                    fontSize: isVeryNarrow ? '0.6rem' : '0.65rem',
+                    fontWeight: 500,
+                    backgroundColor: isDark
+                      ? 'rgba(188, 176, 143, 0.2)'
+                      : 'rgba(188, 176, 143, 0.15)',
+                    border: 'none',
+                    color: isDark
+                      ? 'rgba(188, 176, 143, 0.95)'
+                      : 'rgba(150, 130, 90, 0.95)',
+                  }}
+                />
+              )}
+            </Box>
+          )}
 
           {/* Řádek 8: Tlačítko "Jak to vidí klientka" */}
           <Button

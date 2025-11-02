@@ -10,8 +10,10 @@ import {
   Select,
   MenuItem,
   InputAdornment,
+  Autocomplete,
+  Chip,
 } from '@mui/material';
-import { Search as SearchIcon, Add as AddIcon } from '@mui/icons-material';
+import { Search as SearchIcon, Add as AddIcon, FilterListOff as ClearIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import MaterialCard from './MaterialCard';
 import MaterialCardSkeleton from './MaterialCardSkeleton';
@@ -19,6 +21,12 @@ import AddMaterialModal from './AddMaterialModal';
 import { getCurrentUser, getMaterials } from '../../utils/storage';
 import { staggerContainer, staggerItem } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
+import {
+  COACHING_AREAS,
+  TOPICS,
+  COACHING_STYLES,
+  COACHING_AUTHORITIES,
+} from '@shared/constants/coachingTaxonomy';
 
 const MaterialsLibrary = () => {
   const currentUser = getCurrentUser();
@@ -27,6 +35,12 @@ const MaterialsLibrary = () => {
   const [filterCategory, setFilterCategory] = useState('all');
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Taxonomy filters (Session 12 - KROK 4)
+  const [filterCoachingArea, setFilterCoachingArea] = useState('all');
+  const [filterTopics, setFilterTopics] = useState([]);
+  const [filterCoachingStyle, setFilterCoachingStyle] = useState('all');
+  const [filterCoachingAuthority, setFilterCoachingAuthority] = useState('all');
 
   // Load materials on mount
   useEffect(() => {
@@ -49,11 +63,47 @@ const MaterialsLibrary = () => {
     setLoading(false);
   };
 
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSearchQuery('');
+    setFilterCategory('all');
+    setFilterCoachingArea('all');
+    setFilterTopics([]);
+    setFilterCoachingStyle('all');
+    setFilterCoachingAuthority('all');
+  };
+
   // Filtrované a prohledané materiály
   const filteredMaterials = useMemo(() => {
     return materials.filter(material => {
       // Filtr podle kategorie
       if (filterCategory !== 'all' && material.category !== filterCategory) {
+        return false;
+      }
+
+      // Filtr podle coaching area
+      if (filterCoachingArea !== 'all' && material.coachingArea !== filterCoachingArea) {
+        return false;
+      }
+
+      // Filtr podle topics (materiál musí obsahovat všechny vybrané topics)
+      if (filterTopics.length > 0) {
+        const materialTopics = material.topics || [];
+        const hasAllTopics = filterTopics.every(topic =>
+          materialTopics.includes(topic)
+        );
+        if (!hasAllTopics) {
+          return false;
+        }
+      }
+
+      // Filtr podle coaching style
+      if (filterCoachingStyle !== 'all' && material.coachingStyle !== filterCoachingStyle) {
+        return false;
+      }
+
+      // Filtr podle coaching authority
+      if (filterCoachingAuthority !== 'all' && material.coachingAuthority !== filterCoachingAuthority) {
         return false;
       }
 
@@ -68,7 +118,7 @@ const MaterialsLibrary = () => {
 
       return true;
     });
-  }, [materials, searchQuery, filterCategory]);
+  }, [materials, searchQuery, filterCategory, filterCoachingArea, filterTopics, filterCoachingStyle, filterCoachingAuthority]);
 
   return (
   <Box sx={{ px: 3 }}>
@@ -82,7 +132,7 @@ const MaterialsLibrary = () => {
       </Typography>
     </Box>
 
-    {/* Top bar - Search, Filter, Add */}
+    {/* Top bar - Search, Topics, Add */}
     <Box
       display="flex"
       flexDirection={{ xs: 'column', md: 'row' }}
@@ -105,38 +155,135 @@ const MaterialsLibrary = () => {
         }}
       />
 
-      {/* Filter + Add button */}
-      <Box display="flex" gap={2} flexWrap="wrap"> {/* ✅ Přidán flexWrap */}
-        <FormControl sx={{ minWidth: 200 }}>
-          <InputLabel>Kategorie</InputLabel>
-          <Select
-            value={filterCategory}
-            label="Kategorie"
-            onChange={(e) => setFilterCategory(e.target.value)}
-          >
-            <MenuItem value="all">Všechny kategorie</MenuItem>
-            <MenuItem value="meditation">Meditace</MenuItem>
-            <MenuItem value="affirmation">Afirmace</MenuItem>
-            <MenuItem value="exercise">Cvičení</MenuItem>
-            <MenuItem value="reflection">Reflexe</MenuItem>
-            <MenuItem value="template">Šablona</MenuItem>
-            <MenuItem value="worksheet">Pracovní list</MenuItem>
-            <MenuItem value="workbook">Pracovní sešit</MenuItem>
-            <MenuItem value="question">Otázky</MenuItem>
-            <MenuItem value="feedback">Zpětná vazba</MenuItem>
-            <MenuItem value="other">Ostatní</MenuItem>
-          </Select>
-        </FormControl>
+      {/* Topics - Multi-select Autocomplete */}
+      <Autocomplete
+        multiple
+        options={TOPICS}
+        value={filterTopics}
+        onChange={(event, newValue) => setFilterTopics(newValue)}
+        sx={{ flex: 1, maxWidth: { md: 400 } }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Témata"
+            placeholder="Vyber témata"
+          />
+        )}
+        renderTags={(value, getTagProps) =>
+          value.map((option, index) => (
+            <Chip
+              label={option}
+              size="small"
+              {...getTagProps({ index })}
+            />
+          ))
+        }
+      />
 
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setAddModalOpen(true)}
-          sx={{ whiteSpace: 'nowrap' }}
+      {/* Add button */}
+      <Button
+        variant="contained"
+        startIcon={<AddIcon />}
+        onClick={() => setAddModalOpen(true)}
+        sx={{ whiteSpace: 'nowrap' }}
+      >
+        Přidat materiál
+      </Button>
+    </Box>
+
+    {/* Taxonomy Filters (Session 12 - KROK 4) */}
+    <Box
+      display="flex"
+      flexWrap="wrap"
+      gap={2}
+      mb={4}
+      alignItems="center"
+    >
+      {/* Kategorie */}
+      <FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+        <InputLabel>Kategorie</InputLabel>
+        <Select
+          value={filterCategory}
+          label="Kategorie"
+          onChange={(e) => setFilterCategory(e.target.value)}
         >
-          Přidat materiál
-        </Button>
-      </Box>
+          <MenuItem value="all">Všechny kategorie</MenuItem>
+          <MenuItem value="meditation">Meditace</MenuItem>
+          <MenuItem value="affirmation">Afirmace</MenuItem>
+          <MenuItem value="exercise">Cvičení</MenuItem>
+          <MenuItem value="reflection">Reflexe</MenuItem>
+          <MenuItem value="template">Šablona</MenuItem>
+          <MenuItem value="worksheet">Pracovní list</MenuItem>
+          <MenuItem value="workbook">Pracovní sešit</MenuItem>
+          <MenuItem value="question">Otázky</MenuItem>
+          <MenuItem value="feedback">Zpětná vazba</MenuItem>
+          <MenuItem value="other">Ostatní</MenuItem>
+        </Select>
+      </FormControl>
+
+      {/* Coaching Area */}
+      <FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+        <InputLabel>Oblast koučinku</InputLabel>
+        <Select
+          value={filterCoachingArea}
+          label="Oblast koučinku"
+          onChange={(e) => setFilterCoachingArea(e.target.value)}
+        >
+          <MenuItem value="all">Všechny oblasti</MenuItem>
+          {COACHING_AREAS.map((area) => (
+            <MenuItem key={area.value} value={area.value}>
+              {area.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      {/* Coaching Style */}
+      <FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+        <InputLabel>Koučovací přístup</InputLabel>
+        <Select
+          value={filterCoachingStyle}
+          label="Koučovací přístup"
+          onChange={(e) => setFilterCoachingStyle(e.target.value)}
+        >
+          <MenuItem value="all">Všechny přístupy</MenuItem>
+          {COACHING_STYLES.map((style) => (
+            <MenuItem key={style.value} value={style.value}>
+              {style.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      {/* Coaching Authority */}
+      <FormControl sx={{ minWidth: { xs: '100%', sm: 250 } }}>
+        <InputLabel>Certifikace</InputLabel>
+        <Select
+          value={filterCoachingAuthority}
+          label="Certifikace"
+          onChange={(e) => setFilterCoachingAuthority(e.target.value)}
+        >
+          <MenuItem value="all">Všechny certifikace</MenuItem>
+          {COACHING_AUTHORITIES.map((authority) => (
+            <MenuItem key={authority.value} value={authority.value}>
+              {authority.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      {/* Vyčistit filtry tlačítko */}
+      <Button
+        variant="outlined"
+        startIcon={<ClearIcon />}
+        onClick={clearAllFilters}
+        sx={{
+          whiteSpace: 'nowrap',
+          minWidth: { xs: '100%', sm: 'auto' },
+        }}
+      >
+        Vyčistit filtry
+      </Button>
     </Box>
 
     {/* Grid materiálů */}

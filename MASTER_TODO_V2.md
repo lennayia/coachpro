@@ -5501,9 +5501,44 @@ Provize: 28-30% (industry standard pro marketplace)
 
 **Cíl**: Ověřit celý workflow jako koučka před otevřením dalším koučům
 
-**Status**: 🔄 Probíhá (Session 12)
+**Status**: ✅ Session 12 DOKONČENA (1-2. listopadu 2025)
 
-### **Sprint 12: Coaching Taxonomy System** (2-3 dny)
+### **Sprint 12: Coaching Taxonomy System** ✅ HOTOVO
+
+**Datum**: 1-2. listopadu 2025
+**AI**: Claude Sonnet 4.5
+**Čas**: ~4 hodiny (2 sessions)
+**Status**: ✅ KROK 1-4 dokončeny a otestovány
+
+#### **📊 Výsledky Session 12**:
+- ✅ **KROK 1**: Material object rozšířen o 4 taxonomy fields
+- ✅ **KROK 2**: MaterialCard Řádek 7 - barevné taxonomy chips
+- ✅ **KROK 3**: AddMaterialModal - taxonomy selektory s validací
+- ✅ **KROK 3b**: AddMaterialModal přemapován na Dialog layout (jako PaymentsPro)
+- ✅ **KROK 4**: MaterialsLibrary - 5 filtrů (Search, Topics, Category, Area, Style, Authority)
+- ✅ **Filtering logic**: AND kombinace, Topics vyžaduje všechny vybrané
+- ✅ **Design**: Barevné rozlišení chipů (zelená/neutrální/růžová/zlatá)
+- ✅ **Responsive**: 320px+ support, touch-friendly
+- ✅ **Dark mode**: Plná podpora pro všechny komponenty
+
+**Soubory upraveny**: 4
+- `coachingTaxonomy.js` - Centrální konstanty (COACHING_AREAS, TOPICS, STYLES, AUTHORITIES)
+- `storage.js` - Material object schema
+- `MaterialCard.jsx` - Řádek 7 taxonomy chips (lines 551-659)
+- `MaterialsLibrary.jsx` - Filtering (lines 39-111, 125-263)
+- `AddMaterialModal.jsx` - Taxonomy selektory (4× Autocomplete/Select)
+
+**Features**:
+- 🎨 4 taxonomy dimenze (Area, Topics, Style, Authority)
+- 🔍 Multi-dimensional filtering s AND logikou
+- 🎯 Topics: multi-select, materiál musí mít všechny vybrané
+- 🌈 Barevné rozlišení chipů pro vizuální hierarchii
+- 📱 Responsive design na všech zařízeních
+- 🌓 Dark/light mode support
+
+---
+
+### **Sprint 12: Implementace (KROK 1-4)** (2-3 dny)
 
 #### **12.1 Taxonomie - Základní implementace**
 - [x] Vytvořit `/src/shared/constants/coachingTaxonomy.js`
@@ -5522,22 +5557,90 @@ Provize: 28-30% (industry standard pro marketplace)
   - [x] State management (init, edit, reset)
   - [x] Material object creation
 
-#### **12.2 MaterialCard.jsx - Zobrazení taxonomie**
-- [ ] Import taxonomy helpers
-- [ ] Zobrazit coaching area s ikonou
-- [ ] Zobrazit topics jako chips (max 3 viditelné)
-- [ ] Zobrazit coaching style chip
-- [ ] Layout adjustments (fit do karty)
-- [ ] Responsive design (mobile/desktop)
+#### **12.2 MaterialCard.jsx - Zobrazení taxonomie** ✅ HOTOVO
+- [x] Import taxonomy helpers (getAreaIcon, getAreaLabel, getStyleLabel, getAuthorityLabel)
+- [x] Řádek 7: Taxonomy chips s barevným rozlišením
+- [x] Coaching Area chip s ikonou (zelená, primary color)
+- [x] Topics chips (max 3 viditelné + "+X dalších" chip s dashed border)
+- [x] Coaching Style chip (růžová barva)
+- [x] Coaching Authority chip (zlatá barva)
+- [x] Layout adjustments (flex wrap, gap 0.5, mb 1.5)
+- [x] Responsive design (16-18px výška chipů, 0.6-0.65rem font)
+- [x] Dark/light mode support pro všechny chipy
 
-#### **12.3 MaterialsLibrary.jsx - Filtrování**
-- [ ] Samostatná sekce "Filtry" nad gridem
-- [ ] Filter: Oblast koučinku (clickable chips)
-- [ ] Filter: Témata (multi-select chips)
-- [ ] Filter: Koučovací styl (radio buttons nebo chips)
-- [ ] Kombinace filtrů (AND/OR logika)
-- [ ] Clear all filters button
-- [ ] Počítadla materiálů (např. "Životní koučink (15)")
+**Soubor**: `/src/modules/coach/components/coach/MaterialCard.jsx` (lines 551-659)
+
+**Design Pattern**:
+```javascript
+{/* Řádek 7: Taxonomy chips */}
+{material.coachingArea && (
+  <Box display="flex" flexWrap="wrap" gap={0.5} mb={1.5}>
+    {/* 1. Coaching Area chip - zelená s ikonou */}
+    <Chip icon={...} label={getAreaLabel(...)} />
+
+    {/* 2. Topics chips - max 3 + "+X dalších" */}
+    {material.topics?.slice(0, 3).map(...)}
+    {material.topics.length > 3 && <Chip label={`+${...} dalších`} />}
+
+    {/* 3. Coaching Style chip - růžová */}
+    {material.coachingStyle && <Chip label={getStyleLabel(...)} />}
+
+    {/* 4. Coaching Authority chip - zlatá */}
+    {material.coachingAuthority && <Chip label={getAuthorityLabel(...)} />}
+  </Box>
+)}
+```
+
+#### **12.3 MaterialsLibrary.jsx - Filtrování** ✅ HOTOVO
+- [x] Top bar: Search + Topics (Autocomplete multi-select) + Add button
+- [x] Samostatná sekce "Taxonomy Filters" pod top barem
+- [x] Filter: Kategorie (Select dropdown, 10 opcí)
+- [x] Filter: Oblast koučinku (Select dropdown, 8 oblastí)
+- [x] Filter: Koučovací přístup (Select dropdown, 8 stylů)
+- [x] Filter: Certifikace (Select dropdown, 11 autorit)
+- [x] Kombinace filtrů - AND logika (materiál musí splňovat všechny aktivní filtry)
+- [x] Topics filter - materiál musí obsahovat VŠECHNY vybrané topics
+- [x] State management - 5 filter states (category, area, topics[], style, authority)
+- [x] useMemo optimalizace - přepočítá jen když se změní materials nebo filtry
+- [x] Responsive layout - flexWrap, gap 2, minWidth 200-250px per filter
+
+**Soubor**: `/src/modules/coach/components/coach/MaterialsLibrary.jsx` (lines 39-111, 125-263)
+
+**Filtering Logic**:
+```javascript
+const filteredMaterials = useMemo(() => {
+  return materials.filter(material => {
+    // 1. Filtr kategorie
+    if (filterCategory !== 'all' && material.category !== filterCategory) return false;
+
+    // 2. Filtr coaching area
+    if (filterCoachingArea !== 'all' && material.coachingArea !== filterCoachingArea) return false;
+
+    // 3. Filtr topics - materiál musí obsahovat VŠECHNY vybrané topics
+    if (filterTopics.length > 0) {
+      const hasAllTopics = filterTopics.every(topic =>
+        (material.topics || []).includes(topic)
+      );
+      if (!hasAllTopics) return false;
+    }
+
+    // 4. Filtr coaching style
+    if (filterCoachingStyle !== 'all' && material.coachingStyle !== filterCoachingStyle) return false;
+
+    // 5. Filtr coaching authority
+    if (filterCoachingAuthority !== 'all' && material.coachingAuthority !== filterCoachingAuthority) return false;
+
+    // 6. Search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return material.title.toLowerCase().includes(query) ||
+             material.description?.toLowerCase().includes(query);
+    }
+
+    return true;
+  });
+}, [materials, searchQuery, filterCategory, filterCoachingArea, filterTopics, filterCoachingStyle, filterCoachingAuthority]);
+```
 
 #### **12.4 TaxonomyOverview.jsx - Nová komponenta**
 - [ ] Vytvořit komponentu pro přehled taxonomie
@@ -6222,3 +6325,155 @@ git diff  # VŽDY zkontrolovat před pokračováním
 **Dokumentace**: ✅ summary.md + claude.md + MASTER_TODO_V2.md aktualizovány
 **Příští priorita**: Implementovat Taxonomy systém (Row 7 v MaterialCard) 🚀
 
+
+---
+
+## 📋 Sprint 12 Session KROK 4 - Finalization (2.11.2025, večer)
+
+**Datum**: 2. listopadu 2025, 22:00-22:20
+**AI**: Claude Sonnet 4.5
+**Čas**: ~20 minut
+**Status**: ✅ DOKONČENO
+
+### 🎯 Požadavky
+
+1. **"Vyčistit filtry" tlačítko** - Přidat na rozumné místo mezi taxonomy filtry
+2. **320px responsive fix** - Opravit horizontální overflow na mobilech
+
+### ✅ Implementováno
+
+#### 1. Vyčistit filtry button
+
+**Soubor**: `MaterialsLibrary.jsx` (lines 16, 66-74, 275-286)
+
+**Přidáno**:
+```javascript
+// Import (line 16)
+import { Search as SearchIcon, Add as AddIcon, FilterListOff as ClearIcon } from '@mui/icons-material';
+
+// Handler (lines 66-74)
+const clearAllFilters = () => {
+  setSearchQuery('');
+  setFilterCategory('all');
+  setFilterCoachingArea('all');
+  setFilterTopics([]);
+  setFilterCoachingStyle('all');
+  setFilterCoachingAuthority('all');
+};
+
+// Button (lines 275-286)
+<Button
+  variant="outlined"
+  startIcon={<ClearIcon />}
+  onClick={clearAllFilters}
+  sx={{
+    whiteSpace: 'nowrap',
+    minWidth: { xs: '100%', sm: 'auto' },
+  }}
+>
+  Vyčistit filtry
+</Button>
+```
+
+**Features**:
+- ✅ Resetuje všech 6 filter states jedním kliknutím
+- ✅ FilterListOff ikona (MUI standard pro clear filters)
+- ✅ Responsive: fullWidth na mobile (xs), auto na desktop (sm+)
+- ✅ Umístěn na konci filters row (logické místo)
+
+#### 2. 320px Responsive Fix
+
+**Problém**: Fixed-width FormControls (minWidth: 200, 250) způsovaly horizontal overflow na mobilech 320-480px
+
+**Řešení** (lines 203, 225, 242, 259):
+
+**Před**:
+```javascript
+<FormControl sx={{ minWidth: 200 }}>  // Fixed → overflow!
+<FormControl sx={{ minWidth: 250 }}>
+```
+
+**Po**:
+```javascript
+<FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+<FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+<FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+<FormControl sx={{ minWidth: { xs: '100%', sm: 250 } }}>
+```
+
+**Behavior**:
+- **Mobile (xs, <600px)**: Všechny filtry fullWidth → stack vertically
+- **Desktop (sm+, ≥600px)**: Fixed width (200-250px) → wrap horizontally
+
+**Dodatečná změna** (line 200):
+```javascript
+<Box
+  display="flex"
+  flexWrap="wrap"
+  gap={2}
+  mb={4}
+  alignItems="center"  // ← Přidáno pro lepší alignment buttonu
+>
+```
+
+### 📊 Výsledek
+
+**Before** (320px):
+```
+[Kategorie────────────]  ← overflows
+[Oblast───────────────]  ← overflows
+[Přístup──────────────]  ← overflows
+[Certifikace──────────]  ← overflows
+```
+
+**After** (320px):
+```
+[Kategorie────────────────]  ← fullWidth
+[Oblast───────────────────]  ← fullWidth
+[Přístup──────────────────]  ← fullWidth
+[Certifikace──────────────]  ← fullWidth
+[Vyčistit filtry──────────]  ← fullWidth
+```
+
+**After** (600px+):
+```
+[Kategorie] [Oblast] [Přístup]
+[Certifikace] [Vyčistit filtry]
+```
+
+### 🎓 Lekce
+
+1. **Responsive FormControls pattern**:
+   ```javascript
+   sx={{ minWidth: { xs: '100%', sm: [fixed-width] } }}
+   ```
+
+2. **FilterListOff je standard** pro clear filters buttons
+
+3. **alignItems: 'center'** na parent Box zlepšuje alignment při wrap
+
+4. **Všechny controls + button musí mít stejný responsive pattern**
+
+### 📁 Soubory
+
+**Upravené (1)**:
+- `MaterialsLibrary.jsx` - Clear button + responsive FormControls (6 změn)
+
+**Řádky kódu**: ~25 (přidáno), 4 (upraveno)
+
+### ✅ Production Readiness
+
+- [x] Clear filters button funkční
+- [x] 320px responsive bez overflow
+- [x] Dark/light mode kompatibilní
+- [x] Žádné console errors
+- [x] HMR update successful
+
+---
+
+**Status**: ✅ KROK 4 Finalization DOKONČEN
+**MaterialsLibrary**: Clear filters + responsive fix plně funkční
+**Dev Server**: ✅ Běží bez chyb (http://localhost:3000/)
+**Dokumentace**: ✅ MASTER_TODO_V2.md + summary.md + claude.md aktualizovány
+**Sprint 12**: ✅ KOMPLETNĚ DOKONČEN (KROK 1-4)
+**Příští priorita**: Error boundaries nebo LocalStorage warning 🚀

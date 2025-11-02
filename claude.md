@@ -5832,3 +5832,434 @@ grep -A 2 "IconButton" MaterialCard.jsx | grep "QuickTooltip"
 
 > 💡 **REMEMBER**: Modularita = konzistence = snadná údržba = profesionální produkt!
 
+
+---
+
+## 📋 Sprint 12 - Coaching Taxonomy System (2.11.2025)
+
+**Datum**: 2. listopadu 2025
+**AI**: Claude Sonnet 4.5
+**Status**: ✅ KOMPLETNĚ DOKONČEN (KROK 1-4)
+
+### 🎯 Cíl Sprintu
+
+Implementovat 4-dimensionální taxonomii pro kategorizaci koučovacích materiálů:
+
+1. **Coaching Area** (POVINNÉ) - Oblast koučinku (life, career, relationship, atd.)
+2. **Topics** (VOLITELNÉ) - Témata (3-5 doporučeno) - např. Sebevědomí, Motivace
+3. **Coaching Style** (VOLITELNÉ) - Škola/přístup (ICF, NLP, ontologický, atd.)
+4. **Coaching Authority** (VOLITELNÉ) - Certifikace (ICF, EMCC, AC, atd.)
+
+### ✅ Co bylo implementováno
+
+#### KROK 1: Centrální Taxonomy Modul
+**Soubor**: `/src/shared/constants/coachingTaxonomy.js` (311 lines)
+
+**Export**:
+- `COACHING_AREAS` (8 oblastí) - s ikonami z lucide-react
+- `TOPICS` (30+ témat) - seřazeno abecedně
+- `COACHING_STYLES` (8 stylů) - s descriptions
+- `COACHING_AUTHORITIES` (11 škol/certifikací) - s descriptions
+
+**Helper funkce**:
+- `getAreaById(value)`, `getAreaLabel(value)`, `getAreaIcon(value)`, `getAreaDescription(value)`
+- `getStyleById(value)`, `getStyleLabel(value)`, `getStyleDescription(value)`
+- `getAuthorityById(value)`, `getAuthorityLabel(value)`, `getAuthorityDescription(value)`
+- `validateTopics(topics, maxCount)` - validace topics pole
+- `RECOMMENDED_TOPICS_COUNT` - { min: 3, max: 5 }
+
+#### KROK 2: Material Schema Rozšíření
+**Soubor**: `storage.js` (lines 82-114)
+
+**Nové fields**:
+```javascript
+{
+  // ... existing fields
+  
+  // Coaching Taxonomy (NOVÉ od Session 12):
+  coachingArea: 'life',          // POVINNÉ
+  topics: ['Sebevědomí', 'Motivace'],  // VOLITELNÉ (array)
+  coachingStyle: 'icf',          // VOLITELNÉ
+  coachingAuthority: 'icf',      // VOLITELNÉ
+}
+```
+
+#### KROK 3: MaterialCard - Řádek 7 Taxonomy Display
+**Soubor**: `MaterialCard.jsx` (lines 551-659)
+
+**Layout - Row 7**:
+```javascript
+{/* Row 7: Taxonomy chips (horizontální scroll na mobilu) */}
+<Box
+  display="flex"
+  gap={0.75}
+  flexWrap={{ xs: 'nowrap', sm: 'wrap' }}
+  sx={{
+    overflowX: { xs: 'auto', sm: 'visible' },
+    '&::-webkit-scrollbar': { display: 'none' },
+    minHeight: '1.5em',
+  }}
+>
+  {/* 1. Coaching Area - Primary (zelená) */}
+  <Chip
+    label={getAreaLabel(material.coachingArea)}
+    size="small"
+    sx={{
+      backgroundColor: 'rgba(139, 188, 143, 0.2)',
+      color: 'rgba(139, 188, 143, 0.95)',
+    }}
+  />
+
+  {/* 2. Topics (max 3 + "+X dalších") - Neutral (šedá) */}
+  {material.topics?.slice(0, 3).map((topic) => (
+    <Chip label={topic} size="small" sx={{ backgroundColor: 'rgba(255, 255, 255, 0.08)' }} />
+  ))}
+  {material.topics.length > 3 && (
+    <Chip label={`+${material.topics.length - 3} dalších`} sx={{ border: '1px dashed' }} />
+  )}
+
+  {/* 3. Coaching Style - Secondary (růžová) */}
+  <Chip
+    label={getStyleLabel(material.coachingStyle)}
+    sx={{
+      backgroundColor: 'rgba(188, 143, 143, 0.2)',
+      color: 'rgba(188, 143, 143, 0.95)',
+    }}
+  />
+
+  {/* 4. Coaching Authority - Tertiary (zlatá) */}
+  <Chip
+    label={getAuthorityLabel(material.coachingAuthority)}
+    sx={{
+      backgroundColor: 'rgba(188, 176, 143, 0.2)',
+      color: 'rgba(188, 176, 143, 0.95)',
+    }}
+  />
+</Box>
+```
+
+**Barevná hierarchie**:
+- Primary (zelená) - Coaching Area (nejdůležitější)
+- Neutral (šedá) - Topics (sekundární info)
+- Secondary (růžová) - Coaching Style
+- Tertiary (zlatá) - Coaching Authority
+
+**Mobile UX**:
+- Horizontální scroll na xs (<600px)
+- Flex wrap na sm+ (≥600px)
+- Hidden scrollbar (`display: 'none'`)
+
+#### KROK 4: Filtering v MaterialsLibrary
+**Soubor**: `MaterialsLibrary.jsx`
+
+**A) Nové filter states** (lines 39-43):
+```javascript
+const [filterCoachingArea, setFilterCoachingArea] = useState('all');
+const [filterTopics, setFilterTopics] = useState([]);
+const [filterCoachingStyle, setFilterCoachingStyle] = useState('all');
+const [filterCoachingAuthority, setFilterCoachingAuthority] = useState('all');
+```
+
+**B) Top bar layout** (lines 136-192):
+```javascript
+<Box display="flex" gap={2} mb={4}>
+  {/* Search */}
+  <TextField placeholder="Hledat materiály..." sx={{ flex: 1, maxWidth: 400 }} />
+
+  {/* Topics multi-select */}
+  <Autocomplete
+    multiple
+    options={TOPICS}
+    value={filterTopics}
+    onChange={(event, newValue) => setFilterTopics(newValue)}
+    renderTags={(value, getTagProps) =>
+      value.map((option, index) => (
+        <Chip label={option} size="small" {...getTagProps({ index })} />
+      ))
+    }
+  />
+
+  {/* Add button */}
+  <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddModalOpen(true)}>
+    Přidat materiál
+  </Button>
+</Box>
+```
+
+**C) Taxonomy filters row** (lines 194-286):
+```javascript
+<Box display="flex" flexWrap="wrap" gap={2} mb={4} alignItems="center">
+  {/* Kategorie */}
+  <FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+    <InputLabel>Kategorie</InputLabel>
+    <Select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+      <MenuItem value="all">Všechny kategorie</MenuItem>
+      {/* 10 kategorií */}
+    </Select>
+  </FormControl>
+
+  {/* Coaching Area */}
+  <FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+    <InputLabel>Oblast koučinku</InputLabel>
+    <Select value={filterCoachingArea} onChange={(e) => setFilterCoachingArea(e.target.value)}>
+      <MenuItem value="all">Všechny oblasti</MenuItem>
+      {COACHING_AREAS.map((area) => (
+        <MenuItem key={area.value} value={area.value}>{area.label}</MenuItem>
+      ))}
+    </Select>
+  </FormControl>
+
+  {/* Coaching Style */}
+  <FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+    <InputLabel>Koučovací přístup</InputLabel>
+    <Select value={filterCoachingStyle} onChange={(e) => setFilterCoachingStyle(e.target.value)}>
+      <MenuItem value="all">Všechny přístupy</MenuItem>
+      {COACHING_STYLES.map((style) => (
+        <MenuItem key={style.value} value={style.value}>{style.label}</MenuItem>
+      ))}
+    </Select>
+  </FormControl>
+
+  {/* Coaching Authority */}
+  <FormControl sx={{ minWidth: { xs: '100%', sm: 250 } }}>
+    <InputLabel>Certifikace</InputLabel>
+    <Select value={filterCoachingAuthority} onChange={(e) => setFilterCoachingAuthority(e.target.value)}>
+      <MenuItem value="all">Všechny certifikace</MenuItem>
+      {COACHING_AUTHORITIES.map((authority) => (
+        <MenuItem key={authority.value} value={authority.value}>{authority.label}</MenuItem>
+      ))}
+    </Select>
+  </FormControl>
+
+  {/* Vyčistit filtry tlačítko */}
+  <Button
+    variant="outlined"
+    startIcon={<ClearIcon />}
+    onClick={clearAllFilters}
+    sx={{
+      whiteSpace: 'nowrap',
+      minWidth: { xs: '100%', sm: 'auto' },
+    }}
+  >
+    Vyčistit filtry
+  </Button>
+</Box>
+```
+
+**D) Filtering logika** (lines 77-121):
+```javascript
+const filteredMaterials = useMemo(() => {
+  return materials.filter(material => {
+    // 1. Category
+    if (filterCategory !== 'all' && material.category !== filterCategory) return false;
+
+    // 2. Coaching Area
+    if (filterCoachingArea !== 'all' && material.coachingArea !== filterCoachingArea) return false;
+
+    // 3. Topics - AND logika (materiál musí mít VŠECHNY vybrané topics)
+    if (filterTopics.length > 0) {
+      const materialTopics = material.topics || [];
+      const hasAllTopics = filterTopics.every(topic => materialTopics.includes(topic));
+      if (!hasAllTopics) return false;
+    }
+
+    // 4. Coaching Style
+    if (filterCoachingStyle !== 'all' && material.coachingStyle !== filterCoachingStyle) return false;
+
+    // 5. Coaching Authority
+    if (filterCoachingAuthority !== 'all' && material.coachingAuthority !== filterCoachingAuthority) return false;
+
+    // 6. Search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return (
+        material.title.toLowerCase().includes(query) ||
+        material.description?.toLowerCase().includes(query)
+      );
+    }
+
+    return true;
+  });
+}, [materials, searchQuery, filterCategory, filterCoachingArea, filterTopics, filterCoachingStyle, filterCoachingAuthority]);
+```
+
+**E) Clear filters handler** (lines 66-74):
+```javascript
+const clearAllFilters = () => {
+  setSearchQuery('');
+  setFilterCategory('all');
+  setFilterCoachingArea('all');
+  setFilterTopics([]);
+  setFilterCoachingStyle('all');
+  setFilterCoachingAuthority('all');
+};
+```
+
+**Key Features**:
+- ✅ AND kombinace všech filtrů
+- ✅ Topics používají AND logiku (materiál musí mít VŠECHNY vybrané topics)
+- ✅ useMemo optimalizace
+- ✅ Clear filters button (FilterListOff ikona)
+- ✅ Responsive: fullWidth na xs, fixed width na sm+
+- ✅ Žádný overflow na 320px+
+
+#### AddMaterialModal - Taxonomy Selektory
+**Soubor**: `AddMaterialModal.jsx`
+
+**4 nové selektory v Section 2**:
+
+1. **Coaching Area (POVINNÉ)**:
+   ```javascript
+   <FormControl fullWidth required>
+     <InputLabel>Oblast koučinku *</InputLabel>
+     <Select value={coachingArea} onChange={(e) => setCoachingArea(e.target.value)}>
+       {COACHING_AREAS.map((area) => (
+         <MenuItem key={area.value} value={area.value}>{area.label}</MenuItem>
+       ))}
+     </Select>
+   </FormControl>
+   ```
+
+2. **Topics (VOLITELNÉ, multi-select)**:
+   ```javascript
+   <Autocomplete
+     multiple
+     options={TOPICS}
+     value={topics}
+     onChange={(event, newValue) => setTopics(newValue)}
+     renderTags={(value, getTagProps) =>
+       value.map((option, index) => (
+         <Chip label={option} size="small" {...getTagProps({ index })} />
+       ))
+     }
+   />
+   ```
+
+3. **Coaching Style (VOLITELNÉ)**:
+   ```javascript
+   <FormControl fullWidth>
+     <InputLabel>Koučovací přístup</InputLabel>
+     <Select value={coachingStyle} onChange={(e) => setCoachingStyle(e.target.value)}>
+       <MenuItem value="">Nevyplněno</MenuItem>
+       {COACHING_STYLES.map((style) => (
+         <MenuItem key={style.value} value={style.value}>{style.label}</MenuItem>
+       ))}
+     </Select>
+   </FormControl>
+   ```
+
+4. **Coaching Authority (VOLITELNÉ)**:
+   ```javascript
+   <FormControl fullWidth>
+     <InputLabel>Certifikace</InputLabel>
+     <Select value={coachingAuthority} onChange={(e) => setCoachingAuthority(e.target.value)}>
+       <MenuItem value="">Nevyplněno</MenuItem>
+       {COACHING_AUTHORITIES.map((authority) => (
+         <MenuItem key={authority.value} value={authority.value}>{authority.label}</MenuItem>
+       ))}
+     </Select>
+   </FormControl>
+   ```
+
+**Validace**:
+```javascript
+// Coaching Area je POVINNÉ
+if (!coachingArea) {
+  const errorMsg = 'Vyplň prosím oblast koučinku (je povinná)';
+  setError(errorMsg);
+  showError('Neplatné údaje', errorMsg);
+  return;
+}
+
+// Topics recommendation (3-5), ale není povinné
+if (topics.length > 0 && (topics.length < 3 || topics.length > 5)) {
+  showWarning('Tip', 'Doporučujeme zvolit 3-5 témat pro lepší kategorizaci');
+}
+```
+
+### 📊 Statistiky Sprint 12
+
+**Soubory vytvořeny**: 1
+- `/src/shared/constants/coachingTaxonomy.js` (311 lines)
+
+**Soubory upraveny**: 4
+- `storage.js` - Material schema (10 lines)
+- `MaterialCard.jsx` - Row 7 (109 lines, 551-659)
+- `AddMaterialModal.jsx` - 4 selektory + validace (~150 lines)
+- `MaterialsLibrary.jsx` - Filtering + clear button (~140 lines)
+
+**Řádky kódu**: ~610+
+**Čas**: ~4.5 hodiny (včetně finalizace)
+**Bugs**: 1 (JSX structure error - opraveno)
+
+### 🎨 Design Patterns
+
+**1. Barevná hierarchie chipů**:
+```javascript
+// Primary (zelená) - Coaching Area
+backgroundColor: 'rgba(139, 188, 143, 0.2)'
+
+// Neutral (šedá) - Topics
+backgroundColor: 'rgba(255, 255, 255, 0.08)'
+
+// Secondary (růžová) - Coaching Style
+backgroundColor: 'rgba(188, 143, 143, 0.2)'
+
+// Tertiary (zlatá) - Coaching Authority
+backgroundColor: 'rgba(188, 176, 143, 0.2)'
+```
+
+**2. Topics display pattern**:
+```javascript
+// Max 3 viditelné + "+X dalších"
+{topics.slice(0, 3).map(...)}
+{topics.length > 3 && <Chip label={`+${topics.length - 3} dalších`} />}
+```
+
+**3. AND filtering logic**:
+```javascript
+// Materiál musí mít VŠECHNY vybrané topics
+const hasAllTopics = filterTopics.every(topic =>
+  (material.topics || []).includes(topic)
+);
+```
+
+**4. Responsive FormControls**:
+```javascript
+sx={{ minWidth: { xs: '100%', sm: [fixed-width] } }}
+```
+
+### 🎓 Klíčové Lekce
+
+1. **Centralizované konstanty jsou KRITICKÉ**
+   - Změna na jednom místě = propaguje se všude
+
+2. **Barevné rozlišení chipů zlepšuje UX**
+   - Vizuální hierarchie pomáhá rychle identifikovat typ informace
+
+3. **Topics multi-select vyžaduje speciální handling**
+   - AND logika (`every()`) místo OR logiky (`some()`)
+
+4. **useMemo je MUST pro složité filtering**
+   - Bez memoization se filtering spouští každý render
+
+5. **Responsive pattern pro FormControls**
+   - fullWidth na mobile, fixed width na desktop = žádný overflow
+
+### ✅ Production Readiness
+
+- [x] 4 taxonomy fields plně funkční
+- [x] MaterialCard Row 7 zobrazuje všechny chipy s barevnou hierarchií
+- [x] AddMaterialModal má validaci pro povinné pole
+- [x] MaterialsLibrary filtering s AND logikou + clear button
+- [x] 320px responsive bez overflow
+- [x] Dark/light mode support
+- [x] HMR funguje bez problémů
+- [x] Žádné console errors
+- [x] Dokumentace kompletní
+
+---
+
+**Sprint 12 status**: ✅ KOMPLETNĚ DOKONČEN (KROK 1-4)
+**Dev Server**: ✅ Běží bez chyb (http://localhost:3000/)
+**Příští priorita**: Error boundaries nebo LocalStorage warning (Priority 1) 🚀

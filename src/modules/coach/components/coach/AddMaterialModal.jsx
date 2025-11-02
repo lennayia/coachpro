@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
-  Drawer,
+  Dialog,
   Box,
   Typography,
   useTheme,
@@ -16,7 +16,10 @@ import {
   Alert,
   CircularProgress,
   Chip,
+  Autocomplete,
+  IconButton,
 } from '@mui/material';
+import { Close as CloseIcon } from '@mui/icons-material';
 import {
   Headphones as AudioIcon,
   PictureAsPdf as PdfIcon,
@@ -44,15 +47,16 @@ import { uploadFileToSupabase, isSupabaseConfigured } from '../../utils/supabase
 import { useNotification } from '@shared/context/NotificationContext';
 import { createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';
 import BORDER_RADIUS from '@styles/borderRadius';
+import { COACHING_AREAS, TOPICS, COACHING_STYLES, COACHING_AUTHORITIES, getAreaLabel, getAreaIcon, getStyleLabel, getAuthorityLabel } from '@shared/constants/coachingTaxonomy';
 
 const MATERIAL_TYPES = [
-  { value: 'audio', label: 'Audio', icon: <AudioIcon sx={{ fontSize: 40 }} /> },
-  { value: 'video', label: 'Video', icon: <VideoIcon sx={{ fontSize: 40 }} /> },
-  { value: 'pdf', label: 'PDF', icon: <PdfIcon sx={{ fontSize: 40 }} /> },
-  { value: 'image', label: 'Obrázek', icon: <ImageIcon sx={{ fontSize: 40 }} /> },
-  { value: 'document', label: 'Dokument', icon: <DocumentIcon sx={{ fontSize: 40 }} /> },
-  { value: 'text', label: 'Text', icon: <TextIcon sx={{ fontSize: 40 }} /> },
-  { value: 'link', label: 'Odkaz', icon: <LinkIcon sx={{ fontSize: 40 }} /> },
+  { value: 'audio', label: 'Audio', icon: <AudioIcon sx={{ fontSize: 32 }} /> },
+  { value: 'video', label: 'Video', icon: <VideoIcon sx={{ fontSize: 32 }} /> },
+  { value: 'pdf', label: 'PDF', icon: <PdfIcon sx={{ fontSize: 32 }} /> },
+  { value: 'image', label: 'Obrázek', icon: <ImageIcon sx={{ fontSize: 32 }} /> },
+  { value: 'document', label: 'Dokument', icon: <DocumentIcon sx={{ fontSize: 32 }} /> },
+  { value: 'text', label: 'Text', icon: <TextIcon sx={{ fontSize: 32 }} /> },
+  { value: 'link', label: 'Odkaz', icon: <LinkIcon sx={{ fontSize: 32 }} /> },
 ];
 
 const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => {
@@ -75,6 +79,12 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
   const [dragActive, setDragActive] = useState(false);
   const [detectedService, setDetectedService] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+
+  // Taxonomy fields (Session 12)
+  const [coachingArea, setCoachingArea] = useState('life'); // Default: Životní koučink
+  const [topics, setTopics] = useState([]); // Array of topic strings
+  const [coachingStyle, setCoachingStyle] = useState(''); // Optional
+  const [coachingAuthority, setCoachingAuthority] = useState(''); // Optional
 
   // Prevent default drag behavior on entire window
   useEffect(() => {
@@ -101,6 +111,12 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
       setTitle(editMaterial.title);
       setDescription(editMaterial.description || '');
       setCategory(editMaterial.category);
+
+      // Taxonomy fields (Session 12)
+      setCoachingArea(editMaterial.coachingArea || 'life');
+      setTopics(editMaterial.topics || []);
+      setCoachingStyle(editMaterial.coachingStyle || '');
+      setCoachingAuthority(editMaterial.coachingAuthority || '');
 
       if (editMaterial.type === 'link') {
         setLinkUrl(editMaterial.content);
@@ -130,6 +146,12 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
     setError('');
     setDetectedService(null);
     setPreviewUrl(null);
+
+    // Reset taxonomy fields (Session 12)
+    setCoachingArea('life');
+    setTopics([]);
+    setCoachingStyle('');
+    setCoachingAuthority('');
   };
 
   const handleClose = () => {
@@ -321,6 +343,13 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
         fileName,
         pageCount,
         storagePath, // Supabase storage path (if uploaded)
+
+        // Coaching Taxonomy (Session 12):
+        coachingArea, // From state (default: 'life')
+        topics, // From state (default: [])
+        coachingStyle: coachingStyle || undefined, // From state (optional)
+        coachingAuthority: coachingAuthority || undefined, // From state (optional)
+
         createdAt: isEditMode ? editMaterial.createdAt : new Date().toISOString(),
         updatedAt: isEditMode ? new Date().toISOString() : undefined,
       };
@@ -366,22 +395,29 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
   };
 
   return (
-    <Drawer
-  anchor="right"
+    <Dialog
   open={open}
   onClose={handleClose}
+  maxWidth="lg"
+  fullWidth
   BackdropProps={{ sx: createBackdrop() }}
   PaperProps={{
     sx: {
-      width: { xs: '100%', sm: 500 },
       ...createGlassDialog(isDark),
+      maxHeight: '90vh',
     },
   }}
 >
-      <Box px={2} py={3} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-  <Typography variant="h5" mb={3} sx={{ fontWeight: 700 }}>
-    {isEditMode ? 'Upravit materiál' : 'Přidat nový materiál'}
-  </Typography>
+      <Box px={3} py={3} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+  {/* Header s X tlačítkem */}
+  <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+    <Typography variant="h5" sx={{ fontWeight: 700 }}>
+      {isEditMode ? 'Upravit materiál' : 'Přidat nový materiál'}
+    </Typography>
+    <IconButton onClick={handleClose} size="small">
+      <CloseIcon />
+    </IconButton>
+  </Box>
 
   {error && (
     <Alert severity="error" sx={{ mb: 3, borderRadius: BORDER_RADIUS.compact }} onClose={() => setError('')}>
@@ -389,66 +425,124 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
     </Alert>
   )}
 
-  <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 1 }}> 
-    {/* Krok 1: Výběr typu */}
+  <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 1 }}>
+    {/* 1. TYP MATERIÁLU - Horizontal row */}
     <Typography variant="subtitle2" mb={2} sx={{ fontWeight: 600 }}>
       Typ materiálu
     </Typography>
 
-    <Grid container spacing={2} mb={3}>
+    <Box
+      display="flex"
+      gap={2}
+      mb={3}
+      sx={{
+        overflowX: 'auto',
+        pb: 1,
+        '&::-webkit-scrollbar': { height: 8 },
+        '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 4 }
+      }}
+    >
       {MATERIAL_TYPES.map((type) => {
-              // V edit modu pro file-based typy: disable všechny karty kromě aktuálního typu
-              const isFileBasedType = (t) => ['audio', 'video', 'pdf', 'image', 'document'].includes(t);
-              const isDisabled = isEditMode && isFileBasedType(editMaterial?.type) && type.value !== selectedType;
+        const isFileBasedType = (t) => ['audio', 'video', 'pdf', 'image', 'document'].includes(t);
+        const isDisabled = isEditMode && isFileBasedType(editMaterial?.type) && type.value !== selectedType;
 
-              return (
-                <Grid item xs={6} key={type.value}>
-                  <Card
-                  elevation={0}
-  onClick={() => !isDisabled && setSelectedType(type.value)}
-  sx={{
-  cursor: isDisabled ? 'not-allowed' : 'pointer',
-  border: 'none !important',
-  outline: 'none !important',
-  margin: 0,
-  boxShadow: selectedType === type.value 
-  ? '0 0 12px 2px rgba(139, 188, 143, 0.6) !important'  // ← Glow kolem dokola
-  : '0 2px 8px rgba(0, 0, 0, 0.15) !important',
-    transition: 'all 0.2s',
-    opacity: isDisabled ? 0.4 : 1,
-    '&:hover': !isDisabled ? {
-      boxShadow: selectedType === type.value
-        ? '0 0 0 2px rgba(139, 188, 143, 0.6), 0 6px 16px rgba(139, 188, 143, 0.25)'
-        : '0 4px 12px rgba(0, 0, 0, 0.12)',
-      transform: 'translateY(-2px)',
-    } : {},
-  }}
->
-                    <CardContent sx={{ textAlign: 'center' }}>
-                      <Box color={selectedType === type.value ? 'primary.main' : 'text.secondary'}>
-                        {type.icon}
-                      </Box>
-                      <Typography
-                        variant="body2"
-                        mt={1}
-                        sx={{
-                          fontWeight: selectedType === type.value ? 600 : 400,
-                          color: selectedType === type.value ? 'primary.main' : 'text.primary',
-                        }}
-                      >
-                        {type.label}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              );
-            })}
+        return (
+          <Card
+            key={type.value}
+            elevation={0}
+            onClick={() => !isDisabled && setSelectedType(type.value)}
+            sx={{
+              minWidth: 100,
+              cursor: isDisabled ? 'not-allowed' : 'pointer',
+              border: 'none !important',
+              outline: 'none !important',
+              boxShadow: selectedType === type.value
+                ? '0 0 12px 2px rgba(139, 188, 143, 0.6) !important'
+                : '0 2px 8px rgba(0, 0, 0, 0.15) !important',
+              transition: 'all 0.2s',
+              opacity: isDisabled ? 0.4 : 1,
+              '&:hover': !isDisabled ? {
+                boxShadow: selectedType === type.value
+                  ? '0 0 0 2px rgba(139, 188, 143, 0.6), 0 6px 16px rgba(139, 188, 143, 0.25)'
+                  : '0 4px 12px rgba(0, 0, 0, 0.12)',
+                transform: 'translateY(-2px)',
+              } : {},
+            }}
+          >
+            <CardContent sx={{ textAlign: 'center', p: 2 }}>
+              <Box color={selectedType === type.value ? 'primary.main' : 'text.secondary'}>
+                {type.icon}
+              </Box>
+              <Typography
+                variant="caption"
+                mt={1}
+                sx={{
+                  fontWeight: selectedType === type.value ? 600 : 400,
+                  color: selectedType === type.value ? 'primary.main' : 'text.primary',
+                  display: 'block'
+                }}
+              >
+                {type.label}
+              </Typography>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </Box>
+
+    {selectedType && (
+      <>
+        {/* 2. NÁZEV + KATEGORIE row */}
+        <Grid container spacing={2} mb={2}>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Název materiálu"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
           </Grid>
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth>
+              <InputLabel>Kategorie</InputLabel>
+              <Select value={category} label="Kategorie" onChange={(e) => setCategory(e.target.value)}>
+                <MenuItem value="meditation">Meditace</MenuItem>
+                <MenuItem value="affirmation">Afirmace</MenuItem>
+                <MenuItem value="exercise">Cvičení</MenuItem>
+                <MenuItem value="reflection">Reflexe</MenuItem>
+                <MenuItem value="template">Šablona</MenuItem>
+                <MenuItem value="worksheet">Pracovní list</MenuItem>
+                <MenuItem value="workbook">Pracovní sešit</MenuItem>
+                <MenuItem value="question">Otázky</MenuItem>
+                <MenuItem value="feedback">Zpětná vazba</MenuItem>
+                <MenuItem value="other">Ostatní</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+        </Grid>
 
-          {/* Krok 2: Upload/Input podle typu */}
-          {selectedType && (
-            <>
-              {/* File upload (audio, video, pdf, image, document) */}
+        {/* 3. POPIS - full width, více řádků */}
+        <TextField
+          fullWidth
+          label="Popis"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          multiline
+          rows={4}
+          placeholder="Krátký popis materiálu..."
+          sx={{ mb: 3 }}
+        />
+
+        {/* 4. DVA SLOUPCE - Upload/Link/Text vlevo, Taxonomy vpravo */}
+        <Grid container spacing={3}>
+          {/* LEVÝ SLOUPEC - Odkaz na materiál */}
+          <Grid item xs={12} md={6}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+              Odkaz na materiál
+            </Typography>
+
+            {/* File upload (audio, video, pdf, image, document) */}
               {(selectedType === 'audio' || selectedType === 'video' || selectedType === 'pdf' || selectedType === 'image' || selectedType === 'document') && (
                 <>
                   {/* Alert při editaci file-based materiálů */}
@@ -762,48 +856,111 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
                   required
                 />
               )}
+          </Grid>
 
-              {/* Krok 3: Metadata */}
-              <TextField
+        {/* PRAVÝ SLOUPEC - Koučovací taxonomie */}
+        <Grid item xs={12} md={6}>
+          {selectedType && (
+            <>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                Koučovací taxonomie
+              </Typography>
+
+              {/* Coaching Area */}
+              <FormControl fullWidth margin="normal" required>
+                <InputLabel>Oblast koučinku</InputLabel>
+                <Select
+                  value={coachingArea}
+                  label="Oblast koučinku"
+                  onChange={(e) => setCoachingArea(e.target.value)}
+                >
+                  {COACHING_AREAS.map((area) => {
+                    const AreaIcon = area.icon;
+                    return (
+                      <MenuItem key={area.value} value={area.value}>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          {React.createElement(AreaIcon, { size: 16 })}
+                          <span>{area.label}</span>
+                        </Box>
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
+
+              {/* Topics - Autocomplete with multi-select */}
+              <Autocomplete
+                multiple
                 fullWidth
-                label="Název materiálu"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                margin="normal"
-                required
+                options={TOPICS}
+                value={topics}
+                onChange={(event, newValue) => setTopics(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Témata"
+                    placeholder="Vyber témata (doporučeno 3-5)"
+                    margin="normal"
+                  />
+                )}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip
+                      label={option}
+                      size="small"
+                      {...getTagProps({ index })}
+                    />
+                  ))
+                }
+                sx={{ mt: 2 }}
               />
 
-              <TextField
-                fullWidth
-                label="Popis"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                margin="normal"
-                multiline
-                rows={3}
-                placeholder="Krátký popis materiálu..."
-              />
-
+              {/* Coaching Style - Optional */}
               <FormControl fullWidth margin="normal">
-                <InputLabel>Kategorie</InputLabel>
-                <Select value={category} label="Kategorie" onChange={(e) => setCategory(e.target.value)}>
-                  <MenuItem value="meditation">Meditace</MenuItem>
-                  <MenuItem value="affirmation">Afirmace</MenuItem>
-                  <MenuItem value="exercise">Cvičení</MenuItem>
-                  <MenuItem value="reflection">Reflexe</MenuItem>
-                  <MenuItem value="template">Šablona</MenuItem>
-                  <MenuItem value="worksheet">Pracovní list</MenuItem>
-                  <MenuItem value="workbook">Pracovní sešit</MenuItem>
-                  <MenuItem value="question">Otázky</MenuItem>
-                  <MenuItem value="feedback">Zpětná vazba</MenuItem>
-                  <MenuItem value="other">Ostatní</MenuItem>
+                <InputLabel>Koučovací škola/přístup (volitelné)</InputLabel>
+                <Select
+                  value={coachingStyle}
+                  label="Koučovací škola/přístup (volitelné)"
+                  onChange={(e) => setCoachingStyle(e.target.value)}
+                >
+                  <MenuItem value="">
+                    <em>Není specifikováno</em>
+                  </MenuItem>
+                  {COACHING_STYLES.map((style) => (
+                    <MenuItem key={style.value} value={style.value}>
+                      {style.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Coaching Authority - Optional */}
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Certifikace/akreditace (volitelné)</InputLabel>
+                <Select
+                  value={coachingAuthority}
+                  label="Certifikace/akreditace (volitelné)"
+                  onChange={(e) => setCoachingAuthority(e.target.value)}
+                >
+                  <MenuItem value="">
+                    <em>Není specifikováno</em>
+                  </MenuItem>
+                  {COACHING_AUTHORITIES.map((authority) => (
+                    <MenuItem key={authority.value} value={authority.value}>
+                      {authority.label}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </>
           )}
-        </Box>
+        </Grid>
+      </Grid>
+      </>
+    )}
+  </Box>
 
-        {/* Action buttons */}
+  {/* Action buttons */}
         <Box display="flex" gap={2} mt={3} justifyContent="flex-end">
           <Button
             onClick={handleClose}
@@ -877,7 +1034,7 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
           </Button>
         </Box>
       </Box>
-    </Drawer>
+    </Dialog>
   );
 };
 
