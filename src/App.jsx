@@ -7,6 +7,8 @@ import { createNatureTheme } from '@shared/themes/natureTheme';
 import Login from '@modules/coach/pages/Login';
 import CoachDashboard from '@modules/coach/pages/CoachDashboard';
 import ClientView from '@modules/coach/pages/ClientView';
+import TesterSignup from '@modules/coach/pages/TesterSignup';
+import PrivacyPolicy from '@modules/coach/pages/PrivacyPolicy';
 
 // Context pro theme mode
 import { createContext, useContext } from 'react';
@@ -37,6 +39,8 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Login />} />
+              <Route path="/tester-signup" element={<TesterSignup />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/coach/*" element={<CoachDashboard />} />
               <Route path="/client/*" element={<ClientView />} />
               <Route path="*" element={<Navigate to="/" replace />} />

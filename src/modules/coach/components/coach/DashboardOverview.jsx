@@ -84,7 +84,7 @@ const DashboardOverview = () => {
       >
         <Box mb={4}>
           <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
-            Ahoj {currentUser?.name || 'koučko'}, hezký den! 🌿
+            Ahoj {currentUser?.name || 'koučko'}, hezký den!
           </Typography>
           <Typography variant="body1" color="text.secondary">
             {formatDate(new Date().toISOString(), {

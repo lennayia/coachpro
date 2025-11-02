@@ -8621,3 +8621,501 @@ const clearAllFilters = () => {
 **Dev Server**: ✅ Běží bez chyb (http://localhost:3000/)
 **Dokumentace**: ✅ MASTER_TODO_V2.md + summary.md + claude.md aktualizovány
 **Příští priorita**: Error boundaries nebo LocalStorage warning (Priority 1) 🚀
+
+------------
+Claude CODE 2/11/2025 - 23:45
+----------------
+
+## 📋 Session 13: Beta Tester Access System (2.11.2025, večer)
+
+**Datum**: 2. listopadu 2025, 22:30 - 23:50
+**AI**: Claude Sonnet 4.5
+**Čas**: ~80 minut
+**Status**: ✅ Dokončeno a otestováno
+
+### 🎯 Cíle Session
+
+Implementovat beta tester registraci s GDPR-compliant kontaktním sběrem pro marketing účely a access code autentizaci.
+
+### ✅ Implementováno
+
+#### 1. Supabase Testers Table
+**Soubor**: `supabase_testers_table.sql` (nový)
+
+**Struktura tabulky**:
+```sql
+CREATE TABLE testers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  email text UNIQUE NOT NULL,
+  phone text,
+  reason text,
+  access_code text UNIQUE NOT NULL,
+
+  -- GDPR consent fields
+  marketing_consent boolean DEFAULT false,
+  marketing_consent_date timestamptz,
+  terms_accepted boolean NOT NULL DEFAULT true,
+  terms_accepted_date timestamptz DEFAULT now(),
+
+  -- Tracking
+  created_at timestamptz DEFAULT now(),
+  last_login timestamptz,
+  ip_address text,
+  user_agent text,
+
+  -- MailerLite integration
+  mailerlite_subscriber_id text,
+  exported_to_mailing boolean DEFAULT false,
+  exported_at timestamptz,
+
+  -- Status
+  is_active boolean DEFAULT true,
+  notes text
+);
+```
+
+**RLS Policies**:
+- `Allow public signup` - INSERT pro všechny
+- `Allow public select by access_code` - SELECT pro autentizaci
+- `Allow public update last_login` - UPDATE pro tracking
+
+#### 2. TesterSignup.jsx (nová stránka)
+**Soubor**: `src/modules/coach/pages/TesterSignup.jsx` (nový, 353 řádků)
+
+**Features**:
+- Registration form s validací
+- Access code generation (format: `TEST-XXXX`)
+- GDPR consent checkboxes (terms required, marketing optional)
+- IP address tracking (přes `api.ipify.org`)
+- User agent tracking
+- Success screen s access code display
+- Error handling (duplicate email, Supabase errors)
+- Toast notifications
+
+**Access Code Generation**:
+```javascript
+const generateAccessCode = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = 'TEST-';
+  for (let i = 0; i < 4; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+};
+```
+
+**GDPR Checkboxes**:
+- ✅ Required: "Souhlasím se zpracováním osobních údajů pro účely beta testování"
+- ⬜ Optional: "Souhlasím se zasíláním novinek, tipů a nabídek týkajících se CoachPro"
+
+#### 3. PrivacyPolicy.jsx (nová stránka)
+**Soubor**: `src/modules/coach/pages/PrivacyPolicy.jsx` (nový, 198 řádků)
+
+**Sekce**:
+1. Úvod
+2. Správce údajů
+3. Jaké údaje sbíráme
+4. Účel zpracování
+5. Právní základ
+6. Sdílení údajů
+7. Doba uložení
+8. Vaše práva
+9. Zabezpečení
+10. Cookies
+11. Změny zásad
+12. Kontakt
+
+#### 4. Login.jsx - Access Code Authentication
+**Soubor**: `src/modules/coach/pages/Login.jsx` (upraveno)
+
+**Přidáno**:
+- Access code input field (TextField s uppercase)
+- `handleAccessCodeLogin()` funkce
+- Loading state s CircularProgress
+- Error handling s inline Alert
+- Demo režim tlačítko jen pro development (`import.meta.env.DEV`)
+
+**handleAccessCodeLogin Logic**:
+```javascript
+const handleAccessCodeLogin = async (e) => {
+  e.preventDefault();
+  setError('');
+
+  if (!accessCode.trim()) {
+    setError('Vyplň prosím access kód');
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    // 1. Query Supabase testers table
+    const { data: tester, error: supabaseError } = await supabase
+      .from('testers')
+      .select('*')
+      .eq('access_code', accessCode.trim().toUpperCase())
+      .single();
+
+    if (supabaseError || !tester) {
+      setError('Neplatný access kód. Zkontroluj prosím, že jsi ho zadala správně.');
+      showError('Neplatný kód', 'Access kód nebyl nalezen');
+      setLoading(false);
+      return;
+    }
+
+    // 2. Create coach account from tester data
+    const coach = {
+      id: tester.id,
+      name: tester.name,
+      email: tester.email,
+      phone: tester.phone || null,
+      avatar: null,
+      branding: {
+        primaryColor: '#556B2F',
+        logo: null
+      },
+      createdAt: tester.created_at || new Date().toISOString(),
+      isTester: true,
+      accessCode: tester.access_code
+    };
+
+    // 3. Save to localStorage
+    saveCoach(coach);
+    setCurrentUser({
+      ...coach,
+      role: 'coach'
+    });
+
+    // 4. Update last_login in Supabase
+    await supabase
+      .from('testers')
+      .update({ last_login: new Date().toISOString() })
+      .eq('id', tester.id);
+
+    showSuccess('Vítej! 🎉', `Přihlášená jako ${tester.name}`);
+    navigate('/coach/dashboard');
+  } catch (err) {
+    console.error('Login error:', err);
+    setError('Něco se pokazilo. Zkus to prosím znovu.');
+    showError('Chyba', 'Přihlášení selhalo');
+  } finally {
+    setLoading(false);
+  }
+};
+```
+
+**Demo režim (development only)**:
+```javascript
+{import.meta.env.DEV && (
+  <Button
+    variant="contained"
+    size="large"
+    startIcon={<CoachIcon />}
+    onClick={handleCoachLogin}
+    sx={{ /* ... */ }}
+  >
+    🛠️ Demo režim (pouze vývoj)
+  </Button>
+)}
+```
+
+#### 5. MailerLite Classic API Integration
+**Soubor**: `src/modules/coach/utils/mailerliteApi.js` (nový, 134 řádků)
+
+**API Configuration**:
+- URL: `https://api.mailerlite.com/api/v2` (Classic API v2)
+- Auth: `X-MailerLite-ApiKey` header
+- Group ID: `113093284` (CoachPro: Testování)
+
+**Functions**:
+```javascript
+export const addSubscriberToMailerLite = async ({ email, name, phone }) => {
+  // Adds subscriber to MailerLite group
+};
+
+export const getMailerLiteGroups = async () => {
+  // Lists all groups
+};
+
+export const checkEmailExistsInMailerLite = async (email) => {
+  // Checks if email already subscribed
+};
+```
+
+**Status**: ⚠️ Disabled v signup flow kvůli CORS (browser nemůže volat MailerLite API přímo). Pro beta sync manuálně nebo přes backend.
+
+**TesterSignup.jsx integrace**:
+```javascript
+// MailerLite integration (disabled for beta - will be added via backend later)
+// For beta testing: contacts are in Supabase, MailerLite sync will be handled manually
+if (marketingConsent) {
+  console.log('✅ Marketing consent given - subscriber will be added to MailerLite manually');
+}
+```
+
+#### 6. App.jsx - Nové Routes
+**Soubor**: `src/App.jsx` (upraveno)
+
+**Přidány routes**:
+```javascript
+import TesterSignup from '@modules/coach/pages/TesterSignup';
+import PrivacyPolicy from '@modules/coach/pages/PrivacyPolicy';
+
+<Routes>
+  <Route path="/" element={<Login />} />
+  <Route path="/tester-signup" element={<TesterSignup />} />
+  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+  <Route path="/coach/*" element={<CoachDashboard />} />
+  <Route path="/client/*" element={<ClientView />} />
+  <Route path="*" element={<Navigate to="/" replace />} />
+</Routes>
+```
+
+#### 7. Helper Script - List MailerLite Groups
+**Soubor**: `list-mailerlite-groups.js` (nový, 59 řádků)
+
+**Purpose**: Utility pro výpis všech MailerLite groups a jejich IDs
+
+**Usage**:
+```bash
+VITE_MAILERLITE_API_TOKEN=your-token node list-mailerlite-groups.js
+```
+
+**Output**:
+```
+📋 MailerLite Groups:
+────────────────────────────────────────────────────────────────────────────────
+Name: CoachPro: Testování
+ID:   113093284
+Total subscribers: 0
+────────────────────────────────────────────────────────────────────────────────
+
+✅ Found CoachPro testing group:
+   Name: CoachPro: Testování
+   ID:   113093284
+
+💡 Copy this ID and use it in TesterSignup.jsx
+```
+
+### 🐛 Chyby a opravy
+
+#### Chyba #1: Import Path - Supabase Config
+**Error**: `Failed to resolve import "../../../config/supabase"`
+**Kdy**: Po server restartu během prvního testu
+**Fix**: Změněno z `../../../config/supabase` na `@shared/config/supabase`
+
+#### Chyba #2: MailerLite CORS Blocking
+**Error**: `Access to fetch at 'https://api.mailerlite.com/api/v2/...' blocked by CORS policy`
+**Kdy**: Při registraci s marketing consent
+**Příčina**: MailerLite Classic API v2 nepovoluje browser calls
+**Fix**:
+- Odstraněna MailerLite API call z TesterSignup
+- Přidán comment o manuálním syncu
+- Data bezpečně v Supabase
+
+#### Chyba #3: Environment Variable Security
+**Error**: AI pokus editovat `.env` soubor přímo
+**User reaction**: "ty ale přece do env NIKDY nesmíš!"
+**Fix**:
+- Okamžitě zastaven edit
+- Poskytnuty manuální instrukce
+- Lesson learned: NEVER edit .env files
+
+#### Chyba #4: API Version Mismatch
+**Problem**: Kód napsán pro MailerLite API v3, user má Classic v2
+**Discovery**: User má "Developer API" (Classic)
+**Fix**: Kompletní přepsání `mailerliteApi.js` pro Classic v2 API
+
+#### Chyba #5: Empty Dashboard After Registration
+**Problem**: Po registraci prázdný dashboard (Demo Coach account)
+**Root cause**: Login page měla "Jsem koučka" button bez autentizace
+**Fix**:
+- Přidán access code input a logic
+- "Jsem koučka" button změněn na Demo režim (dev only)
+
+#### Chyba #6: Missing Access Code Column
+**Problem**: Registrace fungovala, ale access_code nebyl v tabulce
+**Fix**: User přidal sloupec ručně v Supabase Table Editor
+
+### 📊 Statistiky Session
+
+- **Soubory vytvořeny**: 4 (TesterSignup.jsx, PrivacyPolicy.jsx, mailerliteApi.js, list-mailerlite-groups.js, supabase_testers_table.sql)
+- **Soubory upraveny**: 2 (Login.jsx, App.jsx)
+- **Řádky kódu**: ~900+
+- **Supabase tables**: 1 (testers)
+- **RLS policies**: 3
+- **Routes přidány**: 2 (/tester-signup, /privacy-policy)
+
+### 🎓 Lessons Learned
+
+1. **GDPR Compliance**
+   - Separate consent checkboxes (terms vs marketing)
+   - Timestamp všech consents
+   - IP address + user agent tracking
+   - Privacy Policy must be accessible before collecting data
+
+2. **MailerLite Classic API v2**
+   - Různé od v3 (URL, auth headers, endpoints)
+   - CORS blocking v browseru - potřeba backend
+   - Pro beta: manual sync nebo Supabase webhook
+
+3. **Environment Variables Security**
+   - NEVER edit .env files with AI tools
+   - Always provide manual instructions
+   - Risk of accidental Git commit
+
+4. **Access Code System**
+   - Format: TEST-XXXX (4 random alphanumeric)
+   - Must be UNIQUE constraint v DB
+   - Case-insensitive matching (.toUpperCase())
+   - Display prominently after registration
+
+5. **Development vs Production**
+   - Use `import.meta.env.DEV` for dev-only features
+   - Demo buttons only in development
+   - Clean, secure production build
+
+### ✅ Testing Checklist
+
+**Registration Flow**:
+- [x] Form validation (required fields)
+- [x] Email uniqueness check
+- [x] Access code generation (TEST-XXXX format)
+- [x] GDPR consent tracking
+- [x] IP address tracking
+- [x] Success screen displays access code
+- [x] Link to privacy policy works
+- [x] Data saved to Supabase
+
+**Login Flow**:
+- [x] Access code input (uppercase)
+- [x] Query Supabase testers table
+- [x] Create coach account from tester data
+- [x] Save to localStorage
+- [x] Update last_login timestamp
+- [x] Navigate to dashboard
+- [x] Toast notifications work
+- [x] Error handling (invalid code, network errors)
+
+**Demo Mode (Development)**:
+- [x] Demo button visible in localhost
+- [x] Demo button hidden in production build
+- [x] Quick access for developer
+
+**Security**:
+- [x] RLS policies enabled
+- [x] Email UNIQUE constraint
+- [x] Access code UNIQUE constraint
+- [x] No exposed API keys in code
+- [x] CORS handled (disabled MailerLite browser calls)
+
+### 🔑 Key Patterns
+
+**GDPR Consent Pattern**:
+```javascript
+// Required checkbox
+<FormControlLabel
+  control={<Checkbox checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />}
+  label={
+    <Typography variant="body2">
+      Souhlasím se{' '}
+      <Link href="/privacy-policy" target="_blank">
+        zpracováním osobních údajů
+      </Link>{' '}
+      pro účely beta testování *
+    </Typography>
+  }
+/>
+
+// Optional checkbox
+<FormControlLabel
+  control={<Checkbox checked={marketingConsent} onChange={(e) => setMarketingConsent(e.target.checked)} />}
+  label={
+    <Typography variant="body2">
+      Souhlasím se zasíláním novinek, tipů a nabídek (volitelné)
+    </Typography>
+  }
+/>
+```
+
+**Access Code Validation Pattern**:
+```javascript
+const { data: tester, error } = await supabase
+  .from('testers')
+  .select('*')
+  .eq('access_code', accessCode.trim().toUpperCase())
+  .single();
+
+if (error || !tester) {
+  // Invalid code
+  return;
+}
+
+// Create coach account from tester
+const coach = {
+  id: tester.id,
+  name: tester.name,
+  email: tester.email,
+  // ... map all fields
+  isTester: true,
+  accessCode: tester.access_code
+};
+```
+
+**Development-Only Feature Pattern**:
+```javascript
+{import.meta.env.DEV && (
+  <Button onClick={handleDevFeature}>
+    🛠️ Dev Feature
+  </Button>
+)}
+```
+
+### 🚀 Future Enhancements (Fáze 2)
+
+**MailerLite Sync**:
+- [ ] Backend endpoint pro MailerLite sync
+- [ ] Supabase webhook trigger
+- [ ] Nebo: Manual export to CSV + import
+
+**Email Notifications**:
+- [ ] Welcome email s access code
+- [ ] Password reset (když přidáme password auth)
+- [ ] Reminder emails
+
+**Advanced Features**:
+- [ ] Tester dashboard (admin view)
+- [ ] Access code regeneration
+- [ ] Tester deactivation
+- [ ] Usage analytics per tester
+
+### 📁 Soubory vytvořené/upravené
+
+**Vytvořené**:
+1. `supabase_testers_table.sql` - Database schema
+2. `src/modules/coach/pages/TesterSignup.jsx` - Registration form
+3. `src/modules/coach/pages/PrivacyPolicy.jsx` - GDPR policy
+4. `src/modules/coach/utils/mailerliteApi.js` - MailerLite integration
+5. `list-mailerlite-groups.js` - Helper script
+
+**Upravené**:
+1. `src/modules/coach/pages/Login.jsx` - Access code authentication
+2. `src/App.jsx` - Routes
+
+### ⏳ Pending
+
+- [ ] MailerLite manual sync pro beta testery s marketing consent
+- [ ] Backend endpoint pro production MailerLite integration
+- [ ] Welcome email automation (SendGrid/Mailgun)
+
+---
+
+**Session dokončena**: 2. listopadu 2025, 23:50
+**Testing**: ✅ Všechny flows otestovány a fungují
+**Dev Server**: ✅ Běží bez chyb (http://localhost:3000/)
+**Supabase**: ✅ Testers table vytvořena s RLS policies
+**Dokumentace**: ✅ summary.md + claude.md + MASTER_TODO_V2.md budou aktualizovány
+**Příští priorita**: MailerLite manual sync nebo Error boundaries (Priority 1) 🚀
+
+---
