@@ -14,7 +14,7 @@ import {
 import { Key, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@shared/config/supabase';
-import { setCurrentUser } from '../utils/storage';
+import { setCurrentUser, saveCoach } from '../utils/storage';
 import { useNotification } from '@shared/context/NotificationContext';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
@@ -65,6 +65,12 @@ const TesterLogin = () => {
         testerId: tester.id,
         createdAt: new Date().toISOString(),
       };
+
+      // ⚠️ CRITICAL: Save coach to Supabase at login time
+      // This prevents foreign key errors when creating materials/programs
+      console.log('🔵 Ukládám coach do Supabase při přihlášení...');
+      await saveCoach(coachUser);
+      console.log('✅ Coach úspěšně uložen do Supabase');
 
       setCurrentUser(coachUser);
 
