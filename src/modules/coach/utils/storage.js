@@ -231,6 +231,23 @@ export const getMaterials = async (coachId = null) => {
 
 export const saveMaterial = async (material) => {
   try {
+    // ⚠️ CRITICAL: Ensure coach exists in Supabase before saving material
+    // Foreign key constraint requires coach_id to exist in coachpro_coaches table
+    if (material.coachId) {
+      const coach = await getCoachById(material.coachId);
+
+      if (!coach) {
+        // Coach doesn't exist in Supabase - get from sessionStorage and save
+        const currentUser = getCurrentUser();
+        if (currentUser && currentUser.id === material.coachId) {
+          console.log('🔵 Coach neexistuje v Supabase, ukládám...');
+          await saveCoach(currentUser);
+        } else {
+          throw new Error(`Coach s ID ${material.coachId} nebyl nalezen. Přihlaš se prosím znovu.`);
+        }
+      }
+    }
+
     // Prepare data - convert camelCase to snake_case for DB
     const materialData = {
       id: material.id,
@@ -256,6 +273,8 @@ export const saveMaterial = async (material) => {
       updated_at: new Date().toISOString(),
     };
 
+    console.log('🔵 Ukládám materiál do Supabase:', materialData);
+
     const { data, error } = await supabase
       .from('coachpro_materials')
       .upsert(materialData, { onConflict: 'id' })
@@ -263,13 +282,22 @@ export const saveMaterial = async (material) => {
       .single();
 
     if (error) {
-      console.error('Supabase error details:', error);
+      console.error('❌ Supabase error details:', error);
       throw error;
     }
-    return data;
+
+    console.log('✅ Materiál úspěšně uložen do Supabase');
+    return convertMaterialFromDB(data);
   } catch (error) {
-    console.error('Error saving material to Supabase:', error);
-    // Fallback to localStorage
+    console.error('❌ Error saving material to Supabase:', error);
+
+    // ⚠️ CRITICAL: Do NOT fallback to localStorage for foreign key errors
+    // These indicate data integrity issues that must be fixed
+    if (error.code === '23503') {
+      throw new Error('Nepodařilo se uložit materiál. Zkus se odhlásit a znovu přihlásit.');
+    }
+
+    // For other errors, fallback to localStorage
     const materials = loadFromStorage(STORAGE_KEYS.MATERIALS, []);
     const existingIndex = materials.findIndex(m => m.id === material.id);
     if (existingIndex >= 0) {
@@ -382,8 +410,22 @@ const convertProgramFromDB = (dbProgram) => {
 
 export const saveProgram = async (program) => {
   try {
-    // Get coach name for faster loading (no need for JOIN later)
-    const coach = await getCoachById(program.coachId);
+    // ⚠️ CRITICAL: Ensure coach exists in Supabase before saving program
+    // Foreign key constraint requires coach_id to exist in coachpro_coaches table
+    let coach = await getCoachById(program.coachId);
+
+    if (!coach) {
+      // Coach doesn't exist in Supabase - get from sessionStorage and save
+      const currentUser = getCurrentUser();
+      if (currentUser && currentUser.id === program.coachId) {
+        console.log('🔵 Coach neexistuje v Supabase, ukládám...');
+        await saveCoach(currentUser);
+        coach = currentUser;
+      } else {
+        throw new Error(`Coach s ID ${program.coachId} nebyl nalezen. Přihlaš se prosím znovu.`);
+      }
+    }
+
     const coachName = coach?.name || 'Neznámá koučka';
 
     // Prepare data - convert camelCase to snake_case for DB
@@ -402,16 +444,28 @@ export const saveProgram = async (program) => {
       updated_at: new Date().toISOString(),
     };
 
+    console.log('🔵 Ukládám program do Supabase:', programData);
+
     const { data, error } = await supabase
       .from('coachpro_programs')
       .upsert(programData, { onConflict: 'id' })
       .select()
       .single();
 
-    if (error) throw error;
-    return data;
+    if (error) {
+      console.error('❌ Supabase error details:', error);
+      throw error;
+    }
+
+    console.log('✅ Program úspěšně uložen do Supabase');
+    return convertProgramFromDB(data);
   } catch (error) {
-    console.error('Error saving program to Supabase:', error);
+    console.error('❌ Error saving program to Supabase:', error);
+
+    // ⚠️ CRITICAL: Do NOT fallback to localStorage for foreign key errors
+    if (error.code === '23503') {
+      throw new Error('Nepodařilo se uložit program. Zkus se odhlásit a znovu přihlásit.');
+    }
 
     // Get coach name for localStorage fallback
     const coach = await getCoachById(program.coachId);
@@ -679,8 +733,22 @@ export const createSharedMaterial = async (material, coachId, accessStartDate = 
     const shareCode = generateShareCode();
     const qrCode = await generateQRCode(shareCode);
 
-    // Get coach name for faster loading (no need for JOIN later)
-    const coach = await getCoachById(coachId);
+    // ⚠️ CRITICAL: Ensure coach exists in Supabase before creating shared material
+    // Foreign key constraint requires coach_id to exist in coachpro_coaches table
+    let coach = await getCoachById(coachId);
+
+    if (!coach) {
+      // Coach doesn't exist in Supabase - get from sessionStorage and save
+      const currentUser = getCurrentUser();
+      if (currentUser && currentUser.id === coachId) {
+        console.log('🔵 Coach neexistuje v Supabase, ukládám...');
+        await saveCoach(currentUser);
+        coach = currentUser;
+      } else {
+        throw new Error(`Coach s ID ${coachId} nebyl nalezen. Přihlaš se prosím znovu.`);
+      }
+    }
+
     const coachName = coach?.name || 'Neznámá koučka';
 
     const sharedMaterialData = {
@@ -695,16 +763,29 @@ export const createSharedMaterial = async (material, coachId, accessStartDate = 
       access_end_date: accessEndDate,
     };
 
+    console.log('🔵 Vytvářím shared material v Supabase:', sharedMaterialData);
+
     const { data, error } = await supabase
       .from('coachpro_shared_materials')
       .insert(sharedMaterialData)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Supabase error details:', error);
+      throw error;
+    }
+
+    console.log('✅ Shared material úspěšně vytvořen v Supabase');
     return convertSharedMaterialFromDB(data);
   } catch (error) {
-    console.error('Error creating shared material in Supabase:', error);
+    console.error('❌ Error creating shared material in Supabase:', error);
+
+    // ⚠️ CRITICAL: Do NOT fallback to localStorage for foreign key errors
+    if (error.code === '23503') {
+      throw new Error('Nepodařilo se vytvořit sdílený materiál. Zkus se odhlásit a znovu přihlásit.');
+    }
+
     // Fallback to localStorage
     const { generateShareCode, generateQRCode } = await import('./generateCode.js');
     const shareCode = generateShareCode();
