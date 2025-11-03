@@ -206,6 +206,8 @@ export const saveMaterial = async (material) => {
       link_type: material.linkType || null,
       link_meta: material.linkMeta || null,
       thumbnail: material.thumbnail || null,
+      created_at: material.createdAt || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
     const { data, error } = await supabase
@@ -214,7 +216,10 @@ export const saveMaterial = async (material) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error details:', error);
+      throw error;
+    }
     return data;
   } catch (error) {
     console.error('Error saving material to Supabase:', error);

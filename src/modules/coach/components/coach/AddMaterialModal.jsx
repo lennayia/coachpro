@@ -740,7 +740,7 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
     }
   }}
   margin="normal"
-  error={linkUrl && !isValidUrl(linkUrl)}
+  error={Boolean(linkUrl && !isValidUrl(linkUrl))}
   helperText={
     linkUrl && !isValidUrl(linkUrl)
       ? 'Zadej platnou URL adresu'
