@@ -367,7 +367,7 @@ const TesterSignup = () => {
 
             <Typography variant="body2" color="text.secondary" align="center" mt={2}>
               Již máš access code?{' '}
-              <Link href="/coach/auth" underline="hover">
+              <Link href="/tester/login" underline="hover">
                 Přihlas se
               </Link>
             </Typography>
