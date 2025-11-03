@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import { Shield, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { setCurrentUser } from '../utils/storage';
+import { setCurrentUser, getCoaches } from '../utils/storage';
 import { useNotification } from '@shared/context/NotificationContext';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
@@ -45,17 +45,39 @@ const AdminLogin = () => {
       return;
     }
 
-    // Create admin session
+    // Load existing coaches and use the oldest one (your admin account)
+    const coaches = getCoaches();
+
+    if (!coaches || coaches.length === 0) {
+      // No existing coach accounts - create new admin account
+      const adminUser = {
+        id: 'admin-lenna',
+        name: 'Lenka Roubalová',
+        email: 'lenkaroubalka@gmail.com',
+        isAdmin: true,
+        createdAt: new Date().toISOString(),
+      };
+      setCurrentUser(adminUser);
+      showSuccess('Vítej! 🎉', 'Nový admin účet vytvořen');
+      navigate('/coach/dashboard');
+      return;
+    }
+
+    // Sort by createdAt (oldest first)
+    const sortedCoaches = [...coaches].sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      return dateA - dateB;
+    });
+
+    // Use oldest coach account as admin
     const adminUser = {
-      id: 'admin-lenna',
-      name: 'Lenka Roubalová',
-      email: 'lenkaroubalka@gmail.com',
-      isAdmin: true,
-      createdAt: new Date().toISOString(),
+      ...sortedCoaches[0],
+      isAdmin: true, // Mark as admin for potential future features
     };
 
     setCurrentUser(adminUser);
-    showSuccess('Vítej zpět! 🎉', 'Admin přihlášení úspěšné');
+    showSuccess('Vítej zpět! 🎉', `Přihlášena jako ${adminUser.name}`);
     navigate('/coach/dashboard');
   };
 
