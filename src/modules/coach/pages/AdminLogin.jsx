@@ -29,7 +29,7 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -46,7 +46,7 @@ const AdminLogin = () => {
     }
 
     // Load existing coaches and use the oldest one (your admin account)
-    const coaches = getCoaches();
+    const coaches = await getCoaches();
 
     if (!coaches || coaches.length === 0) {
       // No existing coach accounts - create new admin account

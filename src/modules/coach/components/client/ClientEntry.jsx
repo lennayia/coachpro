@@ -63,7 +63,7 @@ const ClientEntry = () => {
     try {
       // 🔑 ADMIN MODE - speciální kód pro testování
       if (code === 'ADMIN1') {
-        const programs = getPrograms();
+        const programs = await getPrograms();
         if (programs.length === 0) {
           const errorMsg = 'Žádné programy k dispozici. Vytvoř nejdřív nějaký program.';
           showError('Admin režim', errorMsg);
@@ -89,7 +89,7 @@ const ClientEntry = () => {
       }
 
       // Najdi program podle kódu
-      const program = getProgramByCode(code);
+      const program = await getProgramByCode(code);
       if (!program) {
         const errorMsg = 'Program s tímto kódem neexistuje. Zkontroluj ho a zkus znovu.';
         showError('Program nenalezen', errorMsg);
@@ -103,7 +103,7 @@ const ClientEntry = () => {
       }
 
       // Zkontroluj, zda klientka už není zaregistrovaná
-      let client = getClientByProgramCode(code);
+      let client = await getClientByProgramCode(code);
 
       if (!client) {
         // Nová klientka - zobraz name input
@@ -129,7 +129,7 @@ const ClientEntry = () => {
           certificateGenerated: false,
         };
 
-        saveClient(client);
+        await saveClient(client);
       }
 
       // Ulož do session storage

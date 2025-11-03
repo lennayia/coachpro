@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Box, Typography, Grid, Card, CardContent, Button, Stack, Chip } from '@mui/material';
 import { motion } from 'framer-motion';
 import {
@@ -16,9 +17,21 @@ import BORDER_RADIUS from '@styles/borderRadius';
 const DashboardOverview = () => {
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
-  const materials = getMaterials(currentUser?.id);
-  const programs = getPrograms(currentUser?.id);
-  const clients = getClientsByCoachId(currentUser?.id);
+  const [materials, setMaterials] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [clients, setClients] = useState([]);
+
+  // Load data from Supabase
+  useEffect(() => {
+    const loadData = async () => {
+      if (currentUser?.id) {
+        setMaterials(await getMaterials(currentUser.id));
+        setPrograms(await getPrograms(currentUser.id));
+        setClients(await getClientsByCoachId(currentUser.id));
+      }
+    };
+    loadData();
+  }, [currentUser?.id]);
 
   // Statistiky
   const activeClients = clients.filter(c => !c.completedAt).length;

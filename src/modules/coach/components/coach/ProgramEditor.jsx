@@ -251,7 +251,7 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
         updatedAt: new Date().toISOString(),
       };
 
-      saveProgram(programData);
+      await saveProgram(programData);
 
       // Clear draft after successful save
       clearDraft();

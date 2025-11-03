@@ -25,11 +25,20 @@ import { getIconByType, getCategoryLabel, formatDuration } from '@shared/utils/h
 
 const MaterialSelector = ({ open, onClose, selectedMaterialIds = [], onConfirm, dayNumber }) => {
   const currentUser = getCurrentUser();
-  const materials = getMaterials(currentUser?.id);
-
+  const [materials, setMaterials] = useState([]);
   const [selected, setSelected] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
+
+  // Load materials from Supabase
+  useEffect(() => {
+    const loadMaterials = async () => {
+      if (currentUser?.id) {
+        setMaterials(await getMaterials(currentUser.id));
+      }
+    };
+    loadMaterials();
+  }, [currentUser?.id]);
 
   // Initialize selected materials when dialog opens
   useEffect(() => {

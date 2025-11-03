@@ -121,7 +121,7 @@ const DailyView = () => {
     setDayCompleted(loadedClient.completedDays.includes(dayToShow));
   }, [navigate, viewingDay]);
 
-  const handleMoodSelected = (mood) => {
+  const handleMoodSelected = async (mood) => {
     const updatedClient = {
       ...client,
       moodLog: [
@@ -134,12 +134,12 @@ const DailyView = () => {
       ],
     };
 
-    saveClient(updatedClient);
+    await saveClient(updatedClient);
     setClient(updatedClient);
     setMoodChecked(true);
   };
 
-  const handleCompleteDay = () => {
+  const handleCompleteDay = async () => {
     if (!client || dayCompleted) return;
 
     const updatedClient = { ...client };
@@ -166,7 +166,7 @@ const DailyView = () => {
       setCelebrationOpen(true);
     }
 
-    saveClient(updatedClient);
+    await saveClient(updatedClient);
     setClient(updatedClient);
     setDayCompleted(true);
 
@@ -175,7 +175,7 @@ const DailyView = () => {
     setTimeout(() => setShowConfetti(false), 5000);
   };
 
-  const handleNextDay = () => {
+  const handleNextDay = async () => {
     if (!client || client.currentDay >= program.duration) return;
 
     const updatedClient = {
@@ -183,7 +183,7 @@ const DailyView = () => {
       currentDay: client.currentDay + 1,
     };
 
-    saveClient(updatedClient);
+    await saveClient(updatedClient);
     setCurrentClient(updatedClient); // Update session storage
     window.location.reload(); // Reload to show next day
   };

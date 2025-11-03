@@ -43,14 +43,14 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         from: 'CoachPro <beta@online-byznys.cz>',
         to: [email],
-        subject: '🌿 Tvůj CoachPro Access Kód',
+        subject: '🌿 Váš CoachPro Access Kód',
         html: `
           <!DOCTYPE html>
           <html>
             <head>
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>Tvůj CoachPro Access Kód</title>
+              <title>Váš CoachPro Access Kód</title>
             </head>
             <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
               <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
@@ -74,11 +74,11 @@ export default async function handler(req, res) {
                       <tr>
                         <td style="padding: 40px;">
                           <h2 style="margin: 0 0 16px; color: #1a1a1a; font-size: 24px; font-weight: 600;">
-                            Vítej v beta testu, ${name}! 🎉
+                            Vítejte v beta testu, ${name}!
                           </h2>
 
                           <p style="margin: 0 0 24px; color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-                            Děkujeme, že se zapojuješ do testování CoachPro aplikace! Tady je tvůj přístupový kód:
+                            Děkujeme, že se zapojujete do testování CoachPro aplikace! Tady je Váš přístupový kód:
                           </p>
 
                           <!-- Access Code Box -->

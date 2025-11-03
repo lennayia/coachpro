@@ -48,7 +48,7 @@ const MaterialsLibrary = () => {
       setLoading(true);
       // Simulate async loading (for future Supabase integration)
       await new Promise(resolve => setTimeout(resolve, 300));
-      setMaterials(getMaterials(currentUser?.id));
+      setMaterials(await getMaterials(currentUser?.id));
       setLoading(false);
     };
 
@@ -59,7 +59,7 @@ const MaterialsLibrary = () => {
   const refreshMaterials = async () => {
     setLoading(true);
     await new Promise(resolve => setTimeout(resolve, 300));
-    setMaterials(getMaterials(currentUser?.id));
+    setMaterials(await getMaterials(currentUser?.id));
     setLoading(false);
   };
 

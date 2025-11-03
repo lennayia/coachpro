@@ -20,7 +20,10 @@ const Login = () => {
 
   // Inicializuj demo data pokud neexistují
   useEffect(() => {
-    initializeDemoData();
+    const initData = async () => {
+      await initializeDemoData();
+    };
+    initData();
   }, []);
 
   const handleCoachLogin = () => {
@@ -92,7 +95,7 @@ const Login = () => {
       };
 
       // 3. Ulož coach do storage
-      saveCoach(coach);
+      await saveCoach(coach);
       setCurrentUser({
         ...coach,
         role: 'coach'

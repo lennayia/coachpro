@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -47,10 +47,19 @@ const ClientsList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // all, active, completed, new
   const [filterProgram, setFilterProgram] = useState('all');
+  const [clients, setClients] = useState([]);
+  const [programs, setPrograms] = useState([]);
 
-  // Load data
-  const clients = currentUser ? getClientsByCoachId(currentUser.id) : [];
-  const programs = currentUser ? getPrograms(currentUser.id) : [];
+  // Load data from Supabase
+  useEffect(() => {
+    const loadData = async () => {
+      if (currentUser?.id) {
+        setClients(await getClientsByCoachId(currentUser.id));
+        setPrograms(await getPrograms(currentUser.id));
+      }
+    };
+    loadData();
+  }, [currentUser?.id]);
 
   // Enrich clients with program data
   const enrichedClients = useMemo(() => {

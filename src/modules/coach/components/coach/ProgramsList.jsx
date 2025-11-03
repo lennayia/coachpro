@@ -71,7 +71,7 @@ const ProgramsList = () => {
     const loadPrograms = async () => {
       setLoading(true);
       await new Promise(resolve => setTimeout(resolve, 300));
-      setPrograms(getPrograms(currentUser?.id));
+      setPrograms(await getPrograms(currentUser?.id));
       setLoading(false);
     };
 
@@ -81,7 +81,7 @@ const ProgramsList = () => {
   const refreshPrograms = async () => {
     setLoading(true);
     await new Promise(resolve => setTimeout(resolve, 300));
-    setPrograms(getPrograms(currentUser?.id));
+    setPrograms(await getPrograms(currentUser?.id));
     setLoading(false);
   };
 

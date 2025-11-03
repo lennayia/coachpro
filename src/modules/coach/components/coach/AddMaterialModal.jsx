@@ -363,7 +363,7 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
         }
       }
 
-      saveMaterial(materialData);
+      await saveMaterial(materialData);
 
       showSuccess(
         'Hotovo!',
