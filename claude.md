@@ -161,7 +161,88 @@ const newFunction = () => { ... };
 - Psát znovupoužitelné komponenty
 - Minimalizovat závislosti mezi moduly
 
-### 1. ⚠️ Border-Radius systém
+### 1. 🔥 SUPABASE FOREIGN KEY CONSTRAINTS - KRITICKÉ!
+
+> **⚠️ TENTO BUG SE OPAKOVAL 2× - NIKDY VÍCKRÁT!**
+
+**Datum první chyby**: 3.11.2025 při Supabase migraci (commit 9f2e5ad)
+**Datum druhé chyby**: 3.11.2025 večer (commit 3107eaa)
+**Uživatelka testovala, ale bug se dostal do produkce 2×**
+
+#### CO SE STALO:
+
+```
+❌ ERROR: 409 Conflict
+insert or update on table "coachpro_materials" violates
+foreign key constraint "coachpro_materials_coach_id_fkey"
+Key is not present in table "coachpro_coaches"
+```
+
+**ROOT CAUSE:**
+- Coach byl uložen JEN v `sessionStorage` (ne v Supabase databázi)
+- Při vytváření materiálu/programu Supabase kontroloval foreign key
+- Coach s tím ID neexistoval v tabulce `coachpro_coaches` → **FAIL**
+- Aplikace zobrazila success toast kvůli localStorage fallbacku, ale data nebyla v DB!
+
+#### JAK TOMU PŘEDEJÍT:
+
+**PŘED každým `saveMaterial()`, `saveProgram()`, `createSharedMaterial()` MUSÍŠ:**
+
+```javascript
+// ⚠️ KRITICKÉ: Ensure coach exists BEFORE saving dependent data
+if (material.coachId) {
+  let coach = await getCoachById(material.coachId);
+
+  if (!coach) {
+    // Coach doesn't exist in Supabase - get from sessionStorage and save
+    const currentUser = getCurrentUser();
+    if (currentUser && currentUser.id === material.coachId) {
+      console.log('🔵 Coach neexistuje v Supabase, ukládám...');
+      await saveCoach(currentUser);
+    } else {
+      throw new Error('Coach nebyl nalezen. Přihlaš se prosím znovu.');
+    }
+  }
+}
+
+// Teď teprve save material/program/shared material
+```
+
+#### KONTROLNÍ CHECKLIST PRO VŠECHNY SAVE FUNKCE:
+
+- [ ] `saveMaterial()` - kontroluje existenci coach? ✅
+- [ ] `saveProgram()` - kontroluje existenci coach? ✅
+- [ ] `createSharedMaterial()` - kontroluje existenci coach? ✅
+- [ ] `saveClient()` - kontroluje existenci program? (TODO)
+- [ ] Jakákoliv nová save funkce - VŽDY zkontroluj foreign keys!
+
+#### PROČ SE TO STALO 2×:
+
+1. **První**: Při Supabase migraci jsme vynechali "ensure coach exists" kontrolu
+2. **Druhý**: Někdo (já) upravil kód a odstranil tuto kontrolu nebo ji nikdy nepřidal
+
+#### JAK OTESTOVAT (BEFORE COMMIT):
+
+```bash
+# 1. Smaž Supabase coach data (simulace nového uživatele)
+DELETE FROM coachpro_coaches WHERE email = 'test@email.cz';
+
+# 2. Přihlas se jako nový coach (uloží se jen do sessionStorage)
+# 3. Zkus vytvořit materiál
+# 4. Zkontroluj console - měl by se objevit:
+#    "🔵 Coach neexistuje v Supabase, ukládám..."
+#    "✅ Materiál úspěšně uložen do Supabase"
+```
+
+#### ZÁVAZEK PRO BUDOUCNOST:
+
+**NIKDY** neupravovat `saveMaterial()`, `saveProgram()`, `createSharedMaterial()` bez kontroly "ensure coach exists" na ZAČÁTKU funkce!
+
+**VŽDY** když přidáváš novou save funkci s foreign key → přidej "ensure parent exists" kontrolu!
+
+---
+
+### 2. ⚠️ Border-Radius systém
 
 **NIKDY** nepoužívej hardcodované hodnoty jako `borderRadius: 2` nebo `borderRadius: '16px'`
 
@@ -190,7 +271,7 @@ sx={{ borderRadius: '12px' }}
 - `dialog`: 20px - Dialogy
 - `premium`: 24px - Velké prvky
 
-### 2. 🎨 Design konvence
+### 3. 🎨 Design konvence
 
 **Barvy**: Používej theme palette, ne hardcodované hex
 ```javascript
@@ -224,7 +305,7 @@ sx={{
 <Button fullWidth>Text</Button>  // jen pokud je to opravdu potřeba
 ```
 
-### 3. 📦 LocalStorage limit
+### 4. 📦 LocalStorage limit
 
 **Max 5MB celkem!** Kontroluj velikost před uložením.
 
@@ -239,7 +320,7 @@ if (sizeInMB > 5) {
 - Audio/PDF/Dokumenty: max 3MB
 - Images: max 2MB
 
-### 4. 🔒 Důležité soubory - NIKDY NEMAZAT!
+### 5. 🔒 Důležité soubory - NIKDY NEMAZAT!
 
 ```
 /src/styles/borderRadius.js                      ⚠️ KRITICKÝ - border-radius systém
@@ -6525,7 +6606,7 @@ const generateAccessCode = () => {
 **Datum**: 3. listopadu 2025
 **AI**: Claude Sonnet 4.5
 **Status**: ✅ DEPLOYED TO PRODUCTION
-**Production URL**: https://coachpro.vercel.app/
+**Production URL**: https://coachpro-weld.vercel.app/
 
 ### 🎯 Co bylo implementováno
 
@@ -6737,7 +6818,7 @@ const adminUser = { ...sortedCoaches[0], isAdmin: true };
 
 **Poslední update**: 3. listopadu 2025, 21:30
 **Status**: ✅ Time-limited access + SQL migrations dokončeno
-**Production URL**: https://coachpro.vercel.app/
+**Production URL**: https://coachpro-weld.vercel.app/
 **Dev Server**: ✅ Běží bez chyb na http://localhost:3000/
 **SQL Migrations**: ✅ Připraveny k spuštění v Supabase
 **Příští priorita**: Spustit SQL migrace v Supabase, pak Error boundaries 🚀
