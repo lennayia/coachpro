@@ -42,8 +42,8 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         from: 'CoachPro <onboarding@resend.dev>', // For testing, use Resend's test domain
-        to: [email],
-        subject: '🌿 Tvůj CoachPro Access Kód',
+        to: ['lenkaroubalka@gmail.com'], // BETA: All emails go to admin during testing
+        subject: `🌿 CoachPro Access Kód pro ${name}`,
         html: `
           <!DOCTYPE html>
           <html>
@@ -67,6 +67,20 @@ export default async function handler(req, res) {
                           <p style="margin: 10px 0 0; color: rgba(255,255,255,0.9); font-size: 16px;">
                             Beta Test
                           </p>
+                        </td>
+                      </tr>
+
+                      <!-- BETA INFO: Recipient Info -->
+                      <tr>
+                        <td style="padding: 20px 40px 0;">
+                          <div style="background-color: #e3f2fd; border: 2px solid #2196f3; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;">
+                            <p style="margin: 0; color: #1565c0; font-size: 13px; font-weight: 600;">
+                              📧 BETA TEST MODE: Tento email je určený pro:
+                            </p>
+                            <p style="margin: 4px 0 0; color: #1976d2; font-size: 14px;">
+                              <strong>${name}</strong> (${email})
+                            </p>
+                          </div>
                         </td>
                       </tr>
 
