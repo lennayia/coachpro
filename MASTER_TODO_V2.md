@@ -2,7 +2,7 @@
 
 **Datum aktualizace:** 3. listopadu 2025, 20:00
 **Aktuální stav:** ✅ Sprint 10 dokončen - Critical Bugs Fixed + Performance Optimized
-**Production URL:** https://coachpro.vercel.app/
+**Production URL:** https://coachpro-weld.vercel.app/
 **Další priorita:** Error Boundaries + LocalStorage Warning
 **Hosting:** Vercel (frontend) + Supabase (storage + database)
 **AI asistenti:** Claude Sonnet 4.5
@@ -7091,7 +7091,7 @@ setCurrentUser({ ...coach, role: 'coach' });
 ### ✅ Implementováno
 
 #### 1. Vercel Deployment
-- ✅ Project deployed na Vercel: https://coachpro.vercel.app/
+- ✅ Project deployed na Vercel: https://coachpro-weld.vercel.app/
 - ✅ Auto-deployment z main branch
 - ✅ Merged Sprint 8-13 features do main (29,304 lines)
 - ✅ vercel.json SPA routing configured
@@ -7244,7 +7244,7 @@ const adminUser = { ...sortedCoaches[0], isAdmin: true };
 
 ### 📊 Deployment Status
 
-**Production**: ✅ LIVE at https://coachpro.vercel.app/
+**Production**: ✅ LIVE at https://coachpro-weld.vercel.app/
 **DNS**: ⏳ Propagating (5-30 min)
 **Email**: ⏳ Waiting for domain verification
 **Database**: ❌ Still using localStorage (CRITICAL - migrate ASAP!)
@@ -7333,7 +7333,7 @@ const adminUser = { ...sortedCoaches[0], isAdmin: true };
 
 **Poslední update**: 3. listopadu 2025, 21:35
 **Status**: ✅ Time-limited access + SQL migrations cleanup dokončeno
-**Production**: https://coachpro.vercel.app/
+**Production**: https://coachpro-weld.vercel.app/
 **Dev Server**: ✅ Běží bez chyb na http://localhost:3000/
 **Next**: Spustit SQL migraci pro time-limited access sloupce v Supabase 🚀
 **Autor**: Lenka Roubalová + Claude Sonnet 4.5
