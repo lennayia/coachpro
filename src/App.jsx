@@ -9,6 +9,7 @@ import CoachDashboard from '@modules/coach/pages/CoachDashboard';
 import ClientView from '@modules/coach/pages/ClientView';
 import TesterSignup from '@modules/coach/pages/TesterSignup';
 import TesterLogin from '@modules/coach/pages/TesterLogin';
+import AdminLogin from '@modules/coach/pages/AdminLogin';
 import PrivacyPolicy from '@modules/coach/pages/PrivacyPolicy';
 
 // Context pro theme mode
@@ -40,6 +41,7 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Login />} />
+              <Route path="/lenna" element={<AdminLogin />} />
               <Route path="/tester/signup" element={<TesterSignup />} />
               <Route path="/tester/login" element={<TesterLogin />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />

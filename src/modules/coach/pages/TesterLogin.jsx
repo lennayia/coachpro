@@ -177,13 +177,6 @@ const TesterLogin = () => {
                 Zaregistruj se
               </Link>
             </Typography>
-
-            <Typography variant="body2" color="text.secondary" mt={1}>
-              Nebo{' '}
-              <Link href="/coach/auth" underline="hover" sx={{ fontWeight: 600 }}>
-                přihlas se jako koučka
-              </Link>
-            </Typography>
           </Box>
 
           {/* Help */}
