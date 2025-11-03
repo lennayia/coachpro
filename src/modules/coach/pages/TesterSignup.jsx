@@ -121,13 +121,37 @@ const TesterSignup = () => {
         throw supabaseError;
       }
 
-      // 4. MailerLite integration (disabled for beta - will be added via backend later)
+      // 4. Send access code email via Resend
+      try {
+        const emailResponse = await fetch('/api/send-access-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: email.trim().toLowerCase(),
+            name: name.trim(),
+            accessCode: code,
+          }),
+        });
+
+        if (!emailResponse.ok) {
+          console.error('Failed to send email:', await emailResponse.text());
+          // Don't throw - registration was successful, just email failed
+          showError('Upozornění', 'Registrace proběhla, ale email se nepodařilo odeslat. Ulož si access code!');
+        } else {
+          console.log('✅ Access code email sent successfully');
+        }
+      } catch (emailError) {
+        console.error('Error sending email:', emailError);
+        // Don't throw - registration was successful, just show warning
+      }
+
+      // 5. MailerLite integration (disabled for beta - will be added via backend later)
       // For beta testing: contacts are in Supabase, MailerLite sync will be handled manually
       if (marketingConsent) {
         console.log('✅ Marketing consent given - subscriber will be added to MailerLite manually');
       }
 
-      // 5. Success!
+      // 6. Success!
       setAccessCode(code);
       setSuccess(true);
       showSuccess('Registrace úspěšná!', `Tvůj access code: ${code}`);
@@ -196,8 +220,13 @@ const TesterSignup = () => {
               </Typography>
             </Box>
 
+            <Alert severity="success" sx={{ mb: 3, borderRadius: BORDER_RADIUS.compact }}>
+              📧 <strong>Email byl odeslán!</strong> Zkontroluj si schránku na <strong>{email}</strong>.
+              Najdeš tam svůj access code a instrukce k přihlášení.
+            </Alert>
+
             <Alert severity="info" sx={{ mb: 3, borderRadius: BORDER_RADIUS.compact }}>
-              Ulož si tento kód! Budeš ho potřebovat při prvním přihlášení do aplikace.
+              💡 Pokud email neuvidíš do 5 minut, zkontroluj SPAM nebo nám napiš na lenna@online-byznys.cz
             </Alert>
 
             {marketingConsent && (
