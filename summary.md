@@ -9994,3 +9994,173 @@ setPreviewSharedMaterial(sharedMaterial);
 **Dev Server**: ✅ Běží bez chyb na http://localhost:3000/
 **Production**: Připraveno k deployi na Vercel
 **Doporučení**: Testovat v produkci po deploymentu 🚀
+
+.....
+CLAUDE CODE 3/11/2025 - 20:50
+---------------
+
+## 📋 Session: Time-Limited Access Control & SQL Migrations Cleanup (3.11.2025, večer)
+
+**AI**: Claude Sonnet 4.5
+**Čas**: 3. listopadu 2025, 20:45-21:30
+**Status**: ✅ Dokončeno
+
+### 🎯 Hlavní úkoly
+
+#### 1. Time-Limited Access Control - Modular UI Polish
+**Problém**: ShareMaterialModal a ShareProgramModal měly částečně implementovanou modularitu
+- Missing accessStartDate/accessEndDate v localStorage fallback
+- Form elementy (TextField, DatePicker) bez modular stylingu
+- Buttons bez modern effects (gradients, shine animations)
+- QR kód border-radius nefungoval (style vs sx prop)
+- Action buttons ("Kopírovat", "Stáhnout QR", "Sdílet") bez modular systému
+
+**Řešení**:
+- `storage.js` - Přidány accessStartDate/accessEndDate do localStorage fallback (lines 725-726)
+- `modernEffects.js` - 4 nové modular funkce:
+  - `createPrimaryModalButton(isDark)` - gradient, shine, inset highlights (lines 347-391)
+  - `createFormTextField(isDark)` - background, hover, focus glow (lines 393-415)
+  - `createCancelButton(isDark)` - border, hover effects (lines 417-434)
+  - `createSubmitButton(isDark)` - gradient, shine animation (lines 436-480)
+- `ShareProgramModal.jsx` & `ShareMaterialModal.jsx`:
+  - TextField + DatePicker používají `createFormTextField(isDark)`
+  - "Zrušit" používá `createCancelButton(isDark)`
+  - "Vygenerovat kód" používá `createSubmitButton(isDark)`
+  - "Hotovo" používá `createPrimaryModalButton(isDark)` (bez fullWidth, centered)
+  - QR kód používá `<Box component="img" sx={{}}>` místo `<img style={{}}>`
+  - Action buttons mají inline styling s `BORDER_RADIUS.compact`
+
+#### 2. SQL Migrations Reorganization
+**Problém**: SQL soubory byly roztroušené v root projektu bez timestamp, duplicity, špatné názvy tabulek
+
+**Řešení**:
+- Vytvořena složka `/supabase/migrations/` pro centralizaci migrací
+- Přesunuty 4 SQL soubory z root s timestampem:
+  - `20250103_01_add_coach_name_to_programs.sql`
+  - `20250103_02_add_coach_name_to_shared_materials.sql`
+  - `20250103_03_add_taxonomy_columns.sql`
+  - `20250103_04_add_access_dates_to_clients.sql`
+- Vytvořen nový `20250103_add_access_dates_to_shared_materials.sql`:
+  - Opravený název tabulky: `shared_materials` → `coachpro_shared_materials`
+  - Přidané sloupce: `access_start_date`, `access_end_date` (TIMESTAMPTZ)
+  - Index pro rychlé vyhledávání aktivních sdílení
+  - České komentáře v SQL
+- Smazána duplicita `add_access_dates_to_shared_materials.sql` z root
+- V root zůstaly jen dokumentační soubory:
+  - `supabase_database_schema.sql` - kompletní schema
+  - `supabase_testers_table.sql` - testers tabulka
+
+### 📁 Soubory změněné
+
+**Vytvořené:**
+- `/supabase/migrations/20250103_add_access_dates_to_shared_materials.sql` (nový)
+
+**Přesunuté do /supabase/migrations/:**
+- `20250103_01_add_coach_name_to_programs.sql` (z root)
+- `20250103_02_add_coach_name_to_shared_materials.sql` (z root)
+- `20250103_03_add_taxonomy_columns.sql` (z root)
+- `20250103_04_add_access_dates_to_clients.sql` (z root)
+
+**Upravené:**
+- `src/modules/coach/utils/storage.js` (lines 725-726) - accessStartDate/accessEndDate v fallback
+- `src/shared/styles/modernEffects.js` (lines 347-480) - 4 nové modular funkce
+- `src/modules/coach/components/coach/ShareProgramModal.jsx` - modular styling aplikován
+- `src/modules/coach/components/coach/ShareMaterialModal.jsx` - modular styling aplikován
+
+**Smazané:**
+- `add_access_dates_to_shared_materials.sql` (duplicita)
+
+### 🐛 Opravené chyby
+
+**Bug #1: Missing date display v ShareMaterialModal**
+- **Root cause**: localStorage fallback neměl accessStartDate/accessEndDate
+- **Fix**: Přidány date fields do sharedMaterial objektu
+
+**Bug #2: QR border-radius nefungoval**
+- **Root cause**: `<img style={{borderRadius: BORDER_RADIUS.small}}>` - konstanty nefungují v style prop
+- **Fix**: `<Box component="img" sx={{borderRadius: BORDER_RADIUS.small}}>`
+
+**Bug #3: Duplicate function name createActionButton**
+- **Symptom**: `Uncaught SyntaxError: Identifier 'createActionButton' has already been declared`
+- **Root cause**: Pokus vytvořit novou funkci s existujícím názvem
+- **Fix**: Smazána nová funkce, použit inline styling místo modular (per user feedback)
+
+**Bug #4: Wrong table name in SQL**
+- **Symptom**: `20250103_add_access_dates_to_shared_materials.sql` používal `shared_materials`
+- **Root cause**: Všechny tabulky v Supabase mají prefix `coachpro_`
+- **Fix**: Opraven název na `coachpro_shared_materials`
+
+### 🎓 Lessons Learned
+
+1. **BORDER_RADIUS konstanty v style vs sx**:
+   - `style={{ borderRadius: BORDER_RADIUS.small }}` ❌ Nefunguje!
+   - `sx={{ borderRadius: BORDER_RADIUS.small }}` ✅ Funguje
+   - Konstanty jsou numbers, ne strings - potřebují sx prop processing
+
+2. **Modular system priorities**:
+   - User feedback: "proč vytváříš nová tlačítka, když máme modularitu?"
+   - Vždy nejdřív zkontrolovat existující modular funkce
+   - Nevytvářet duplicitní funkce
+
+3. **SQL migrations best practices**:
+   - Centralizovat do `/supabase/migrations/`
+   - Používat timestamp v názvu (YYYYMMDD_NN_description)
+   - Lokální soubory = dokumentace/verzování
+   - Supabase SQL Editor queries = snippety (můžou být jiné)
+
+4. **Table naming conventions**:
+   - Všechny CoachPro tabulky mají prefix `coachpro_`
+   - Part of ProApp ecosystem (documentováno v schema)
+
+5. **Always ask before commit**:
+   - User reminder: "A vždycky se máš ptát před commitem. Nemůžeš tyhle věci dělat sám!"
+   - Critical rule pro AI asistenta
+
+### ✅ Výsledek
+
+**Time-Limited Access Control:**
+- [x] ShareMaterialModal - plně modular styling, časové omezení funguje
+- [x] ShareProgramModal - plně modular styling, časové omezení funguje
+- [x] 4 nové modular funkce v modernEffects.js
+- [x] localStorage fallback obsahuje date fields
+- [x] QR kód má správný border-radius (Box component pattern)
+- [x] Všechny form elementy používají modular system
+
+**SQL Migrations:**
+- [x] `/supabase/migrations/` složka vytvořena
+- [x] 5 SQL souborů organizováno s timestampem
+- [x] Opravený název tabulky (coachpro_shared_materials)
+- [x] Smazané duplicity
+- [x] Dokumentační soubory v root
+
+**Dev Server:**
+- [x] Běží bez chyb na http://localhost:3000/
+- [x] Dark/light mode funguje
+- [x] Time-limited access kontrola funguje
+
+### 📊 Session Statistika
+
+- **Čas strávený**: ~45 minut
+- **Soubory vytvořeny**: 1 (SQL migrace)
+- **Soubory přesunuty**: 4 (SQL migrace)
+- **Soubory upraveny**: 4 (storage.js, modernEffects.js, 2× modals)
+- **Soubory smazány**: 1 (duplicita)
+- **Nové modular funkce**: 4
+- **Bugs opraveny**: 4
+- **Řádky kódu**: ~300 změn
+
+### 🚀 Připraveno k commitu
+
+**Commit 1**: `feat: Share modals - time access control & UI polish`
+**Commit 2**: `refactor: Reorganize SQL migrations structure` (připraveno)
+
+---
+
+**Status**: ✅ Session dokončena (3.11.2025, 20:50)
+**Dev Server**: ✅ Běží bez chyb
+**SQL Migrations**: ✅ Připraveny k spuštění v Supabase
+**Doporučení**: Spustit SQL migraci v Supabase před dalším vývojem 🚀
+
+-----------
+CLAUDE CODE 3/11/2025 -
+---------------

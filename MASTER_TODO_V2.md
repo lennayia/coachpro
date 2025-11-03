@@ -7252,7 +7252,88 @@ const adminUser = { ...sortedCoaches[0], isAdmin: true };
 
 ---
 
-**Poslední update**: 3. listopadu 2025, 18:00
-**Status**: ✅ Production deployment dokončen
-**Waiting for**: DNS propagation → Email verification → Supabase migration
+## 📋 Session: Time-Limited Access + SQL Migrations (3.11.2025, 21:30)
+
+### ✅ COMPLETED
+
+#### 1. Time-Limited Access Control - Modular UI
+- [x] ShareMaterialModal - DatePickers pro časové omezení
+- [x] ShareProgramModal - DatePickers pro časové omezení
+- [x] storage.js - accessStartDate/accessEndDate v localStorage fallback
+- [x] modernEffects.js - 4 nové modular funkce:
+  - `createPrimaryModalButton(isDark)` - gradient, shine, inset
+  - `createFormTextField(isDark)` - background, hover, focus
+  - `createCancelButton(isDark)` - border, hover
+  - `createSubmitButton(isDark)` - gradient, shine
+- [x] QR kód border-radius fix - `<Box component="img" sx={{}}>` pattern
+- [x] Všechny form elementy používají modular system
+
+#### 2. SQL Migrations Reorganization
+- [x] Vytvořena `/supabase/migrations/` složka
+- [x] Přesunuty 4 SQL soubory s timestampem (20250103_01-04)
+- [x] Nový SQL: `20250103_add_access_dates_to_shared_materials.sql`
+  - access_start_date, access_end_date (TIMESTAMPTZ)
+  - Opravený název tabulky: coachpro_shared_materials
+  - Index pro rychlé vyhledávání
+- [x] Smazána duplicita z root
+- [x] Dokumentační soubory zůstaly v root (schema, testers)
+
+#### 3. Documentation Updates
+- [x] summary.md - Session dokumentace přidána (lines 10002-10167)
+- [x] CLAUDE.md - Session historie aktualizována (lines 6631-6743)
+- [x] MASTER_TODO_V2.md - Tento update
+
+### 🐛 Bugs Fixed (4)
+
+1. **Missing accessStartDate/accessEndDate v localStorage fallback**
+   - Fix: Přidány date fields do sharedMaterial objektu
+
+2. **QR border-radius nefungoval**
+   - Root cause: BORDER_RADIUS konstanty nefungují v `style` prop
+   - Fix: `<Box component="img" sx={{borderRadius: BORDER_RADIUS.small}}>`
+
+3. **Duplicate function name createActionButton**
+   - Fix: Smazána, použit inline styling (per user feedback)
+
+4. **Wrong table name in SQL migration**
+   - Fix: `shared_materials` → `coachpro_shared_materials`
+
+### 📚 Lessons Learned
+
+**BORDER_RADIUS v style vs sx**:
+- ❌ `style={{ borderRadius: BORDER_RADIUS.small }}` - nefunguje!
+- ✅ `sx={{ borderRadius: BORDER_RADIUS.small }}` - funguje
+- Důvod: Konstanty jsou numbers, potřebují MUI sx processing
+
+**Modular System Priorities**:
+- Vždy zkontrolovat existující funkce před vytvořením nové
+- User feedback: "proč vytváříš nová tlačítka, když máme modularitu?"
+
+**SQL Migrations Best Practices**:
+- Centralizovat do `/supabase/migrations/`
+- Timestamp v názvu: `YYYYMMDD_NN_description.sql`
+- Lokální soubory = dokumentace/verzování
+- Table naming: Všechny CoachPro tabulky mají prefix `coachpro_`
+
+**Always Ask Before Commit**:
+- User reminder: "A vždycky se máš ptát před commitem!"
+- Critical rule pro AI asistenta
+
+### 🚀 NEXT PRIORITY
+
+#### 1. Spustit SQL Migraci v Supabase ⚠️
+- [ ] Otevřít Supabase SQL Editor
+- [ ] Spustit query "Shared Materials Access Dates" (nebo obsah z `20250103_add_access_dates_to_shared_materials.sql`)
+- [ ] Ověřit v Table Editoru, že sloupce `access_start_date` a `access_end_date` byly přidány do `coachpro_shared_materials`
+- [ ] Test time-limited access v produkci
+
+**Note**: Tabulky už existují v Supabase ✅ (coachpro_clients, coachpro_coaches, coachpro_materials, coachpro_programs, coachpro_shared_materials)
+
+---
+
+**Poslední update**: 3. listopadu 2025, 21:35
+**Status**: ✅ Time-limited access + SQL migrations cleanup dokončeno
+**Production**: https://coachpro.vercel.app/
+**Dev Server**: ✅ Běží bez chyb na http://localhost:3000/
+**Next**: Spustit SQL migraci pro time-limited access sloupce v Supabase 🚀
 **Autor**: Lenka Roubalová + Claude Sonnet 4.5

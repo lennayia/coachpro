@@ -6628,7 +6628,116 @@ const adminUser = { ...sortedCoaches[0], isAdmin: true };
 
 ---
 
-**Poslední update**: 3. listopadu 2025
-**Status**: ✅ Production deployment dokončen, čeká se na DNS + Supabase migration
+## 📋 Session: Time-Limited Access Control & SQL Migrations (3.11.2025, večer)
+
+**AI**: Claude Sonnet 4.5
+**Čas**: 20:45-21:30
+**Priorita**: CRITICAL - Modularita & Database struktury
+
+### 🎯 Implementováno
+
+#### 1. Time-Limited Access Control - UI Polish
+**Problém**: ShareMaterialModal a ShareProgramModal měly jen částečnou modularitu
+
+**Řešení**:
+- **4 nové modular funkce** v `modernEffects.js`:
+  - `createPrimaryModalButton(isDark)` - gradient, shine, inset highlights
+  - `createFormTextField(isDark)` - background, hover, focus glow
+  - `createCancelButton(isDark)` - border, hover effects
+  - `createSubmitButton(isDark)` - gradient, shine animation
+- DatePickers pro časové omezení přístupu (accessStartDate, accessEndDate)
+- Opravený localStorage fallback v `storage.js` - přidány date fields
+- QR kód border-radius fix: `<Box component="img" sx={{}}>` místo `<img style={{}}>`
+- Všechny form elementy používají modular system
+
+#### 2. SQL Migrations Reorganization
+**Problém**: SQL soubory roztroušené v root bez timestamp, duplicity, špatné názvy tabulek
+
+**Řešení**:
+- ✅ Vytvořena `/supabase/migrations/` pro centralizaci
+- ✅ Přesunuty 4 SQL soubory s timestampem (20250103_01 až 04)
+- ✅ Nový `20250103_add_access_dates_to_shared_materials.sql`:
+  - Opravený název: `shared_materials` → `coachpro_shared_materials`
+  - Sloupce: `access_start_date`, `access_end_date` (TIMESTAMPTZ)
+  - Index pro rychlé vyhledávání
+- ✅ Smazána duplicita z root
+- ✅ V root jen dokumentační soubory (schema, testers)
+
+### 🐛 4 Critical Fixes
+
+**Bug #1: Missing accessStartDate/accessEndDate v localStorage**
+- Fix: Přidány date fields do fallback objektu
+
+**Bug #2: QR border-radius nefungoval**
+- Root cause: BORDER_RADIUS konstanty nefungují v `style` prop
+- Fix: `<Box component="img" sx={{borderRadius: BORDER_RADIUS.small}}>`
+
+**Bug #3: Duplicate function createActionButton**
+- Root cause: Pokus vytvořit funkci s existujícím názvem
+- Fix: Smazána, použit inline styling (per user feedback)
+
+**Bug #4: Wrong table name in SQL**
+- Root cause: Chybí prefix `coachpro_`
+- Fix: `shared_materials` → `coachpro_shared_materials`
+
+### 🎓 Lessons Learned
+
+**1. BORDER_RADIUS konstanty**:
+- ❌ `style={{ borderRadius: BORDER_RADIUS.small }}` - nefunguje!
+- ✅ `sx={{ borderRadius: BORDER_RADIUS.small }}` - funguje
+- Konstanty jsou numbers, potřebují sx prop processing
+
+**2. Modular System Priorities**:
+- Vždy zkontrolovat existující funkce před vytvořením nové
+- User feedback: "proč vytváříš nová tlačítka, když máme modularitu?"
+
+**3. SQL Migrations Best Practices**:
+- Centralizovat do `/supabase/migrations/`
+- Timestamp v názvu: `YYYYMMDD_NN_description.sql`
+- Lokální soubory = dokumentace/verzování
+- Supabase SQL Editor = snippety (nemusí odpovídat)
+
+**4. Table Naming Convention**:
+- Všechny CoachPro tabulky: prefix `coachpro_`
+- Part of ProApp ecosystem (documented v schema)
+
+**5. Always Ask Before Commit**:
+- User reminder: "A vždycky se máš ptát před commitem!"
+- Critical rule pro AI asistenta
+
+### 📁 Soubory (9 změn)
+
+**Vytvořeno**:
+- `supabase/migrations/20250103_add_access_dates_to_shared_materials.sql`
+
+**Přesunuto**:
+- `20250103_01_add_coach_name_to_programs.sql` (z root)
+- `20250103_02_add_coach_name_to_shared_materials.sql` (z root)
+- `20250103_03_add_taxonomy_columns.sql` (z root)
+- `20250103_04_add_access_dates_to_clients.sql` (z root)
+
+**Upraveno**:
+- `storage.js` - accessStartDate/accessEndDate v fallback
+- `modernEffects.js` - 4 nové modular funkce (lines 347-480)
+- `ShareProgramModal.jsx` - modular styling aplikován
+- `ShareMaterialModal.jsx` - modular styling aplikován
+
+**Smazáno**:
+- `add_access_dates_to_shared_materials.sql` (duplicita z root)
+
+### 📊 Statistika
+
+- Čas: ~45 minut
+- Bugs opraveny: 4
+- Nové modular funkce: 4
+- SQL migrace: 5 souborů reorganizováno
+- Řádky kódu: ~300 změn
+
+---
+
+**Poslední update**: 3. listopadu 2025, 21:30
+**Status**: ✅ Time-limited access + SQL migrations dokončeno
 **Production URL**: https://coachpro.vercel.app/
-**Příští priorita**: MailerLite manual sync nebo Error boundaries 🚀
+**Dev Server**: ✅ Běží bez chyb na http://localhost:3000/
+**SQL Migrations**: ✅ Připraveny k spuštění v Supabase
+**Příští priorita**: Spustit SQL migrace v Supabase, pak Error boundaries 🚀
