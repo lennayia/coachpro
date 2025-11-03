@@ -238,7 +238,7 @@ const TesterSignup = () => {
             <Button
               variant="contained"
               size="large"
-              onClick={() => navigate('/coach/auth')}
+              onClick={() => navigate('/tester/login')}
               fullWidth
               sx={{ borderRadius: BORDER_RADIUS.button }}
             >

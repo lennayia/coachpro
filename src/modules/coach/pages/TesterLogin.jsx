@@ -1,0 +1,206 @@
+import { useState } from 'react';
+import {
+  Container,
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  TextField,
+  Button,
+  Alert,
+  CircularProgress,
+  Link,
+} from '@mui/material';
+import { Key, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@shared/config/supabase';
+import { setCurrentUser } from '../utils/storage';
+import { useNotification } from '@shared/context/NotificationContext';
+import BORDER_RADIUS from '@styles/borderRadius';
+import { useGlassCard } from '@shared/hooks/useModernEffects';
+
+const TesterLogin = () => {
+  const navigate = useNavigate();
+  const { showSuccess, showError } = useNotification();
+  const glassCardStyles = useGlassCard('subtle');
+
+  const [accessCode, setAccessCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    // Validate
+    if (!accessCode.trim()) {
+      setError('Vyplň prosím access kód');
+      showError('Chyba', 'Access kód je povinný');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Find tester by access code in Supabase
+      const { data: tester, error: supabaseError } = await supabase
+        .from('testers')
+        .select('*')
+        .eq('access_code', accessCode.trim().toUpperCase())
+        .single();
+
+      if (supabaseError || !tester) {
+        setError('Access kód nebyl nalezen. Zkontroluj prosím, že jsi zadala správný kód.');
+        showError('Neplatný kód', 'Access kód nebyl nalezen');
+        setLoading(false);
+        return;
+      }
+
+      // Create coach session
+      const coachUser = {
+        id: `tester-${tester.id}`,
+        name: tester.name,
+        email: tester.email,
+        isTester: true,
+        testerId: tester.id,
+        createdAt: new Date().toISOString(),
+      };
+
+      setCurrentUser(coachUser);
+
+      showSuccess('Přihlášení úspěšné! 🎉', `Vítej zpět, ${tester.name}`);
+
+      // Redirect to coach dashboard
+      navigate('/coach/dashboard');
+
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Něco se pokazilo. Zkus to prosím znovu.');
+      showError('Chyba', 'Přihlášení se nezdařilo');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Container maxWidth="sm" sx={{ py: 8 }}>
+      <Card
+        sx={{
+          ...glassCardStyles,
+          borderRadius: '32px',
+        }}
+      >
+        <CardContent sx={{ p: 4 }}>
+          {/* Header */}
+          <Box display="flex" flexDirection="column" alignItems="center" mb={4}>
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, rgba(139, 188, 143, 0.2) 0%, rgba(85, 107, 47, 0.1) 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mb: 2,
+              }}
+            >
+              <Key size={32} color="#8FBC8F" />
+            </Box>
+
+            <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
+              Přihlášení testera
+            </Typography>
+
+            <Typography variant="body1" color="text.secondary" align="center">
+              Zadej svůj access kód, který jsi obdržela při registraci
+            </Typography>
+          </Box>
+
+          {/* Error Alert */}
+          {error && (
+            <Alert
+              severity="error"
+              sx={{ mb: 3, borderRadius: BORDER_RADIUS.compact }}
+            >
+              {error}
+            </Alert>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit}>
+            <TextField
+              label="Access Kód"
+              fullWidth
+              value={accessCode}
+              onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+              placeholder="Např. TEST-A1B2"
+              disabled={loading}
+              autoFocus
+              sx={{
+                mb: 3,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: BORDER_RADIUS.compact,
+                }
+              }}
+              inputProps={{
+                style: {
+                  textTransform: 'uppercase',
+                  fontFamily: 'monospace',
+                  letterSpacing: '2px',
+                  fontSize: '1.1rem',
+                }
+              }}
+            />
+
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              fullWidth
+              disabled={loading || !accessCode.trim()}
+              endIcon={loading ? <CircularProgress size={20} color="inherit" /> : <ArrowRight size={20} />}
+              sx={{
+                borderRadius: BORDER_RADIUS.button,
+                py: 1.5,
+              }}
+            >
+              {loading ? 'Přihlašuji...' : 'Přihlásit se'}
+            </Button>
+          </form>
+
+          {/* Footer Links */}
+          <Box mt={3} textAlign="center">
+            <Typography variant="body2" color="text.secondary">
+              Ještě nemáš access kód?{' '}
+              <Link href="/tester/signup" underline="hover" sx={{ fontWeight: 600 }}>
+                Zaregistruj se
+              </Link>
+            </Typography>
+
+            <Typography variant="body2" color="text.secondary" mt={1}>
+              Nebo{' '}
+              <Link href="/coach/auth" underline="hover" sx={{ fontWeight: 600 }}>
+                přihlas se jako koučka
+              </Link>
+            </Typography>
+          </Box>
+
+          {/* Help */}
+          <Alert
+            severity="info"
+            sx={{ mt: 3, borderRadius: BORDER_RADIUS.compact }}
+          >
+            💡 <strong>Tip:</strong> Access kód by měl být v emailu, který jsi obdržela po registraci.
+            Pokud ho nemůžeš najít, kontaktuj nás na{' '}
+            <Link href="mailto:lenna@online-byznys.cz" sx={{ fontWeight: 600 }}>
+              lenna@online-byznys.cz
+            </Link>
+          </Alert>
+        </CardContent>
+      </Card>
+    </Container>
+  );
+};
+
+export default TesterLogin;
