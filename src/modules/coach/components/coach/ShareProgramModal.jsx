@@ -152,7 +152,7 @@ Těším se na tvůj růst! 💚`;
 
           {/* Info */}
           <Alert severity="info" sx={{ textAlign: 'left', mb: 3 }}>
-            Klientka zadá tento kód v aplikaci CoachPro pro přístup k programu. Kód můžeš poslat přes
+            Klientka zadá tento kód v aplikaci CoachPro pro přístup k programu. Kód můžete poslat přes
             WhatsApp, email nebo jinou komunikační platformu.
           </Alert>
 

@@ -65,6 +65,7 @@ const ProgramsList = () => {
   const [programToDelete, setProgramToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [clientsByProgramCode, setClientsByProgramCode] = useState({});
 
   // Load programs on mount
   useEffect(() => {
@@ -77,6 +78,24 @@ const ProgramsList = () => {
 
     loadPrograms();
   }, [currentUser?.id]);
+
+  // Load clients for all programs
+  useEffect(() => {
+    const loadClients = async () => {
+      const clientsMap = {};
+      await Promise.all(
+        programs.map(async (program) => {
+          const clients = await getClients();
+          clientsMap[program.shareCode] = clients.filter(c => c.programCode === program.shareCode);
+        })
+      );
+      setClientsByProgramCode(clientsMap);
+    };
+
+    if (programs.length > 0) {
+      loadClients();
+    }
+  }, [programs]);
 
   const refreshPrograms = async () => {
     setLoading(true);
@@ -186,11 +205,6 @@ const ProgramsList = () => {
     }
   };
 
-  const getProgramClients = (programCode) => {
-    const allClients = getClients();
-    return allClients.filter(c => c.programCode === programCode);
-  };
-
   return (
     <Box>
       {/* Header */}
@@ -293,7 +307,7 @@ const ProgramsList = () => {
         >
           <Grid container spacing={3}>
             {filteredPrograms.map((program) => {
-              const clients = getProgramClients(program.shareCode);
+              const clients = clientsByProgramCode[program.shareCode] || [];
               const activeClients = clients.filter(c => !c.completedAt).length;
 
               return (
@@ -471,7 +485,7 @@ const ProgramsList = () => {
         <DialogContent>
           <Typography>
             Opravdu chceš smazat program "{programToDelete?.title}"?
-            {getProgramClients(programToDelete?.shareCode).length > 0 && (
+            {(clientsByProgramCode[programToDelete?.shareCode] || []).length > 0 && (
               <strong> Pozor: Program má aktivní klientky!</strong>
             )}
           </Typography>

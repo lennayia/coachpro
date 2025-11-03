@@ -9518,3 +9518,479 @@ if (!coaches || coaches.length === 0) {
 
 **Další session**: Supabase Database Migration + Email testing po DNS propagaci
 
+----------
+CLAUDE CODE 3/11/2025 - 17:00
+---------------
+
+## 📋 Session Summary: Critical Bug Fixes & Performance Optimization (3.11.2025)
+
+**Datum**: 3. listopadu 2025
+**AI**: Claude Sonnet 4.5
+**Čas**: ~2.5 hodiny
+**Status**: ✅ Všechny critical bugy opraveny, performance optimalizace dokončena
+
+---
+
+### 🎯 Hlavní úkoly
+
+1. **Oprava critical runtime errors** - 3 kritické chyby v konzoli
+2. **Performance optimalizace** - Redukce databázových dotazů z 2 na 1
+3. **Live preview enhancement** - Zobrazení jména kouče v live preview (materiály + programy)
+4. **Dashboard statistika** - Přidání "Celkem programů"
+
+---
+
+### 🐛 Opravené Critical Errors
+
+#### Error #1: DailyView - undefined moodLog/completedDays
+**Soubor**: `src/modules/coach/components/client/DailyView.jsx` (lines 118-121)
+
+**Problém**:
+```
+DailyView.jsx:119 Uncaught TypeError: Cannot read properties of undefined (reading 'some')
+```
+
+**Root Cause**: `loadedClient.moodLog` a `loadedClient.completedDays` mohly být undefined při volání array metod.
+
+**Fix**:
+```javascript
+// PŘED - crash pokud undefined
+setMoodChecked(
+  loadedClient.moodLog.some((m) => m.day === dayToShow)
+);
+
+// PO - fallback prázdné pole
+setMoodChecked(
+  (loadedClient.moodLog || []).some((m) => m.day === dayToShow)
+);
+setDayCompleted((loadedClient.completedDays || []).includes(dayToShow));
+```
+
+---
+
+#### Error #2: MaterialView - missing await keyword
+**Soubor**: `src/modules/coach/pages/MaterialView.jsx` (line 38)
+
+**Problém**: Bílá obrazovka bez chyby v konzoli při zadání kódu materiálu.
+
+**Root Cause**: Chybějící `await` na async funkci `getSharedMaterialByCode(code)`. Bez await vracel Promise objekt místo dat, což způsobilo crash při přístupu k properties.
+
+**Fix**:
+```javascript
+// PŘED
+const shared = getSharedMaterialByCode(code);
+
+// PO
+const shared = await getSharedMaterialByCode(code);
+```
+
+---
+
+#### Error #3: MaterialView - undefined coach reference
+**Soubor**: `src/modules/coach/pages/MaterialView.jsx`
+
+**Problém**:
+```
+GET .../coachpro_coaches?select=*&id=eq.undefined 406 (Not Acceptable)
+MaterialView.jsx:156 ReferenceError: coach is not defined
+```
+
+**Root Cause**:
+1. Staré shared materials neměly `coachId` → volání `getCoachById(undefined)`
+2. Po odstranění coach state zůstala jedna reference na line 156
+
+**Fix**:
+1. **storage.js** - `getCoachById()` (lines 123-126):
+```javascript
+export const getCoachById = async (id) => {
+  // Guard: Return null if ID is undefined or null
+  if (!id) {
+    return null;
+  }
+  // ... rest of function
+};
+```
+
+2. **MaterialView.jsx** (lines 17, 28, 46-47, 129-136, 156):
+```javascript
+// PŘED
+import { getSharedMaterialByCode, getCoachById } from '../utils/storage';
+const [coach, setCoach] = useState(null);
+const coachData = await getCoachById(shared.coachId);
+setCoach(coachData);
+{coach && <Chip label={`Od: ${coach.name}`} />}
+
+// PO
+import { getSharedMaterialByCode } from '../utils/storage';
+// No coach state
+// No getCoachById call
+{sharedMaterial.coachName && <Chip label={`Od: ${sharedMaterial.coachName}`} />}
+```
+
+---
+
+### ⚡ Performance Optimization: Coach Name Denormalization
+
+**Cíl**: Zrychlit loading materiálů a programů redukcí databázových dotazů z 2 na 1.
+
+**Před optimalizací**:
+```
+1. SELECT * FROM coachpro_shared_materials WHERE share_code = 'ABC123'
+2. SELECT * FROM coachpro_coaches WHERE id = [coach_id]
+```
+
+**Po optimalizaci**:
+```
+1. SELECT * FROM coachpro_shared_materials WHERE share_code = 'ABC123'
+   (obsahuje coach_name přímo v záznamu)
+```
+
+**Benefit**: **50% redukce databázových dotazů**, rychlejší loading.
+
+---
+
+#### Implementace pro Shared Materials
+
+**1. SQL Migration** - `add_coach_name_to_shared_materials.sql`:
+```sql
+-- Add coach_name column to coachpro_shared_materials table
+ALTER TABLE coachpro_shared_materials
+ADD COLUMN coach_name TEXT;
+
+-- Add comment for documentation
+COMMENT ON COLUMN coachpro_shared_materials.coach_name IS 'Jméno kouče pro rychlé zobrazení (bez nutnosti JOIN)';
+```
+✅ **Spuštěno uživatelkou v Supabase SQL Editor**
+
+**2. storage.js - convertSharedMaterialFromDB()** (line 627):
+```javascript
+const convertSharedMaterialFromDB = (dbSharedMaterial) => {
+  return {
+    // ... ostatní fields
+    coachName: dbSharedMaterial.coach_name,  // ADDED
+  };
+};
+```
+
+**3. storage.js - createSharedMaterial()** (lines 662-674):
+```javascript
+export const createSharedMaterial = async (material, coachId) => {
+  // Get coach name for faster loading (no need for JOIN later)
+  const coach = await getCoachById(coachId);
+  const coachName = coach?.name || 'Neznámá koučka';
+
+  const sharedMaterialData = {
+    // ... ostatní fields
+    coach_name: coachName,  // ADDED
+  };
+  // ... Supabase insert
+};
+```
+
+**4. MaterialView.jsx** - Odstranění coach query:
+```javascript
+// PŘED (lines 17, 28, 46-47)
+import { getCoachById } from '../utils/storage';
+const [coach, setCoach] = useState(null);
+const coachData = await getCoachById(shared.coachId);
+setCoach(coachData);
+
+// PO - žádný další dotaz!
+// Coach name již v shared material
+{sharedMaterial.coachName && (
+  <Chip label={`Od: ${sharedMaterial.coachName}`} />
+)}
+```
+
+---
+
+#### Implementace pro Programs
+
+**1. SQL Migration** - `add_coach_name_to_programs.sql`:
+```sql
+-- Add coach_name column to coachpro_programs table
+ALTER TABLE coachpro_programs
+ADD COLUMN coach_name TEXT;
+
+-- Add comment for documentation
+COMMENT ON COLUMN coachpro_programs.coach_name IS 'Jméno kouče pro rychlé zobrazení (bez nutnosti JOIN)';
+```
+✅ **Spuštěno uživatelkou v Supabase SQL Editor**
+
+**2. storage.js - convertProgramFromDB()** (line 370):
+```javascript
+const convertProgramFromDB = (dbProgram) => {
+  return {
+    // ... ostatní fields
+    coachName: dbProgram.coach_name,  // ADDED
+  };
+};
+```
+
+**3. storage.js - saveProgram()** (lines 383-429):
+```javascript
+export const saveProgram = async (program) => {
+  try {
+    // Get coach name for faster loading (no need for JOIN later)
+    const coach = await getCoachById(program.coachId);
+    const coachName = coach?.name || 'Neznámá koučka';
+
+    const programData = {
+      // ... ostatní fields
+      coach_name: coachName,  // ADDED
+    };
+
+    // Supabase upsert
+  } catch (error) {
+    // Get coach name for localStorage fallback
+    const coach = await getCoachById(program.coachId);
+    const coachName = coach?.name || 'Neznámá koučka';
+
+    // Fallback to localStorage
+    const programWithCoachName = { ...program, coachName };
+    // ... save to localStorage
+  }
+};
+```
+
+---
+
+### 🎨 Live Preview Enhancement
+
+#### MaterialEntry.jsx - Coach Name v Live Preview
+**Soubor**: `src/modules/coach/components/client/MaterialEntry.jsx`
+
+**Změny**:
+
+1. **State rename** (line 33):
+```javascript
+// PŘED
+const [previewMaterial, setPreviewMaterial] = useState(null);
+
+// PO
+const [previewSharedMaterial, setPreviewSharedMaterial] = useState(null);
+```
+
+2. **useEffect update** (lines 47-48):
+```javascript
+// PŘED - ukládá jen material objekt
+setPreviewMaterial(sharedMaterial.material);
+
+// PO - ukládá celý shared material (obsahuje coachName)
+setPreviewSharedMaterial(sharedMaterial);
+```
+
+3. **Alert enhancement** (lines 246-270):
+```javascript
+{/* Live Preview - Název materiálu + Kouč */}
+{previewSharedMaterial && (
+  <Alert severity="success" icon={<CheckIcon />}>
+    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+      Materiál: {previewSharedMaterial.material.title}
+    </Typography>
+
+    {/* NOVÉ - Coach name */}
+    {previewSharedMaterial.coachName && (
+      <Typography variant="caption" sx={{ fontWeight: 500, color: 'primary.main' }}>
+        Od kouče: {previewSharedMaterial.coachName}
+      </Typography>
+    )}
+
+    {previewSharedMaterial.material.description && (
+      <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+        {previewSharedMaterial.material.description}
+      </Typography>
+    )}
+  </Alert>
+)}
+```
+
+**Výsledek**: Klientka nyní vidí jméno kouče **okamžitě** při zadání 6-místného kódu, ne až po načtení stránky.
+
+---
+
+#### ClientEntry.jsx - Coach Name v Program Live Preview
+**Soubor**: `src/modules/coach/components/client/ClientEntry.jsx`
+
+**Změny** (lines 383-408):
+```javascript
+{/* Live Preview - Název programu + Kouč */}
+{previewProgram && (
+  <Alert severity="success" icon={<CheckIcon />}>
+    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+      Program: {previewProgram.title}
+    </Typography>
+
+    {/* NOVÉ - Coach name */}
+    {previewProgram.coachName && (
+      <Typography variant="caption" sx={{ fontWeight: 500, color: 'primary.main' }}>
+        Od kouče: {previewProgram.coachName}
+      </Typography>
+    )}
+
+    {previewProgram.description && (
+      <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+        {previewProgram.description}
+      </Typography>
+    )}
+  </Alert>
+)}
+```
+
+**Výsledek**: Stejný UX enhancement pro programy jako pro materiály.
+
+---
+
+### 📊 Dashboard Enhancement
+
+**Soubor**: `src/modules/coach/components/coach/DashboardOverview.jsx`
+
+**Změny**:
+
+1. **Nová stats karta** (lines 72-79):
+```javascript
+{
+  id: 'programs',
+  label: 'Celkem programů',
+  value: programs.length,
+  icon: <ProgramsIcon sx={{ fontSize: 40 }} />,
+  color: '#6B8E23',
+  bgColor: 'rgba(107, 142, 35, 0.1)',
+}
+```
+
+2. **Grid layout update** (line 130):
+```javascript
+// PŘED
+<Grid item xs={12} sm={6} md={4} key={stat.id}>
+
+// PO - 4 karty vedle sebe na velkých obrazovkách
+<Grid item xs={12} sm={6} md={3} key={stat.id}>
+```
+
+**Výsledek**: Dashboard nyní zobrazuje všechny 4 klíčové metriky:
+- Aktivní klientky 👥
+- Dokončeno tento měsíc 📈
+- Celkem materiálů 📚
+- **Celkem programů 📋** ← NOVÉ!
+
+---
+
+### 📁 Soubory vytvořené/upravené
+
+#### Vytvořené SQL migrace:
+1. `add_coach_name_to_shared_materials.sql` ✅ Spuštěno
+2. `add_coach_name_to_programs.sql` ✅ Spuštěno
+
+#### Upravené soubory:
+
+**Bug Fixes:**
+1. `src/modules/coach/components/client/DailyView.jsx` - Fallback pole pro moodLog/completedDays
+2. `src/modules/coach/pages/MaterialView.jsx` - Added await, guards, odstranění coach query
+3. `src/modules/coach/utils/storage.js` - Guard v getCoachById()
+
+**Performance Optimization:**
+4. `src/modules/coach/utils/storage.js`:
+   - convertSharedMaterialFromDB() - přidán coachName
+   - createSharedMaterial() - ukládání coachName
+   - convertProgramFromDB() - přidán coachName
+   - saveProgram() - ukládání coachName (Supabase + localStorage fallback)
+
+**Live Preview Enhancement:**
+5. `src/modules/coach/components/client/MaterialEntry.jsx` - Coach name v Alert
+6. `src/modules/coach/components/client/ClientEntry.jsx` - Coach name v Alert
+
+**Dashboard:**
+7. `src/modules/coach/components/coach/DashboardOverview.jsx` - Nová stats karta + Grid layout
+
+---
+
+### 🎓 Klíčové Lessons Learned
+
+1. **Defensive Programming**:
+   - Vždy fallback prázdné pole pro array operations: `(array || []).method()`
+   - Guard klauzule na začátku funkcí: `if (!id) return null;`
+   - Optional chaining: `coach?.name`
+
+2. **Async/Await Pattern**:
+   - Vždy `await` na async funkce, jinak dostaneš Promise objekt
+   - Symptom: Bílá obrazovka bez chyby v konzoli
+
+3. **Performance Optimization - Denormalization**:
+   - Trade-off: Více storage za rychlejší queries
+   - Pattern: Ukládat často dotazovaná data přímo (coach_name)
+   - Výsledek: 2 queries → 1 query (50% redukce)
+
+4. **Snake_case ↔ CamelCase Conversion**:
+   - Database: `coach_name` (snake_case)
+   - JavaScript: `coachName` (camelCase)
+   - Converter funkce: `convertSharedMaterialFromDB()`, `convertProgramFromDB()`
+
+5. **Communication Clarity**:
+   - User feedback: "to stačilo říct na začátku, díky"
+   - Lesson: Přímé, stručné instrukce místo verbose vysvětlení
+   - ✅ SPRÁVNĚ: "Klikni '+ New Query'"
+   - ❌ ŠPATNĚ: "Otevři SQL Editor a najdi tlačítko pro nový dotaz..."
+
+---
+
+### ✅ Testing Checklist
+
+**Bug Fixes:**
+- [x] DailyView načte bez erroru při undefined moodLog/completedDays
+- [x] MaterialView načte materiál při zadání kódu (bílá obrazovka opravena)
+- [x] MaterialView nenačítá coach z databáze (performance optimalizace)
+- [x] Žádné console errory při prohlížení materiálů/programů
+
+**Live Preview:**
+- [x] MaterialEntry zobrazuje jméno kouče při zadání 6-místného kódu
+- [x] ClientEntry zobrazuje jméno kouče při zadání kódu programu
+- [x] Coach name má primary color (zelený)
+- [x] Layout konzistentní (title → coach → description)
+
+**Dashboard:**
+- [x] "Celkem programů" statistika zobrazena
+- [x] 4 karty vedle sebe na velkých obrazovkách (md={3})
+- [x] Responsive layout (xs=1, sm=2, md=4 karty)
+
+**Database:**
+- [x] coachpro_shared_materials má sloupec coach_name
+- [x] coachpro_programs má sloupec coach_name
+- [x] Nové materiály mají coach_name automaticky
+- [x] Nové programy mají coach_name automaticky
+
+---
+
+### 📊 Session Statistika
+
+- **Čas strávený**: ~2.5 hodiny
+- **Critical bugs opraveny**: 3
+- **Performance optimalizace**: 50% redukce queries
+- **SQL migrace vytvořeny**: 2
+- **Soubory upraveny**: 7
+- **Nové features**: 3 (live preview × 2, dashboard stat)
+- **Řádky kódu**: ~250 změn
+
+---
+
+### 🚀 Další kroky (budoucnost)
+
+**Priorita 1 - Hotovo:**
+- [x] Fix runtime errors
+- [x] Performance optimization (coach_name denormalization)
+- [x] Live preview enhancement (materials + programs)
+- [x] Dashboard statistics
+
+**Priorita 2 - Pending:**
+- [ ] Update existing shared materials with coach_name (data migration)
+- [ ] Update existing programs with coach_name (data migration)
+- [ ] Error boundaries - React error boundaries pro graceful error handling
+- [ ] LocalStorage warning při 80%+ využití
+- [ ] ClientsList stránka (seznam klientek kouče)
+
+---
+
+**Status**: ✅ Session dokončena (3.11.2025)
+**Dev Server**: ✅ Běží bez chyb na http://localhost:3000/
+**Production**: Připraveno k deployi na Vercel
+**Doporučení**: Testovat v produkci po deploymentu 🚀

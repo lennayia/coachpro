@@ -1,11 +1,11 @@
 # 🎯 COACHPRO - MASTER TODO V2.0
 
-**Datum aktualizace:** 3. listopadu 2025, 18:00
-**Aktuální stav:** ✅ DEPLOYED TO PRODUCTION (Vercel)
+**Datum aktualizace:** 3. listopadu 2025, 20:00
+**Aktuální stav:** ✅ Sprint 10 dokončen - Critical Bugs Fixed + Performance Optimized
 **Production URL:** https://coachpro.vercel.app/
-**Další priorita:** Supabase Database Migration + DNS Email Verification
-**Hosting:** Vercel (frontend) + Supabase (storage + future database)
-**AI asistenti:** Claude Code (Opus) + Claude Sonnet 4.5
+**Další priorita:** Error Boundaries + LocalStorage Warning
+**Hosting:** Vercel (frontend) + Supabase (storage + database)
+**AI asistenti:** Claude Sonnet 4.5
 
 ---
 
@@ -49,14 +49,37 @@
   - ✅ Draft expiruje po 24 hodinách
 - **Soubor:** `ProgramEditor.jsx`
 
-### 🚨 **Bug #4: Soubory .heic a .mov se nezobrazují**
+### ✅ **Bug #4: Soubory .heic a .mov se nezobrazují** - ČÁSTEČNĚ
 - **Problém:** Obrázky .heic a videa .mov se v programech nezobrazují
 - **Řešení:**
-  - [ ] HEIC → JPEG konverze (už máme pro upload, zkontrolovat zobrazení)
+  - [x] HEIC → JPEG konverze při uploadu (Sprint 6.8)
   - [ ] MOV → MP4 konverze nebo fallback na download
   - [ ] Testovat zobrazení v Safari/Chrome/Firefox
   - [ ] Přidat podporované formáty do nápovědy
-- **Priority:** CRITICAL - blokuje zobrazení materiálů
+- **Status:** Částečně vyřešeno (HEIC ok, MOV pending)
+
+### ✅ **Bug #5: DailyView - undefined moodLog/completedDays** - HOTOVO!
+- **Problém:** Crash při přístupu k undefined array properties
+- **Řešení:** Fallback prázdné pole `(loadedClient.moodLog || [])`
+- **Soubor:** `DailyView.jsx` (lines 118-121)
+- **Datum:** 3.11.2025 (Sprint 9.6)
+
+### ✅ **Bug #6: MaterialView - missing await keyword** - HOTOVO!
+- **Problém:** Bílá obrazovka při zadání materiálového kódu
+- **Root cause:** Missing `await` na async funkci → Promise objekt místo dat
+- **Řešení:** Přidán `await` na `getSharedMaterialByCode(code)`
+- **Soubor:** `MaterialView.jsx` (line 38)
+- **Datum:** 3.11.2025 (Sprint 9.6)
+
+### ✅ **Bug #7: MaterialView - undefined coach reference** - HOTOVO!
+- **Problém:** `GET .../coachpro_coaches?select=*&id=eq.undefined` → 406 error
+- **Root cause:** Staré shared materials neměly `coachId` populated
+- **Řešení:**
+  - Guard klauzule v `getCoachById()`: `if (!id) return null;`
+  - Odstranění coach state a query z MaterialView.jsx
+  - Performance optimalizace: coach_name denormalization
+- **Soubory:** `storage.js`, `MaterialView.jsx`
+- **Datum:** 3.11.2025 (Sprint 9.6)
 
 ---
 
@@ -276,6 +299,113 @@
 - 🎯 **Výsledek: Jednotný glassmorphism napříč všemi modaly bez duplikace kódu**
 
 **Dokumentace:** Kompletní Session 5 dokumentace v `claude.md` (řádky 2304-2658)
+
+---
+
+### ✅ **Sprint 9.6: RUNTIME ERRORS & PERFORMANCE OPTIMIZATION (3.11.2025)** - HOTOVO!
+
+**Datum:** 3. listopadu 2025
+**AI:** Claude Sonnet 4.5
+**Čas:** ~2.5 hodiny
+**Status:** ✅ Všechny critical runtime errors opraveny, 50% redukce DB dotazů
+
+#### **9.6.1 Critical Runtime Errors - OPRAVENO**
+
+**Bug #5: DailyView - undefined moodLog/completedDays**
+- ✅ **Problém:** Crash při přístupu k undefined array properties
+- ✅ **Fix:** Fallback prázdné pole `(loadedClient.moodLog || [])`
+- ✅ **Soubor:** `DailyView.jsx` (lines 118-121)
+
+**Bug #6: MaterialView - missing await keyword**
+- ✅ **Problém:** Bílá obrazovka, Promise objekt místo dat
+- ✅ **Fix:** Přidán `await` na `getSharedMaterialByCode(code)`
+- ✅ **Soubor:** `MaterialView.jsx` (line 38)
+
+**Bug #7: MaterialView - undefined coach reference**
+- ✅ **Problém:** `getCoachById(undefined)` → 406 error, coach is not defined
+- ✅ **Fix:** Guard klauzule v `getCoachById()`: `if (!id) return null;`
+- ✅ **Soubory:**
+  - `storage.js` (lines 123-126)
+  - `MaterialView.jsx` (odstranění coach state a query)
+
+#### **9.6.2 Performance Optimization - Coach Name Denormalization**
+
+**Cíl:** Redukovat databázové dotazy z 2 na 1 (50% redukce)
+
+**Implementace pro Shared Materials:**
+- ✅ SQL Migration: `add_coach_name_to_shared_materials.sql`
+- ✅ Sloupec `coach_name` přidán do tabulky
+- ✅ `convertSharedMaterialFromDB()` - přidán coachName mapping
+- ✅ `createSharedMaterial()` - ukládá coach_name při vytvoření
+- ✅ MaterialView.jsx - odstraněn getCoachById() dotaz
+
+**Implementace pro Programs:**
+- ✅ SQL Migration: `add_coach_name_to_programs.sql`
+- ✅ Sloupec `coach_name` přidán do tabulky
+- ✅ `convertProgramFromDB()` - přidán coachName mapping
+- ✅ `saveProgram()` - ukládá coach_name při create/update (Supabase + localStorage fallback)
+
+#### **9.6.3 Live Preview Enhancement**
+
+**MaterialEntry.jsx:**
+- ✅ State rename: `previewMaterial` → `previewSharedMaterial`
+- ✅ Alert zobrazuje coach name: "Od kouče: [jméno]" (primary color)
+- ✅ Layout: title → coach → description
+
+**ClientEntry.jsx:**
+- ✅ Alert zobrazuje coach name v program preview
+- ✅ Stejný UX pattern jako MaterialEntry
+
+#### **9.6.4 Dashboard Enhancement**
+
+**DashboardOverview.jsx:**
+- ✅ Přidána nová stats karta "Celkem programů"
+- ✅ Grid layout: `md={4}` → `md={3}` (4 karty vedle sebe)
+- ✅ Icon: ProgramsIcon (Assignment)
+- ✅ Color: `#6B8E23` (olivová zelená)
+
+#### **📁 Soubory vytvořené/upravené**
+
+**SQL Migrace (2):**
+1. `add_coach_name_to_shared_materials.sql` ✅ Spuštěno
+2. `add_coach_name_to_programs.sql` ✅ Spuštěno
+
+**Upravené soubory (7):**
+1. `DailyView.jsx` - Fallback arrays
+2. `MaterialView.jsx` - Added await, guards, coach name
+3. `storage.js` - Guard v getCoachById, coach name v converters, saveProgram
+4. `MaterialEntry.jsx` - Coach name v live preview
+5. `ClientEntry.jsx` - Coach name v program preview
+6. `DashboardOverview.jsx` - Stats karta + Grid layout
+
+#### **🎓 Key Lessons Learned**
+
+1. **Defensive Programming:**
+   - Fallback prázdné pole: `(array || []).method()`
+   - Guard klauzule: `if (!id) return null;`
+   - Optional chaining: `coach?.name`
+
+2. **Async/Await:**
+   - Vždy `await` async funkce
+   - Symptom missing await: Bílá obrazovka bez console error
+
+3. **Performance - Denormalization:**
+   - Trade-off: Více storage za rychlejší queries
+   - Pattern: Ukládat často dotazovaná data přímo
+   - Výsledek: **2 queries → 1 query (50% redukce)**
+
+4. **Communication Clarity:**
+   - User feedback: "to stačilo říct na začátku, díky"
+   - Lesson: Přímé instrukce místo verbose vysvětlení
+
+#### **📊 Statistiky**
+
+- **Čas strávený:** ~2.5 hodiny
+- **Critical bugs opraveny:** 3
+- **SQL migrace:** 2
+- **Soubory upraveny:** 7
+- **Performance benefit:** 50% redukce DB dotazů
+- **Nové features:** 3 (live preview × 2, dashboard stat)
 
 ---
 

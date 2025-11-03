@@ -80,45 +80,48 @@ const DailyView = () => {
 
   // Load data
   useEffect(() => {
-    const loadedClient = getCurrentClient();
-    if (!loadedClient) {
-      navigate('/client/entry');
-      return;
-    }
+    const loadData = async () => {
+      const loadedClient = getCurrentClient();
+      if (!loadedClient) {
+        navigate('/client/entry');
+        return;
+      }
 
-    // Check if this is a preview with embedded program data
-    const loadedProgram = loadedClient._previewProgram || getProgramById(loadedClient.programId);
-    if (!loadedProgram) {
-      navigate('/client/entry');
-      return;
-    }
+      // Check if this is a preview with embedded program data
+      const loadedProgram = loadedClient._previewProgram || await getProgramById(loadedClient.programId);
+      if (!loadedProgram) {
+        navigate('/client/entry');
+        return;
+      }
 
-    setClient(loadedClient);
-    setProgram(loadedProgram);
+      setClient(loadedClient);
+      setProgram(loadedProgram);
 
-    // Get day data (either current day or viewing day)
-    const dayToShow = viewingDay || loadedClient.currentDay;
-    const dayData = loadedProgram.days?.[dayToShow - 1];
+      // Get day data (either current day or viewing day)
+      const dayToShow = viewingDay || loadedClient.currentDay;
+      const dayData = loadedProgram.days?.[dayToShow - 1];
 
-    if (!dayData) {
-      console.error('Day data not found for day', dayToShow);
-      navigate('/client/entry');
-      return;
-    }
+      if (!dayData) {
+        console.error('Day data not found for day', dayToShow);
+        navigate('/client/entry');
+        return;
+      }
 
-    setCurrentDayData(dayData);
+      setCurrentDayData(dayData);
 
-    // Load materials
-    const loadedMaterials = (dayData.materialIds || [])
-      .map((id) => getMaterialById(id))
-      .filter(Boolean);
-    setMaterials(loadedMaterials);
+      // Load materials
+      const materialPromises = (dayData.materialIds || []).map((id) => getMaterialById(id));
+      const loadedMaterials = await Promise.all(materialPromises);
+      setMaterials(loadedMaterials.filter(Boolean));
 
-    // Check mood and completion status
-    setMoodChecked(
-      loadedClient.moodLog.some((m) => m.day === dayToShow)
-    );
-    setDayCompleted(loadedClient.completedDays.includes(dayToShow));
+      // Check mood and completion status
+      setMoodChecked(
+        (loadedClient.moodLog || []).some((m) => m.day === dayToShow)
+      );
+      setDayCompleted((loadedClient.completedDays || []).includes(dayToShow));
+    };
+
+    loadData();
   }, [navigate, viewingDay]);
 
   const handleMoodSelected = async (mood) => {

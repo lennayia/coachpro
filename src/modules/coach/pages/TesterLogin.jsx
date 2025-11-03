@@ -34,7 +34,7 @@ const TesterLogin = () => {
 
     // Validate
     if (!accessCode.trim()) {
-      setError('Vyplň prosím access kód');
+      setError('Vyplňte, prosím, access kód');
       showError('Chyba', 'Access kód je povinný');
       return;
     }
@@ -50,7 +50,7 @@ const TesterLogin = () => {
         .single();
 
       if (supabaseError || !tester) {
-        setError('Access kód nebyl nalezen. Zkontroluj prosím, že jsi zadala správný kód.');
+        setError('Access kód nebyl nalezen. Zkontrolujte, prosím, že jste zadala správný kód.');
         showError('Neplatný kód', 'Access kód nebyl nalezen');
         setLoading(false);
         return;
@@ -68,14 +68,14 @@ const TesterLogin = () => {
 
       setCurrentUser(coachUser);
 
-      showSuccess('Přihlášení úspěšné! 🎉', `Vítej zpět, ${tester.name}`);
+      showSuccess('Přihlášení úspěšné! 🎉', `Vítejte zpátky, ${tester.name}`);
 
       // Redirect to coach dashboard
       navigate('/coach/dashboard');
 
     } catch (err) {
       console.error('Login error:', err);
-      setError('Něco se pokazilo. Zkus to prosím znovu.');
+      setError('Něco se pokazilo. Zkuste to, prosím, znovu.');
       showError('Chyba', 'Přihlášení se nezdařilo');
     } finally {
       setLoading(false);
@@ -113,7 +113,7 @@ const TesterLogin = () => {
             </Typography>
 
             <Typography variant="body1" color="text.secondary" align="center">
-              Zadej svůj access kód, který jsi obdržela při registraci
+              Zadejte svůj access kód, který jste obdržela při registraci
             </Typography>
           </Box>
 
@@ -172,9 +172,9 @@ const TesterLogin = () => {
           {/* Footer Links */}
           <Box mt={3} textAlign="center">
             <Typography variant="body2" color="text.secondary">
-              Ještě nemáš access kód?{' '}
+              Ještě nemáte access kód?{' '}
               <Link href="/tester/signup" underline="hover" sx={{ fontWeight: 600 }}>
-                Zaregistruj se
+                Zaregistrujte se
               </Link>
             </Typography>
           </Box>
@@ -185,7 +185,7 @@ const TesterLogin = () => {
             sx={{ mt: 3, borderRadius: BORDER_RADIUS.compact }}
           >
             💡 <strong>Tip:</strong> Access kód by měl být v emailu, který jsi obdržela po registraci.
-            Pokud ho nemůžeš najít, kontaktuj nás na{' '}
+            Pokud ho nemůžete najít, kontaktujte nás na{' '}
             <Link href="mailto:lenna@online-byznys.cz" sx={{ fontWeight: 600 }}>
               lenna@online-byznys.cz
             </Link>

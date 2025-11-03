@@ -548,7 +548,7 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
                   {/* Alert při editaci file-based materiálů */}
                   {isEditMode && !file && (
                     <Alert severity="info" sx={{ mb: 2, borderRadius: BORDER_RADIUS.compact }}>
-                      Typ materiálu nelze změnit. Můžeš ale nahradit soubor novým.
+                      Typ materiálu nelze změnit. Můžete ale nahradit soubor novým.
                     </Alert>
                   )}
 

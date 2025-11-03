@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -14,10 +14,12 @@ import {
   Select,
   MenuItem,
   Chip,
+  InputAdornment,
+  Link as MuiLink,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { QrCode2 as QrCodeIcon, Key as KeyIcon } from '@mui/icons-material';
+import { QrCode2 as QrCodeIcon, Key as KeyIcon, CheckCircle as CheckIcon } from '@mui/icons-material';
 import { fadeIn, fadeInUp } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
 import {
@@ -44,6 +46,8 @@ const ClientEntry = () => {
   const [showNameInput, setShowNameInput] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [previewProgram, setPreviewProgram] = useState(null);
+  const [lookupLoading, setLookupLoading] = useState(false);
 
   // Admin mode
   const [isAdminMode, setIsAdminMode] = useState(false);
@@ -56,6 +60,33 @@ const ClientEntry = () => {
     setError('');
   };
 
+  // Live lookup - když uživatel zadá 6 znaků
+  useEffect(() => {
+    const lookupProgram = async () => {
+      if (code.length !== 6 || code === 'ADMIN1') {
+        setPreviewProgram(null);
+        return;
+      }
+
+      setLookupLoading(true);
+      try {
+        const program = await getProgramByCode(code);
+        if (program) {
+          setPreviewProgram(program);
+        } else {
+          setPreviewProgram(null);
+        }
+      } catch (err) {
+        setPreviewProgram(null);
+      } finally {
+        setLookupLoading(false);
+      }
+    };
+
+    const timeoutId = setTimeout(lookupProgram, 300); // Debounce 300ms
+    return () => clearTimeout(timeoutId);
+  }, [code]);
+
   const handleCodeSubmit = async () => {
     setError('');
     setLoading(true);
@@ -65,7 +96,7 @@ const ClientEntry = () => {
       if (code === 'ADMIN1') {
         const programs = await getPrograms();
         if (programs.length === 0) {
-          const errorMsg = 'Žádné programy k dispozici. Vytvoř nejdřív nějaký program.';
+          const errorMsg = 'Žádné programy k dispozici. Vytvořte nejdřív nějaký program.';
           showError('Admin režim', errorMsg);
           throw new Error(errorMsg);
         }
@@ -91,7 +122,7 @@ const ClientEntry = () => {
       // Najdi program podle kódu
       const program = await getProgramByCode(code);
       if (!program) {
-        const errorMsg = 'Program s tímto kódem neexistuje. Zkontroluj ho a zkus znovu.';
+        const errorMsg = 'Program s tímto kódem neexistuje. Zkontrolujte ho a zkuste znovu.';
         showError('Program nenalezen', errorMsg);
         throw new Error(errorMsg);
       }
@@ -287,7 +318,7 @@ const ClientEntry = () => {
                   </Typography>
                 </Box>
                 <Typography variant="body1" color="text.secondary">
-                  Zadej kód od své koučky pro přístup k programu
+                  Zadejte kód od své koučky pro přístup do programu
                 </Typography>
               </Box>
             </motion.div>
@@ -299,8 +330,8 @@ const ClientEntry = () => {
               centered
               sx={{ mb: 3 }}
             >
-              <Tab icon={<KeyIcon />} label="Zadej kód" value="code" />
-              <Tab icon={<QrCodeIcon />} label="Naskenuj QR" value="qr" disabled />
+              <Tab icon={<KeyIcon />} label="Zadejte kód" value="code" />
+              <Tab icon={<QrCodeIcon />} label="Naskenujte QR" value="qr" disabled />
             </Tabs>
 
             {/* Error */}
@@ -332,11 +363,49 @@ const ClientEntry = () => {
                       fontWeight: 'bold',
                     },
                   }}
+                  InputProps={{
+                    endAdornment: lookupLoading ? (
+                      <InputAdornment position="end">
+                        <CircularProgress size={20} />
+                      </InputAdornment>
+                    ) : previewProgram ? (
+                      <InputAdornment position="end">
+                        <CheckIcon color="success" />
+                      </InputAdornment>
+                    ) : null,
+                  }}
                   placeholder="ABC123"
                   margin="normal"
                   disabled={loading}
-                  helperText="Zadej kód, který jsi dostala od své koučky"
+                  helperText="Zadejte kód, který jste dostala od své koučky"
                 />
+
+                {/* Live Preview - Název programu + Kouč */}
+                {previewProgram && (
+                  <Alert
+                    severity="success"
+                    icon={<CheckIcon />}
+                    sx={{
+                      mt: 2,
+                      mb: 1,
+                      borderRadius: BORDER_RADIUS.compact,
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      Program: {previewProgram.title}
+                    </Typography>
+                    {previewProgram.coachName && (
+                      <Typography variant="caption" sx={{ fontWeight: 500, color: 'primary.main' }}>
+                        Od kouče: {previewProgram.coachName}
+                      </Typography>
+                    )}
+                    {previewProgram.description && (
+                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                        {previewProgram.description}
+                      </Typography>
+                    )}
+                  </Alert>
+                )}
 
                 {/* Name input (po validaci kódu) */}
                 {showNameInput && (
@@ -347,12 +416,12 @@ const ClientEntry = () => {
                   >
                     <TextField
                       fullWidth
-                      label="Tvoje jméno (volitelné)"
+                      label="Vaše jméno (volitelné)"
                       value={clientName}
                       onChange={(e) => setClientName(e.target.value)}
                       margin="normal"
                       disabled={loading}
-                      helperText="Pomůže nám to personalizovat tvůj zážitek"
+                      helperText="Pomůže nám to personalizovat Váš zážitek"
                     />
                   </motion.div>
                 )}
@@ -402,11 +471,11 @@ const ClientEntry = () => {
                 transition={{ duration: 0.3 }}
               >
                 <Alert severity="info" sx={{ mb: 3 }}>
-                  🔑 <strong>Admin režim aktivní</strong> - Vyber program pro náhled
+                  🔑 <strong>Admin režim aktivní</strong> - Vyberte program pro náhled
                 </Alert>
 
                 <FormControl fullWidth margin="normal">
-                  <InputLabel>Vyber program</InputLabel>
+                  <InputLabel>Vyberte program</InputLabel>
                   <Select
                     value={selectedProgramId}
                     onChange={(e) => setSelectedProgramId(e.target.value)}
@@ -480,6 +549,26 @@ const ClientEntry = () => {
             )}
 
             {/* Info */}
+            <Box mt={3} textAlign="center">
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Potřebujete přístup k jednotlivému materiálu?
+              </Typography>
+              <MuiLink
+                onClick={() => navigate('/client/material-entry')}
+                sx={{
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  color: 'primary.main',
+                  textDecoration: 'none',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                  },
+                }}
+              >
+                Vstup k materiálu →
+              </MuiLink>
+            </Box>
+
             <Typography
               variant="caption"
               color="text.secondary"
@@ -487,7 +576,7 @@ const ClientEntry = () => {
               display="block"
               mt={3}
             >
-              Nemáš kód? Kontaktuj svou koučku.
+              Nemáte kód? Kontaktujte svoji koučku.
             </Typography>
           </Box>
         </Card>

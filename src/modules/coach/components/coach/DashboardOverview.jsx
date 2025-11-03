@@ -69,6 +69,14 @@ const DashboardOverview = () => {
       color: '#8FBC8F',
       bgColor: 'rgba(143, 188, 143, 0.1)',
     },
+    {
+      id: 'programs',
+      label: 'Celkem programů',
+      value: programs.length,
+      icon: <ProgramsIcon sx={{ fontSize: 40 }} />,
+      color: '#6B8E23',
+      bgColor: 'rgba(107, 142, 35, 0.1)',
+    },
   ];
 
   // Poslední aktivita
@@ -119,7 +127,7 @@ const DashboardOverview = () => {
       >
         <Grid container spacing={3} mb={4}>
           {stats.map((stat) => (
-            <Grid item xs={12} sm={6} md={4} key={stat.id}>
+            <Grid item xs={12} sm={6} md={3} key={stat.id}>
               <motion.div variants={staggerItem}>
                 <Card
                   sx={{

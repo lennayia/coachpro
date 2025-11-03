@@ -86,7 +86,11 @@ export const saveCoach = async (coach) => {
       is_tester: coach.isTester || false,
       tester_id: coach.testerId || null,
       access_code: coach.accessCode || null,
+      created_at: coach.createdAt || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
+
+    console.log('🔵 Pokouším se uložit coach do Supabase:', coachData);
 
     const { data, error } = await supabase
       .from('coachpro_coaches')
@@ -94,10 +98,15 @@ export const saveCoach = async (coach) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Supabase error details (saveCoach):', error);
+      throw error;
+    }
+
+    console.log('✅ Coach úspěšně uložen do Supabase:', data);
     return data;
   } catch (error) {
-    console.error('Error saving coach to Supabase:', error);
+    console.error('❌ Error saving coach to Supabase:', error);
     // Fallback to localStorage
     const coaches = loadFromStorage(STORAGE_KEYS.COACHES, []);
     const existingIndex = coaches.findIndex(c => c.id === coach.id);
@@ -111,6 +120,11 @@ export const saveCoach = async (coach) => {
 };
 
 export const getCoachById = async (id) => {
+  // Guard: Return null if ID is undefined or null
+  if (!id) {
+    return null;
+  }
+
   try {
     const { data, error } = await supabase
       .from('coachpro_coaches')
@@ -164,6 +178,34 @@ export const getCoachById = async (id) => {
  * @property {string} [updatedAt] - ISO timestamp (při editaci)
  */
 
+// Helper: Convert material from DB (snake_case) to JS (camelCase)
+const convertMaterialFromDB = (dbMaterial) => {
+  if (!dbMaterial) return null;
+  return {
+    id: dbMaterial.id,
+    coachId: dbMaterial.coach_id,
+    type: dbMaterial.type,
+    title: dbMaterial.title,
+    description: dbMaterial.description,
+    content: dbMaterial.content,
+    category: dbMaterial.category,
+    fileName: dbMaterial.file_name,
+    fileSize: dbMaterial.file_size,
+    pageCount: dbMaterial.page_count,
+    duration: dbMaterial.duration,
+    storagePath: dbMaterial.storage_path,
+    linkType: dbMaterial.link_type,
+    linkMeta: dbMaterial.link_meta,
+    thumbnail: dbMaterial.thumbnail,
+    coachingArea: dbMaterial.coaching_area,
+    topics: dbMaterial.topics,
+    coachingStyle: dbMaterial.coaching_style,
+    coachingAuthority: dbMaterial.coaching_authority,
+    createdAt: dbMaterial.created_at,
+    updatedAt: dbMaterial.updated_at,
+  };
+};
+
 export const getMaterials = async (coachId = null) => {
   try {
     let query = supabase
@@ -178,7 +220,7 @@ export const getMaterials = async (coachId = null) => {
     const { data, error } = await query;
 
     if (error) throw error;
-    return data || [];
+    return (data || []).map(convertMaterialFromDB);
   } catch (error) {
     console.error('Error fetching materials from Supabase:', error);
     // Fallback to localStorage
@@ -206,6 +248,10 @@ export const saveMaterial = async (material) => {
       link_type: material.linkType || null,
       link_meta: material.linkMeta || null,
       thumbnail: material.thumbnail || null,
+      coaching_area: material.coachingArea || 'life',
+      topics: material.topics || [],
+      coaching_style: material.coachingStyle || null,
+      coaching_authority: material.coachingAuthority || null,
       created_at: material.createdAt || new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -245,7 +291,7 @@ export const getMaterialById = async (id) => {
       .single();
 
     if (error) throw error;
-    return data;
+    return convertMaterialFromDB(data);
   } catch (error) {
     console.error('Error fetching material by ID from Supabase:', error);
     // Fallback to localStorage
@@ -302,7 +348,7 @@ export const getPrograms = async (coachId = null) => {
     const { data, error } = await query;
 
     if (error) throw error;
-    return data || [];
+    return (data || []).map(convertProgramFromDB);
   } catch (error) {
     console.error('Error fetching programs from Supabase:', error);
     // Fallback to localStorage
@@ -311,12 +357,40 @@ export const getPrograms = async (coachId = null) => {
   }
 };
 
+// =====================
+// PROGRAMS
+// =====================
+
+// Helper: Convert program from DB (snake_case) to JS (camelCase)
+const convertProgramFromDB = (dbProgram) => {
+  if (!dbProgram) return null;
+  return {
+    id: dbProgram.id,
+    coachId: dbProgram.coach_id,
+    coachName: dbProgram.coach_name,
+    title: dbProgram.title,
+    description: dbProgram.description,
+    duration: dbProgram.duration,
+    shareCode: dbProgram.share_code,
+    qrCode: dbProgram.qr_code,
+    isActive: dbProgram.is_active,
+    days: dbProgram.days,
+    createdAt: dbProgram.created_at,
+    updatedAt: dbProgram.updated_at,
+  };
+};
+
 export const saveProgram = async (program) => {
   try {
+    // Get coach name for faster loading (no need for JOIN later)
+    const coach = await getCoachById(program.coachId);
+    const coachName = coach?.name || 'Neznámá koučka';
+
     // Prepare data - convert camelCase to snake_case for DB
     const programData = {
       id: program.id,
       coach_id: program.coachId,
+      coach_name: coachName,
       title: program.title,
       description: program.description || null,
       duration: program.duration,
@@ -336,13 +410,19 @@ export const saveProgram = async (program) => {
     return data;
   } catch (error) {
     console.error('Error saving program to Supabase:', error);
+
+    // Get coach name for localStorage fallback
+    const coach = await getCoachById(program.coachId);
+    const coachName = coach?.name || 'Neznámá koučka';
+
     // Fallback to localStorage
     const programs = loadFromStorage(STORAGE_KEYS.PROGRAMS, []);
+    const programWithCoachName = { ...program, coachName };
     const existingIndex = programs.findIndex(p => p.id === program.id);
     if (existingIndex >= 0) {
-      programs[existingIndex] = program;
+      programs[existingIndex] = programWithCoachName;
     } else {
-      programs.push(program);
+      programs.push(programWithCoachName);
     }
     return saveToStorage(STORAGE_KEYS.PROGRAMS, programs);
   }
@@ -357,7 +437,7 @@ export const getProgramById = async (id) => {
       .single();
 
     if (error) throw error;
-    return data;
+    return convertProgramFromDB(data);
   } catch (error) {
     console.error('Error fetching program by ID from Supabase:', error);
     // Fallback to localStorage
@@ -375,7 +455,7 @@ export const getProgramByCode = async (code) => {
       .single();
 
     if (error) throw error;
-    return data;
+    return convertProgramFromDB(data);
   } catch (error) {
     console.error('Error fetching program by code from Supabase:', error);
     // Fallback to localStorage
@@ -403,6 +483,25 @@ export const deleteProgram = async (id) => {
 };
 
 // ===== CLIENTS =====
+// Helper: Convert client from DB (snake_case) to JS (camelCase)
+const convertClientFromDB = (dbClient) => {
+  if (!dbClient) return null;
+  return {
+    id: dbClient.id,
+    name: dbClient.name,
+    programCode: dbClient.program_code,
+    programId: dbClient.program_id,
+    currentDay: dbClient.current_day,
+    completedDays: dbClient.completed_days,
+    moodChecks: dbClient.mood_checks,
+    streak: dbClient.streak,
+    longestStreak: dbClient.longest_streak,
+    startedAt: dbClient.started_at,
+    completedAt: dbClient.completed_at,
+    certificateGenerated: dbClient.certificate_generated,
+  };
+};
+
 export const getClients = async (programCode = null) => {
   try {
     let query = supabase
@@ -417,7 +516,7 @@ export const getClients = async (programCode = null) => {
     const { data, error } = await query;
 
     if (error) throw error;
-    return data || [];
+    return (data || []).map(convertClientFromDB);
   } catch (error) {
     console.error('Error fetching clients from Supabase:', error);
     // Fallback to localStorage
@@ -475,7 +574,7 @@ export const getClientById = async (id) => {
       .single();
 
     if (error) throw error;
-    return data;
+    return convertClientFromDB(data);
   } catch (error) {
     console.error('Error fetching client by ID from Supabase:', error);
     // Fallback to localStorage
@@ -493,7 +592,7 @@ export const getClientByProgramCode = async (code) => {
       .single();
 
     if (error) throw error;
-    return data;
+    return convertClientFromDB(data);
   } catch (error) {
     console.error('Error fetching client by program code from Supabase:', error);
     // Fallback to localStorage
@@ -506,7 +605,7 @@ export const getClientsByCoachId = async (coachId) => {
   try {
     // Get all programs for this coach
     const programs = await getPrograms(coachId);
-    const programCodes = programs.map(p => p.share_code || p.shareCode);
+    const programCodes = programs.map(p => p.shareCode);
 
     // Get all clients matching these program codes
     const { data, error } = await supabase
@@ -515,7 +614,7 @@ export const getClientsByCoachId = async (coachId) => {
       .in('program_code', programCodes);
 
     if (error) throw error;
-    return data || [];
+    return (data || []).map(convertClientFromDB);
   } catch (error) {
     console.error('Error fetching clients by coach ID from Supabase:', error);
     // Fallback to localStorage
@@ -527,6 +626,21 @@ export const getClientsByCoachId = async (coachId) => {
 };
 
 // ===== SHARED MATERIALS =====
+// Helper: Convert shared material from DB (snake_case) to JS (camelCase)
+const convertSharedMaterialFromDB = (dbSharedMaterial) => {
+  if (!dbSharedMaterial) return null;
+  return {
+    id: dbSharedMaterial.id,
+    materialId: dbSharedMaterial.material_id,
+    material: dbSharedMaterial.material,
+    shareCode: dbSharedMaterial.share_code,
+    qrCode: dbSharedMaterial.qr_code,
+    coachId: dbSharedMaterial.coach_id,
+    coachName: dbSharedMaterial.coach_name,
+    createdAt: dbSharedMaterial.created_at,
+  };
+};
+
 export const getSharedMaterials = async (coachId = null) => {
   try {
     let query = supabase
@@ -541,7 +655,7 @@ export const getSharedMaterials = async (coachId = null) => {
     const { data, error } = await query;
 
     if (error) throw error;
-    return data || [];
+    return (data || []).map(convertSharedMaterialFromDB);
   } catch (error) {
     console.error('Error fetching shared materials from Supabase:', error);
     // Fallback to localStorage
@@ -557,6 +671,10 @@ export const createSharedMaterial = async (material, coachId) => {
     const shareCode = generateShareCode();
     const qrCode = await generateQRCode(shareCode);
 
+    // Get coach name for faster loading (no need for JOIN later)
+    const coach = await getCoachById(coachId);
+    const coachName = coach?.name || 'Neznámá koučka';
+
     const sharedMaterialData = {
       id: material.id + '-shared-' + Date.now(),
       material_id: material.id,
@@ -564,6 +682,7 @@ export const createSharedMaterial = async (material, coachId) => {
       share_code: shareCode,
       qr_code: qrCode,
       coach_id: coachId,
+      coach_name: coachName,
     };
 
     const { data, error } = await supabase
@@ -573,13 +692,17 @@ export const createSharedMaterial = async (material, coachId) => {
       .single();
 
     if (error) throw error;
-    return data;
+    return convertSharedMaterialFromDB(data);
   } catch (error) {
     console.error('Error creating shared material in Supabase:', error);
     // Fallback to localStorage
     const { generateShareCode, generateQRCode } = await import('./generateCode.js');
     const shareCode = generateShareCode();
     const qrCode = await generateQRCode(shareCode);
+
+    // Get coach name for localStorage fallback
+    const coach = await getCoachById(coachId);
+    const coachName = coach?.name || 'Neznámá koučka';
 
     const sharedMaterial = {
       id: material.id + '-shared-' + Date.now(),
@@ -588,6 +711,7 @@ export const createSharedMaterial = async (material, coachId) => {
       shareCode: shareCode,
       qrCode: qrCode,
       coachId: coachId,
+      coachName: coachName,
       createdAt: new Date().toISOString(),
     };
 
@@ -608,7 +732,7 @@ export const getSharedMaterialByCode = async (shareCode) => {
       .single();
 
     if (error) throw error;
-    return data;
+    return convertSharedMaterialFromDB(data);
   } catch (error) {
     console.error('Error fetching shared material by code from Supabase:', error);
     // Fallback to localStorage

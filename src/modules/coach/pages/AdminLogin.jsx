@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import { Shield, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { setCurrentUser, getCoaches } from '../utils/storage';
+import { setCurrentUser, getCoaches, saveCoach } from '../utils/storage';
 import { useNotification } from '@shared/context/NotificationContext';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
@@ -57,6 +57,10 @@ const AdminLogin = () => {
         isAdmin: true,
         createdAt: new Date().toISOString(),
       };
+
+      // Ulož coach do Supabase
+      await saveCoach(adminUser);
+
       setCurrentUser(adminUser);
       showSuccess('Vítej! 🎉', 'Nový admin účet vytvořen');
       navigate('/coach/dashboard');
@@ -75,6 +79,9 @@ const AdminLogin = () => {
       ...sortedCoaches[0],
       isAdmin: true, // Mark as admin for potential future features
     };
+
+    // Ulož/update coach v Supabase (pro případ že byl jen v localStorage)
+    await saveCoach(adminUser);
 
     setCurrentUser(adminUser);
     showSuccess('Vítej zpět! 🎉', `Přihlášena jako ${adminUser.name}`);

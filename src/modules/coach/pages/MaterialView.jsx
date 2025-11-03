@@ -14,7 +14,7 @@ import {
 import { ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import MaterialRenderer from '../components/shared/MaterialRenderer';
-import { getSharedMaterialByCode, getCoachById } from '../utils/storage';
+import { getSharedMaterialByCode } from '../utils/storage';
 import { getCategoryLabel } from '@shared/utils/helpers';
 import BORDER_RADIUS from '@styles/borderRadius';
 import useModernEffects from '@shared/hooks/useModernEffects';
@@ -25,7 +25,6 @@ const MaterialView = () => {
   const { presets, isDarkMode } = useModernEffects();
   const [loading, setLoading] = useState(true);
   const [sharedMaterial, setSharedMaterial] = useState(null);
-  const [coach, setCoach] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -35,7 +34,7 @@ const MaterialView = () => {
         setError(null);
 
         // Najdi sdílený materiál podle kódu
-        const shared = getSharedMaterialByCode(code);
+        const shared = await getSharedMaterialByCode(code);
 
         if (!shared) {
           setError('Materiál s tímto kódem nebyl nalezen. Zkontroluj, že jsi zadal správný kód.');
@@ -43,11 +42,8 @@ const MaterialView = () => {
           return;
         }
 
-        // Načti kouče
-        const coachData = getCoachById(shared.coachId);
-
+        // Coach name is already in shared material (no need for additional query)
         setSharedMaterial(shared);
-        setCoach(coachData);
         setLoading(false);
       } catch (err) {
         console.error('Error loading material:', err);
@@ -89,6 +85,11 @@ const MaterialView = () => {
     );
   }
 
+  // Guard: Ensure material exists
+  if (!sharedMaterial?.material) {
+    return null;
+  }
+
   const { material } = sharedMaterial;
 
   return (
@@ -125,9 +126,9 @@ const MaterialView = () => {
               size="small"
               sx={{ borderRadius: BORDER_RADIUS.small }}
             />
-            {coach && (
+            {sharedMaterial.coachName && (
               <Chip
-                label={`Od: ${coach.name}`}
+                label={`Od: ${sharedMaterial.coachName}`}
                 size="small"
                 variant="outlined"
                 sx={{ borderRadius: BORDER_RADIUS.small }}
@@ -152,7 +153,7 @@ const MaterialView = () => {
         {/* Info */}
         <Alert severity="info" sx={{ borderRadius: BORDER_RADIUS.compact }}>
           Tento materiál byl s tebou sdílen pomocí aplikace CoachPro.
-          {coach && ` Kouč: ${coach.name}.`}
+          {sharedMaterial.coachName && ` Kouč: ${sharedMaterial.coachName}.`}
         </Alert>
       </motion.div>
     </Container>

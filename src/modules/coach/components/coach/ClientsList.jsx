@@ -62,14 +62,22 @@ const ClientsList = () => {
   }, [currentUser?.id]);
 
   // Enrich clients with program data
-  const enrichedClients = useMemo(() => {
-    return clients.map((client) => {
-      const program = getProgramById(client.programId);
-      return {
-        ...client,
-        program,
-      };
-    });
+  const [enrichedClients, setEnrichedClients] = useState([]);
+
+  useEffect(() => {
+    const enrichClients = async () => {
+      const enriched = await Promise.all(
+        clients.map(async (client) => {
+          const program = await getProgramById(client.programId);
+          return {
+            ...client,
+            program,
+          };
+        })
+      );
+      setEnrichedClients(enriched);
+    };
+    enrichClients();
   }, [clients]);
 
   // Calculate statistics

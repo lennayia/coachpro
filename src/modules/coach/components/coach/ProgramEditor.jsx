@@ -53,6 +53,9 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [selectedDayIndex, setSelectedDayIndex] = useState(null);
 
+  // Materials cache
+  const [materialsCache, setMaterialsCache] = useState({});
+
   // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -167,6 +170,34 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
       }
     };
   }, [title, description, duration, days, open, saveDraft]);
+
+  // Load materials for all days
+  useEffect(() => {
+    const loadMaterials = async () => {
+      const allMaterialIds = days.flatMap(day => day.materialIds || []);
+      const uniqueMaterialIds = [...new Set(allMaterialIds)];
+
+      const newCache = {};
+      await Promise.all(
+        uniqueMaterialIds.map(async (id) => {
+          if (!materialsCache[id]) {
+            const material = await getMaterialById(id);
+            if (material) {
+              newCache[id] = material;
+            }
+          }
+        })
+      );
+
+      if (Object.keys(newCache).length > 0) {
+        setMaterialsCache(prev => ({ ...prev, ...newCache }));
+      }
+    };
+
+    if (days.length > 0) {
+      loadMaterials();
+    }
+  }, [days]);
 
   const handleNext = () => {
     // Validace Step 1
@@ -361,7 +392,7 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
 
                 {isEditing && (
                   <Alert severity="info" sx={{ mt: 2 }}>
-                    Můžeš změnit délku programu. Existující dny zůstanou zachovány, nové dny budou přidány na konec.
+                    Můžete změnit délku programu. Existující dny zůstanou zachovány, nové dny budou přidány na konec.
                   </Alert>
                 )}
               </Box>
@@ -421,7 +452,7 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
                       {/* Selected materials */}
                       <Box display="flex" flexWrap="wrap" gap={1} mb={2}>
                         {day.materialIds.map((matId) => {
-                          const material = getMaterialById(matId);
+                          const material = materialsCache[matId];
                           if (!material) return null;
                           return (
                             <Chip

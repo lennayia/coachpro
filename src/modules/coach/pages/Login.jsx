@@ -26,7 +26,7 @@ const Login = () => {
     initData();
   }, []);
 
-  const handleCoachLogin = () => {
+  const handleCoachLogin = async () => {
     // Vytvoř demo koučku
     const coach = {
       id: 'demo-coach-1',
@@ -39,6 +39,9 @@ const Login = () => {
       },
       createdAt: new Date().toISOString()
     };
+
+    // Ulož coach do Supabase
+    await saveCoach(coach);
 
     setCurrentUser({
       ...coach,
@@ -91,11 +94,16 @@ const Login = () => {
         },
         createdAt: tester.created_at || new Date().toISOString(),
         isTester: true,
+        testerId: tester.id,  // Foreign key reference to testers table
         accessCode: tester.access_code
       };
 
       // 3. Ulož coach do storage
+      console.log('🟢 PŘED saveCoach - coach objekt:', coach);
+      alert('PŘED saveCoach - podívej se do konzole!'); // DOČASNÝ DEBUG
       await saveCoach(coach);
+      console.log('🟢 PO saveCoach - úspěch!');
+      alert('PO saveCoach - úspěch!'); // DOČASNÝ DEBUG
       setCurrentUser({
         ...coach,
         role: 'coach'

@@ -6,10 +6,10 @@
 
 ## 📍 Současný stav projektu
 
-**Poslední update**: 30. října 2025, večer
-**Autor**: Lenka Roubalová + Claude Code (Opus)
-**Sprint**: ✅ Sprint 9 kompletně dokončen + MaterialCard Layout Redesign
-**Status**: ✅ Funkční a testováno - 6 sessions dokumentace (28-30 října)
+**Poslední update**: 3. listopadu 2025
+**Autor**: Lenka Roubalová + Claude Sonnet 4.5
+**Sprint**: ✅ Critical Bug Fixes & Performance Optimization dokončeny
+**Status**: ✅ Všechny runtime errors opraveny, 50% redukce DB dotazů, live preview s coach name
 **Dev server**: `http://localhost:3000/`
 **Projekt**: `/Users/lenkaroubalova/Documents/Projekty/coachpro`
 
@@ -109,7 +109,7 @@ Webová aplikace pro **kouče a jejich klientky**. Kouč vytváří programy s d
 - ✅ **heic2any knihovna** - lazy loading konverze HEIC→JPEG (90% kvalita)
 - ✅ **Responsive header** - text "CoachPro" + popisek jen na desktopu, mobil jen logo
 
-### Sprint 6.9: Glassmorphism Redesign (AKTUÁLNÍ)
+### Sprint 6.9: Glassmorphism Redesign
 - ✅ **Completion screen redesign** - moderní glassmorphism efekty s blur(40px) + saturate(180%)
 - ✅ **ProgressGarden redesign** - minimalistický styl s glassmorphism, zaoblené day bloky
 - ✅ **Button effects** - gradientní pozadí, shine animace, inset highlights, hover efekty
@@ -120,6 +120,21 @@ Webová aplikace pro **kouče a jejich klientky**. Kouč vytváří programy s d
   - Day header: 36px
 - ✅ **Radial gradient overlays** - "kouřový" efekt v pozadí karet
 - ✅ **Konzistentní design jazyk** - inspirováno PaymentsPro
+
+### Sprint 10: Critical Bug Fixes & Performance Optimization (3.11.2025) ✅ AKTUÁLNÍ
+- ✅ **DailyView fix** - Opravena undefined moodLog/completedDays array operations
+- ✅ **MaterialView fix** - Přidán missing await keyword, opravena bílá obrazovka
+- ✅ **MaterialView fix** - Opravena undefined coach reference (guard klauzule)
+- ✅ **Performance optimization** - Coach name denormalization (2 DB dotazy → 1)
+  - `coach_name` sloupec přidán do `coachpro_shared_materials`
+  - `coach_name` sloupec přidán do `coachpro_programs`
+  - SQL migrace vytvořeny a spuštěny
+- ✅ **Live preview enhancement** - Coach name zobrazeno v MaterialEntry.jsx
+- ✅ **Live preview enhancement** - Coach name zobrazeno v ClientEntry.jsx
+- ✅ **Dashboard statistika** - Přidána "Celkem programů" karta
+- ✅ **Grid layout** - 4 karty vedle sebe na velkých obrazovkách (md={3})
+
+**Benefit**: 50% redukce databázových dotazů, rychlejší loading materiálů a programů
 
 ---
 
