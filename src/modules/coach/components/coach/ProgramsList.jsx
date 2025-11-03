@@ -384,6 +384,11 @@ const ProgramsList = () => {
                               👥 {pluralize(activeClients, 'aktivní klientka', 'aktivní klientky', 'aktivních klientek')}
                             </Typography>
                           )}
+                          {program.createdAt && (
+                            <Typography variant="caption" color="text.secondary">
+                              📅 {formatDate(program.createdAt, { day: 'numeric', month: 'numeric', year: 'numeric' })}
+                            </Typography>
+                          )}
                         </Box>
 
                         {/* Share code */}

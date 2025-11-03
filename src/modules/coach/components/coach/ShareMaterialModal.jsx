@@ -26,7 +26,7 @@ import { downloadQRCode, formatDate, getCategoryLabel } from '@shared/utils/help
 import BORDER_RADIUS from '@styles/borderRadius';
 import { useNotification } from '@shared/context/NotificationContext';
 import { useTheme } from '@mui/material';
-import { createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';
+import { createBackdrop, createGlassDialog, createPrimaryModalButton, createFormTextField, createCancelButton, createSubmitButton } from '../../../../shared/styles/modernEffects';
 import { generateShareCode, generateQRCode } from '../../utils/generateCode';
 import { createSharedMaterial, getCurrentUser } from '../../utils/storage';
 
@@ -190,11 +190,7 @@ Těším se na tvůj růst! 💚`;
                 onChange={(e) => setClientName(e.target.value)}
                 placeholder="např. Jana Nová"
                 disabled={loading}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: BORDER_RADIUS.compact,
-                  }
-                }}
+                sx={createFormTextField(isDark)}
               />
 
               {/* Date pickery */}
@@ -208,11 +204,7 @@ Těším se na tvůj růst! 💚`;
                     textField: {
                       fullWidth: true,
                       required: true,
-                      sx: {
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: BORDER_RADIUS.compact,
-                        }
-                      }
+                      sx: createFormTextField(isDark)
                     }
                   }}
                 />
@@ -227,11 +219,7 @@ Těším se na tvůj růst! 💚`;
                     textField: {
                       fullWidth: true,
                       helperText: 'Pokud nevyplníš, přístup bude neomezený',
-                      sx: {
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: BORDER_RADIUS.compact,
-                        }
-                      }
+                      sx: createFormTextField(isDark)
                     }
                   }}
                 />
@@ -242,7 +230,7 @@ Těším se na tvůj růst! 💚`;
             <Button
               onClick={handleClose}
               disabled={loading}
-              sx={{ borderRadius: BORDER_RADIUS.button }}
+              sx={createCancelButton(isDark)}
             >
               Zrušit
             </Button>
@@ -251,7 +239,7 @@ Těším se na tvůj růst! 💚`;
               onClick={handleGenerateCode}
               disabled={loading || !clientName.trim()}
               startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
-              sx={{ borderRadius: BORDER_RADIUS.button }}
+              sx={createSubmitButton(isDark)}
             >
               {loading ? 'Vytvářím...' : 'Vygenerovat kód'}
             </Button>
@@ -264,7 +252,7 @@ Těším se na tvůj růst! 💚`;
             <CheckCircleIcon sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
 
             <Typography variant="h5" mb={1} sx={{ fontWeight: 700 }}>
-              Kód vytvořen! 🎉
+              Kód je vytvořený a je k klientce k dispozici!
             </Typography>
 
             <Typography variant="body2" color="text.secondary" mb={2}>
@@ -314,10 +302,11 @@ Těším se na tvůj růst! 💚`;
                   mb: 3,
                 }}
               >
-                <img
+                <Box
+                  component="img"
                   src={generatedSharedMaterial.qrCode}
                   alt="QR kód"
-                  style={{
+                  sx={{
                     width: 200,
                     height: 200,
                     border: '8px solid white',
@@ -361,7 +350,14 @@ Těším se na tvůj růst! 💚`;
                 size="small"
                 startIcon={<ContentCopyIcon />}
                 onClick={handleCopyCode}
-                sx={{ borderRadius: BORDER_RADIUS.button }}
+                sx={{
+                  borderRadius: BORDER_RADIUS.compact,
+                  textTransform: 'none',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                  px: 2,
+                  py: 0.75,
+                }}
               >
                 Kopírovat
               </Button>
@@ -370,7 +366,14 @@ Těším se na tvůj růst! 💚`;
                 size="small"
                 startIcon={<DownloadIcon />}
                 onClick={handleDownloadQR}
-                sx={{ borderRadius: BORDER_RADIUS.button }}
+                sx={{
+                  borderRadius: BORDER_RADIUS.compact,
+                  textTransform: 'none',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                  px: 2,
+                  py: 0.75,
+                }}
               >
                 Stáhnout QR
               </Button>
@@ -379,18 +382,24 @@ Těším se na tvůj růst! 💚`;
                 size="small"
                 startIcon={<ShareIcon />}
                 onClick={handleShare}
-                sx={{ borderRadius: BORDER_RADIUS.button }}
+                sx={{
+                  borderRadius: BORDER_RADIUS.compact,
+                  textTransform: 'none',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                  px: 2,
+                  py: 0.75,
+                }}
               >
                 Sdílet
               </Button>
             </Stack>
           </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 3 }}>
+          <DialogActions sx={{ px: 3, pb: 3, justifyContent: 'center' }}>
             <Button
               variant="contained"
               onClick={handleClose}
-              fullWidth
-              sx={{ borderRadius: BORDER_RADIUS.button }}
+              sx={createPrimaryModalButton(isDark)}
             >
               Hotovo
             </Button>

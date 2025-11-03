@@ -722,6 +722,8 @@ export const createSharedMaterial = async (material, coachId, accessStartDate = 
       qrCode: qrCode,
       coachId: coachId,
       coachName: coachName,
+      accessStartDate: accessStartDate,
+      accessEndDate: accessEndDate,
       createdAt: new Date().toISOString(),
     };
 

@@ -344,6 +344,141 @@ export const createClientPreviewButton = (isDark = false) => ({
   },
 });
 
+// Primary modal button (fullWidth) s gradient a shine animation
+export const createPrimaryModalButton = (isDark = false) => ({
+  py: 1.5,
+  px: 4,
+  fontWeight: 600,
+  borderRadius: BORDER_RADIUS.compact,
+  color: '#fff',
+  background: isDark
+    ? 'linear-gradient(135deg, rgba(139, 188, 143, 0.95) 0%, rgba(85, 107, 47, 0.9) 100%)'
+    : 'linear-gradient(135deg, rgba(139, 188, 143, 0.98) 0%, rgba(85, 107, 47, 0.95) 100%)',
+  backdropFilter: 'blur(10px)',
+  textTransform: 'none',
+  border: '1px solid',
+  borderColor: isDark
+    ? 'rgba(139, 188, 143, 0.4)'
+    : 'rgba(255, 255, 255, 0.5)',
+  boxShadow: isDark
+    ? '0 4px 12px rgba(139, 188, 143, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+    : '0 4px 12px rgba(85, 107, 47, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
+  position: 'relative',
+  overflow: 'hidden',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: '-100%',
+    width: '100%',
+    height: '100%',
+    background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent)',
+    transition: 'left 0.5s ease',
+  },
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: isDark
+      ? '0 8px 20px rgba(139, 188, 143, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
+      : '0 8px 20px rgba(85, 107, 47, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
+    '&::before': {
+      left: '100%',
+    },
+  },
+  '&:active': {
+    transform: 'translateY(0px)',
+  },
+});
+
+// TextField s moderním stylingem (focus glow, background)
+export const createFormTextField = (isDark = false) => ({
+  '& .MuiOutlinedInput-root': {
+    borderRadius: BORDER_RADIUS.compact,
+    backgroundColor: isDark
+      ? 'rgba(255, 255, 255, 0.03)'
+      : 'rgba(0, 0, 0, 0.02)',
+    transition: 'all 0.3s ease',
+    '&:hover': {
+      backgroundColor: isDark
+        ? 'rgba(255, 255, 255, 0.05)'
+        : 'rgba(0, 0, 0, 0.03)',
+    },
+    '&.Mui-focused': {
+      backgroundColor: isDark
+        ? 'rgba(255, 255, 255, 0.05)'
+        : 'rgba(0, 0, 0, 0.03)',
+      boxShadow: isDark
+        ? '0 0 0 2px rgba(139, 188, 143, 0.3)'
+        : '0 0 0 2px rgba(85, 107, 47, 0.2)',
+    },
+  },
+});
+
+// Cancel/Zrušit button s moderním stylingem
+export const createCancelButton = (isDark = false) => ({
+  px: 3,
+  py: 1,
+  fontWeight: 500,
+  borderRadius: BORDER_RADIUS.compact,
+  textTransform: 'none',
+  color: 'text.secondary',
+  border: '1px solid',
+  borderColor: 'divider',
+  transition: 'all 0.2s',
+  '&:hover': {
+    borderColor: 'text.secondary',
+    backgroundColor: isDark
+      ? 'rgba(255, 255, 255, 0.05)'
+      : 'rgba(0, 0, 0, 0.03)',
+  },
+});
+
+// Submit/Action button ve formuláři (contained, s moderními efekty)
+export const createSubmitButton = (isDark = false) => ({
+  px: 3,
+  py: 1,
+  fontWeight: 600,
+  borderRadius: BORDER_RADIUS.compact,
+  textTransform: 'none',
+  color: '#fff',
+  background: isDark
+    ? 'linear-gradient(135deg, rgba(139, 188, 143, 0.9) 0%, rgba(85, 107, 47, 0.85) 100%)'
+    : 'linear-gradient(135deg, rgba(139, 188, 143, 0.95) 0%, rgba(85, 107, 47, 0.9) 100%)',
+  border: '1px solid',
+  borderColor: isDark
+    ? 'rgba(139, 188, 143, 0.3)'
+    : 'rgba(255, 255, 255, 0.4)',
+  boxShadow: isDark
+    ? '0 2px 8px rgba(139, 188, 143, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)'
+    : '0 2px 8px rgba(85, 107, 47, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
+  position: 'relative',
+  overflow: 'hidden',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: '-100%',
+    width: '100%',
+    height: '100%',
+    background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+    transition: 'left 0.5s ease',
+  },
+  '&:hover': {
+    transform: 'translateY(-1px)',
+    boxShadow: isDark
+      ? '0 4px 12px rgba(139, 188, 143, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+      : '0 4px 12px rgba(85, 107, 47, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
+    '&::before': {
+      left: '100%',
+    },
+  },
+  '&:disabled': {
+    opacity: 0.6,
+    cursor: 'not-allowed',
+  },
+});
+
 // Světlé outlined tlačítko s moderními efekty (pro Admin badge, atd.)
 export const createOutlinedButton = (isDark = false) => ({
   fontWeight: 600,

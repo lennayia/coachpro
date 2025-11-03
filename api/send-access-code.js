@@ -101,7 +101,7 @@ export default async function handler(req, res) {
                               📝 Jak se přihlásit:
                             </p>
                             <ol style="margin: 0; padding-left: 20px; color: #4a4a4a; font-size: 15px; line-height: 1.8;">
-                              <li>Jdi na <a href="${process.env.VITE_APP_URL || 'https://coachpro.vercel.app'}" style="color: #556B2F; text-decoration: none; font-weight: 600;">CoachPro aplikaci</a></li>
+                              <li>Jdi na <a href="${process.env.VITE_APP_URL || 'https://coachpro-weld.vercel.app/'}" style="color: #556B2F; text-decoration: none; font-weight: 600;">CoachPro aplikaci</a></li>
                               <li>Zadej svůj access kód do pole "Máš access kód z registrace?"</li>
                               <li>Klikni na tlačítko "Vstoupit"</li>
                             </ol>
