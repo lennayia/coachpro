@@ -69,8 +69,17 @@ const TesterLogin = () => {
       // ⚠️ CRITICAL: Save coach to Supabase at login time
       // This prevents foreign key errors when creating materials/programs
       console.log('🔵 Ukládám coach do Supabase při přihlášení...');
-      await saveCoach(coachUser);
-      console.log('✅ Coach úspěšně uložen do Supabase');
+
+      try {
+        await saveCoach(coachUser);
+        console.log('✅ Coach úspěšně uložen do Supabase');
+      } catch (coachError) {
+        console.error('❌ Selhalo uložení coach do Supabase:', coachError);
+        setError('Nepodařilo se uložit tvoje data. Zkus se přihlásit znovu nebo kontaktuj podporu.');
+        showError('Chyba při přihlášení', 'Nepodařilo se uložit coach data do databáze.');
+        setLoading(false);
+        return; // Zastavit přihlášení
+      }
 
       setCurrentUser(coachUser);
 

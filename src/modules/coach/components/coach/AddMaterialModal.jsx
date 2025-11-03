@@ -67,6 +67,17 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
+  // ⚠️ CRITICAL: Protect against null currentUser
+  // If user is not logged in, show error and close modal
+  useEffect(() => {
+    if (open && !currentUser) {
+      showError('Chyba', 'Nejsi přihlášená. Přihlaš se prosím znovu.');
+      onClose();
+      // Redirect to login
+      window.location.href = '/coach/auth';
+    }
+  }, [open, currentUser, showError, onClose]);
+
   const [selectedType, setSelectedType] = useState('');
   const [file, setFile] = useState(null);
   const [title, setTitle] = useState('');

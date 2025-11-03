@@ -107,15 +107,10 @@ export const saveCoach = async (coach) => {
     return data;
   } catch (error) {
     console.error('❌ Error saving coach to Supabase:', error);
-    // Fallback to localStorage
-    const coaches = loadFromStorage(STORAGE_KEYS.COACHES, []);
-    const existingIndex = coaches.findIndex(c => c.id === coach.id);
-    if (existingIndex >= 0) {
-      coaches[existingIndex] = coach;
-    } else {
-      coaches.push(coach);
-    }
-    return saveToStorage(STORAGE_KEYS.COACHES, coaches);
+    // ⚠️ CRITICAL: Ne fallback na localStorage!
+    // Coach MUSÍ být v Supabase kvůli foreign key constraints.
+    // Pokud uložení selže, MUSÍME to propagovat nahoru a zobrazit uživateli chybu.
+    throw new Error(`Nepodařilo se uložit coach data. ${error.message || 'Zkus to prosím znovu.'}`);
   }
 };
 
