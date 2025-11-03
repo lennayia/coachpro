@@ -9119,3 +9119,402 @@ const coach = {
 **Příští priorita**: MailerLite manual sync nebo Error boundaries (Priority 1) 🚀
 
 ---
+CLAUDE CODE - 3/11/2025 - 12:25
+-----------
+
+## 📋 Session: Production Deployment & Email Integration (3.11.2025)
+
+**Trvání**: ~4 hodiny
+**AI**: Claude Sonnet 4.5
+**Status**: ✅ Částečně dokončeno - čeká na DNS propagaci
+
+### 🎯 Hlavní úkoly:
+1. Deploy aplikace na Vercel production
+2. Integrace Resend email služby
+3. Vytvoření samostatných login stránek pro testery a admina
+4. Nastavení vlastní domény pro emaily
+
+---
+
+### ✅ 1. Vercel Deployment - API Routing Fix
+
+**Problém**: API endpoint `/api/send-access-code` vracel 500 error - "RESEND_API_KEY not configured"
+
+**Root cause**: `vercel.json` přesměroval VŠECHNY requesty na `/index.html`, včetně `/api/*`
+
+**Řešení**:
+```json
+// PŘED (BROKEN):
+{ "source": "/(.*)", "destination": "/index.html" }
+
+// PO (FIXED):
+{ "source": "/((?!api).*)", "destination": "/index.html" }
+```
+
+**Vysvětlení**: Regex negative lookahead `(?!api)` vyloučí `/api/*` routes z SPA přesměrování.
+
+**Files changed**:
+- `vercel.json` (line 4)
+
+**Commit**: `1c8dc55` - "fix: Exclude API routes from SPA rewrites in vercel.json"
+
+---
+
+### ✅ 2. Resend Email Integration - Beta Testing Workaround
+
+**Problém**: Resend free tier omezení - emaily lze posílat pouze na vlastní ověřený email
+
+**Error**:
+```
+You can only send testing emails to your own email address (lenkaroubalka@gmail.com).
+To send emails to other recipients, please verify a domain.
+```
+
+**Řešení (dočasné pro beta)**:
+- Všechny registrační emaily přesměrovat na admin email
+- V emailu zobrazit modrou info box s údaji skutečné testerky
+- Subject obsahuje jméno testerky pro snadnou identifikaci
+
+**Změny v `/api/send-access-code.js`**:
+```javascript
+// PŘED:
+to: [email],  // Email testerky
+subject: '🌿 Tvůj CoachPro Access Kód',
+
+// PO:
+to: ['lenkaroubalka@gmail.com'],  // BETA: Všechny emaily na admin
+subject: `🌿 CoachPro Access Kód pro ${name}`,  // Jméno testerky v subject
+
+// PŘIDÁN info box v HTML:
+<div style="background-color: #e3f2fd; border: 2px solid #2196f3; ...">
+  📧 BETA TEST MODE: Tento email je určený pro:
+  <strong>${name}</strong> (${email})
+</div>
+```
+
+**Files changed**:
+- `/api/send-access-code.js` (lines 45-46, 73-85)
+
+**Commit**: `94a62f8` - "fix: Beta testing - redirect all emails to admin"
+
+---
+
+### ✅ 3. TesterLogin Page - Samostatná přihlašovací stránka
+
+**Problém**: Po registraci se testerky přesměrovaly na `/coach/auth`, kde se automaticky přihlásily jako existující coach účet (localStorage bug)
+
+**Řešení**: Vytvořit samostatnou login stránku pro testery
+
+**Nový soubor**: `src/modules/coach/pages/TesterLogin.jsx` (197 lines)
+
+**Features**:
+- Input pro access code (uppercase, monospace font, letter-spacing)
+- Vyhledání testera v Supabase tabulce `testers` podle `access_code`
+- Vytvoření coach session s flageme `isTester: true`
+- Redirect na `/coach/dashboard` s prázdným stavem
+- Link na registraci ("Ještě nemáš access kód? Zaregistruj se")
+- Glassmorphism design (`useGlassCard('subtle')`)
+
+**Route**: `/tester/login`
+
+**Změny v App.jsx**:
+```javascript
+import TesterLogin from '@modules/coach/pages/TesterLogin';
+
+<Route path="/tester/login" element={<TesterLogin />} />
+```
+
+**Změny v TesterSignup.jsx**:
+```javascript
+// PŘED:
+onClick={() => navigate('/coach/auth')}
+
+// PO:
+onClick={() => navigate('/tester/login')}
+```
+
+**Files changed**:
+- `src/modules/coach/pages/TesterLogin.jsx` (NEW - 197 lines)
+- `src/modules/coach/pages/TesterSignup.jsx` (line 241)
+- `src/App.jsx` (lines 11, 44)
+
+**Commit**: `4b7149c` - "feat: Add separate TesterLogin page"
+
+---
+
+### ✅ 4. AdminLogin Page - /lenna s heslem
+
+**Požadavek**: Jednoduchý admin přístup pro Lenku bez složitých loginů, ale s přístupem k existujícím testovacím datům
+
+**Řešení**: Samostatná admin stránka s heslem, která načte nejstarší coach účet z localStorage
+
+**Nový soubor**: `src/modules/coach/pages/AdminLogin.jsx` (167 lines)
+
+**Features**:
+- Password input s show/hide toggle (Eye/EyeOff icon)
+- Heslo: `lenna2025` (hardcoded pro beta, TODO: env variable v produkci)
+- Načte všechny coach účty z localStorage
+- Seřadí podle `createdAt` (nejstarší první)
+- Použije nejstarší účet jako admin session
+- Přidá flag `isAdmin: true`
+- Fallback: vytvoří nový účet pokud žádné coaches neexistují
+- Toast notifikace s jménem účtu: "Přihlášena jako [jméno]"
+
+**Route**: `/lenna`
+
+**Implementace**:
+```javascript
+const coaches = getCoaches();
+
+if (!coaches || coaches.length === 0) {
+  // Fallback - create new admin account
+  const adminUser = {
+    id: 'admin-lenna',
+    name: 'Lenka Roubalová',
+    email: 'lenkaroubalka@gmail.com',
+    isAdmin: true,
+    createdAt: new Date().toISOString(),
+  };
+  setCurrentUser(adminUser);
+} else {
+  // Sort by createdAt (oldest first)
+  const sortedCoaches = [...coaches].sort((a, b) => {
+    const dateA = new Date(a.createdAt || 0);
+    const dateB = new Date(b.createdAt || 0);
+    return dateA - dateB;
+  });
+
+  // Use oldest coach account as admin
+  const adminUser = {
+    ...sortedCoaches[0],
+    isAdmin: true,
+  };
+  setCurrentUser(adminUser);
+}
+```
+
+**Files changed**:
+- `src/modules/coach/pages/AdminLogin.jsx` (NEW - 167 lines)
+- `src/App.jsx` (lines 12, 44)
+
+**Commits**:
+- `75b53e1` - "feat: Add admin login page for Lenka"
+- `a79a597` - "fix: Admin login now uses oldest coach account"
+
+**UX Improvements**:
+- Odstraněn matoucí link "přihlas se jako koučka" z TesterLogin stránky
+- Jasná separace přístupů:
+  - 👩‍🔬 Testerky: `/tester/login` (access code)
+  - 👑 Admin (Lenka): `/lenna` (heslo)
+  - 👥 Klientky: `/client/entry` (program code)
+  - 👩‍💼 Koučky (budoucnost): `/coach/auth` (jméno+email)
+
+---
+
+### ✅ 5. Resend Domain Verification Setup
+
+**Cíl**: Povolit odesílání emailů na jakýkoliv email (ne jen admin) pomocí vlastní domény
+
+**Doména**: `online-byznys.cz` (stávající doména)
+**Email pro beta**: `beta@online-byznys.cz` (noreply - pouze odesílání)
+
+**DNS záznamy přidané přes Webkitty.cz**:
+
+1. **TXT - Domain Verification** ✅
+   ```
+   Type:    TXT
+   Name:    resend._domainkey
+   Content: p=MIGfMA0GCSqGSIb3DQEB... (DKIM klíč)
+   TTL:     Auto
+   ```
+
+2. **MX - Sending** ✅
+   ```
+   Type:     MX
+   Name:     send
+   Content:  feedback-smtp.eu-west-1.amazonses.com
+   Priority: 10
+   TTL:      Auto
+   ```
+   **POZNÁMKA**: Nekoliduje se stávajícím MX záznamem pro `lenna@online-byznys.cz` (jiný Name)
+
+3. **TXT - SPF** ✅
+   ```
+   Type:    TXT
+   Name:    send
+   Content: v=spf1 include:amazonses.com ~all
+   TTL:     Auto
+   ```
+   **POZNÁMKA**: Subdoména "send" má vlastní SPF, nekoliduje s hlavním SPF pro doménu
+
+4. **TXT - DMARC** ✅
+   ```
+   EXISTUJÍCÍ záznam ZACHOVÁN (lepší než Resend doporučení):
+   Name:    _dmarc
+   Content: v=DMARC1;p=none;sp=none;adkim=r;aspf=r;pct=100;rf=afrf;ri=86400
+   ```
+   **POZNÁMKA**: Již existující DMARC je kompatibilní a profesionálně nastavený
+
+**Status**: ⏳ Čeká na DNS propagaci (5-30 minut)
+
+**Další kroky** (po propagaci):
+1. Ověřit doménu v Resend dashboardu
+2. Změnit `/api/send-access-code.js`:
+   ```javascript
+   from: 'CoachPro Beta <beta@online-byznys.cz>'
+   to: [email]  // Skutečný email testerky
+   ```
+3. Odebrat modré info boxy z HTML emailu
+4. Otestovat registraci s reálným emailem
+
+---
+
+### 📊 Architecture Discussion - localStorage vs Supabase
+
+**Současný stav**:
+- ✅ Webové stránky: Vercel hosting
+- ✅ Soubory (PDF, audio): Supabase Storage
+- ✅ Testeři (registrace): Supabase Database (`testers` tabulka)
+- ❌ Coach účty: localStorage (browser)
+- ❌ Programy: localStorage
+- ❌ Klientky: localStorage
+- ❌ Sdílené materiály: localStorage
+
+**Problém**:
+- localStorage data se ZTRATÍ při změně domény (`coachpro.vercel.app` → `coachpro.cz`)
+- localStorage data se ZTRATÍ při změně browseru/počítače
+- localStorage data se ZTRATÍ při vymazání cache
+- localStorage limit: 5-10 MB celkově
+
+**Diskuze - Kdy migrovat na Supabase?**
+
+❌ **Varianta "teď localStorage, později migrace"**:
+- Beta testeři vytvoří materiály/programy v localStorage
+- Před produkcí: manuální export/import dat
+- Riziko ztráty dat
+- Dodatečná práce
+
+✅ **Varianta "migrace TEĎ"** (DOPORUČENO):
+- Všechna data v Supabase od začátku
+- Žádná migrace později
+- Multi-device přístup
+- 100% kontinuita při přechodu do produkce
+- Škálovatelné
+
+**Rozhodnutí**: ✅ Migrovat na Supabase DATABASE TEĎ (před beta testingem s reálnými daty)
+
+**Odhad času**: 4-6 hodin práce
+
+**Plán**:
+1. Vytvoření Supabase tabulek (`coaches`, `materials`, `programs`, `clients`, `shared_materials`)
+2. Přepsání `storage.js` funkcí na Supabase
+3. localStorage fallback pro offline podporu
+4. Testing CRUD operací
+5. Deployment
+
+**Status**: ⏳ Pending - začneme po ověření Resend domény
+
+---
+
+### 🔧 Technical Learnings
+
+**1. Vercel Serverless Functions API Routing**
+- Vercel detekuje `/api/*` folder automaticky jako serverless functions
+- `vercel.json` rewrites MUSÍ vyloučit `/api/*` pomocí negative lookahead
+- Pattern: `/((?!api).*)` = "všechno KROMĚ cest obsahujících 'api'"
+
+**2. Resend Email Service Limitations**
+- Free tier: pouze testing domain `onboarding@resend.dev` → pouze na vlastní email
+- Řešení: ověření vlastní domény
+- DNS záznamy: TXT (DKIM), MX, SPF, DMARC
+- Subdoména "send" pro Resend nekoliduje se stávajícím emailem
+
+**3. DNS Records - SPF & DMARC**
+- SPF: může být různý pro hlavní doménu a subdoménu
+- DMARC: JEDEN pro celou doménu (včetně všech subdomén)
+- MX záznamy: můžou být různé pro různé (sub)domény
+
+**4. localStorage vs Supabase Architecture**
+- Vercel = hosting (webové stránky)
+- Supabase Storage = soubory (PDF, audio, atd.)
+- Supabase Database = strukturovaná data (účty, programy, klientky)
+- localStorage = browser-specific, nelze sdílet mezi doménami/zařízeními
+
+---
+
+### 📁 Soubory vytvořené/upravené
+
+**Vytvořené**:
+1. `src/modules/coach/pages/TesterLogin.jsx` (197 lines)
+2. `src/modules/coach/pages/AdminLogin.jsx` (167 lines)
+
+**Upravené**:
+1. `vercel.json` - API routing fix
+2. `/api/send-access-code.js` - Beta email redirect + info box
+3. `src/modules/coach/pages/TesterSignup.jsx` - Redirect na /tester/login
+4. `src/App.jsx` - Routes pro /tester/login a /lenna
+
+**Git Commits**:
+- `1c8dc55` - fix: Exclude API routes from SPA rewrites in vercel.json
+- `94a62f8` - fix: Beta testing - redirect all emails to admin
+- `4b7149c` - feat: Add separate TesterLogin page
+- `75b53e1` - feat: Add admin login page for Lenka
+- `a79a597` - fix: Admin login now uses oldest coach account
+
+---
+
+### ⏳ Pending Tasks
+
+**Vysoká priorita** (před beta testing s reálnými uživateli):
+1. ✅ Dokončit Resend domain verification (čeká na DNS propagaci)
+2. ✅ Změnit email API na `beta@online-byznys.cz`
+3. ✅ Otestovat registraci + email delivery
+4. 🚀 **Supabase Database Migration** (4-6 hodin):
+   - Vytvoření tabulek
+   - Přepsání storage.js
+   - Testing
+   - Deployment
+
+**Nízká priorita** (pro produkci):
+- Přesunout admin heslo do environment variable
+- Implementovat "Forgot Access Code" modal do Login.jsx
+- Error boundaries
+- LocalStorage warning při 80%+ využití
+
+---
+
+### 🎯 Deployment Status
+
+**Production URL**: https://coachpro.vercel.app
+
+**Environment Variables** (Vercel):
+- ✅ `VITE_SUPABASE_URL`
+- ✅ `VITE_SUPABASE_ANON_KEY`
+- ✅ `VITE_YOUTUBE_API_KEY`
+- ✅ `RESEND_API_KEY` (project-level, ne account-level!)
+
+**Funkční**:
+- ✅ Tester registrace (`/tester/signup`)
+- ✅ Tester login (`/tester/login`)
+- ✅ Admin login (`/lenna`)
+- ✅ Client entry (`/client/entry`)
+- ✅ Supabase file uploads
+- ⏳ Email delivery (čeká na domain verification)
+
+**Nefunkční** (dočasně):
+- ❌ Email odesílání na tester email (redirect na admin email do doby ověření domény)
+
+---
+
+### 💡 Klíčová rozhodnutí
+
+1. **Email strategie pro beta**: `beta@online-byznys.cz` (noreply, jen odesílání)
+2. **Admin přístup**: `/lenna` s heslem `lenna2025`, načte nejstarší coach účet
+3. **Tester login**: Samostatná stránka `/tester/login`, ne `/coach/auth`
+4. **Data persistence**: Migrace na Supabase DATABASE před ostrým beta testingem
+5. **DNS setup**: Subdoména "send" pro Resend, nekoliduje se stávajícím emailem
+
+---
+
+**Další session**: Supabase Database Migration + Email testing po DNS propagaci
+

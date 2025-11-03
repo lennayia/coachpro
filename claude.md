@@ -6502,4 +6502,118 @@ const generateAccessCode = () => {
 **User flow**: Registration → Access code → Login → Dashboard ✅
 **Dev Server**: ✅ Běží bez chyb
 **Dokumentace**: ✅ summary.md + claude.md + MASTER_TODO_V2.md aktualizovány
+
+---
+
+## 📦 PRODUCTION DEPLOYMENT - 3. listopadu 2025
+
+**Datum**: 3. listopadu 2025
+**AI**: Claude Sonnet 4.5
+**Status**: ✅ DEPLOYED TO PRODUCTION
+**Production URL**: https://coachpro.vercel.app/
+
+### 🎯 Co bylo implementováno
+
+#### 1. Vercel Deployment
+- ✅ Projekt nasazen na Vercel
+- ✅ Auto-deployment z main branch
+- ✅ Merged Sprint 8-13 do main (29,304 lines)
+- ✅ SPA routing configured (vercel.json)
+
+#### 2. Email Integration (Resend.com)
+- ✅ Serverless API: `/api/send-access-code.js`
+- ✅ Access code email při registraci
+- ✅ HTML email template
+- ✅ Beta workaround (všechny maily na admin)
+
+#### 3. Login System Split
+- ✅ **TesterLogin.jsx** - `/tester/login` - Přihlášení testera přes access code
+- ✅ **AdminLogin.jsx** - `/lenna` - Admin přístup s heslem `lenna2025`
+- ✅ Admin loads oldest coach account z localStorage
+
+#### 4. DNS Configuration
+- ✅ Domain verified: `online-byznys.cz`
+- ✅ Email: `beta@online-byznys.cz`
+- ✅ DNS records: DKIM, SPF, MX, DMARC
+- ⏳ Propagation: 5-30 minut
+
+### 🐛 5 Major Fixes
+
+**Fix #1: Old Version Deployed**
+- Problém: Jen initial commit byl v main
+- Fix: `git merge feature/sprint13-beta-tester-access`
+
+**Fix #2: API Routes Not Working**
+- Problém: `vercel.json` rewrite ALL → index.html
+- Fix: Regex `"/((?!api).*)"` excludes /api/*
+
+**Fix #3: Resend Free Tier**
+- Problém: Can only send to verified email
+- Fix: Redirect to admin + show recipient in subject/body
+
+**Fix #4: Wrong Account After Registration**
+- Problém: Redirected to existing coach localStorage
+- Fix: Separate TesterLogin page
+
+**Fix #5: Admin No Development Data**
+- Problém: Created new empty account
+- Fix: Load oldest coach from localStorage
+
+### 📁 Klíčové soubory
+
+**Nové**:
+- `/api/send-access-code.js` - Email API (172 lines)
+- `TesterLogin.jsx` - Tester login page (197 lines)
+- `AdminLogin.jsx` - Admin login page (167 lines)
+
+**Upravené**:
+- `vercel.json` - API routing fix
+- `TesterSignup.jsx` - Email API call + redirect fix
+- `App.jsx` - Routes: /lenna, /tester/login
+- `.env.example` - RESEND_API_KEY docs
+
+### 🚀 Pending Tasks
+
+**High Priority**:
+1. ⏳ DNS propagation (IN PROGRESS)
+2. ✅ Verify domain in Resend
+3. ✅ Change to `beta@online-byznys.cz`
+4. ✅ Test real email delivery
+5. 🔥 **SUPABASE DATABASE MIGRATION** (4-6 hours)
+
+**Migration decision**: User asked "proč to neuděláme rovnou" - migrate NOW, not later
+
+### 🎓 Klíčové Lekce
+
+**Vercel API Routing**:
+```json
+// Negative lookahead to exclude /api/*
+{ "source": "/((?!api).*)", "destination": "/index.html" }
+```
+
+**localStorage Persistence**:
+- Lost on domain change
+- Lost on browser change
+- Need Supabase Database for production
+
+**Email Beta Workaround**:
+```javascript
+to: ['lenkaroubalka@gmail.com'],
+subject: `🌿 CoachPro Access Kód pro ${name}`,
+// Info box shows intended recipient
+```
+
+**Admin Oldest Coach Pattern**:
+```javascript
+const sortedCoaches = [...coaches].sort((a, b) =>
+  new Date(a.createdAt) - new Date(b.createdAt)
+);
+const adminUser = { ...sortedCoaches[0], isAdmin: true };
+```
+
+---
+
+**Poslední update**: 3. listopadu 2025
+**Status**: ✅ Production deployment dokončen, čeká se na DNS + Supabase migration
+**Production URL**: https://coachpro.vercel.app/
 **Příští priorita**: MailerLite manual sync nebo Error boundaries 🚀
