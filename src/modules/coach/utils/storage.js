@@ -398,6 +398,8 @@ export const saveProgram = async (program) => {
       qr_code: program.qrCode || null,
       is_active: program.isActive !== undefined ? program.isActive : true,
       days: program.days, // JSONB column - Supabase handles this
+      created_at: program.createdAt || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
     const { data, error } = await supabase
@@ -499,6 +501,8 @@ const convertClientFromDB = (dbClient) => {
     startedAt: dbClient.started_at,
     completedAt: dbClient.completed_at,
     certificateGenerated: dbClient.certificate_generated,
+    accessStartDate: dbClient.access_start_date,
+    accessEndDate: dbClient.access_end_date,
   };
 };
 
@@ -541,6 +545,8 @@ export const saveClient = async (client) => {
       started_at: client.startedAt || new Date().toISOString(),
       completed_at: client.completedAt || null,
       certificate_generated: client.certificateGenerated || false,
+      access_start_date: client.accessStartDate || null,
+      access_end_date: client.accessEndDate || null,
     };
 
     const { data, error } = await supabase
@@ -638,6 +644,8 @@ const convertSharedMaterialFromDB = (dbSharedMaterial) => {
     coachId: dbSharedMaterial.coach_id,
     coachName: dbSharedMaterial.coach_name,
     createdAt: dbSharedMaterial.created_at,
+    accessStartDate: dbSharedMaterial.access_start_date,
+    accessEndDate: dbSharedMaterial.access_end_date,
   };
 };
 
@@ -664,7 +672,7 @@ export const getSharedMaterials = async (coachId = null) => {
   }
 };
 
-export const createSharedMaterial = async (material, coachId) => {
+export const createSharedMaterial = async (material, coachId, accessStartDate = null, accessEndDate = null) => {
   try {
     const { generateShareCode, generateQRCode } = await import('./generateCode.js');
 
@@ -683,6 +691,8 @@ export const createSharedMaterial = async (material, coachId) => {
       qr_code: qrCode,
       coach_id: coachId,
       coach_name: coachName,
+      access_start_date: accessStartDate,
+      access_end_date: accessEndDate,
     };
 
     const { data, error } = await supabase

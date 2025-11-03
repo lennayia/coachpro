@@ -29,11 +29,12 @@ import {
   Link2,
   Paperclip,
   Share2,
-  User
+  User,
+  Calendar
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { formatDuration, formatFileSize, getCategoryLabel } from '@shared/utils/helpers';
-import { deleteMaterial, getCurrentUser, getPrograms, setCurrentClient, createSharedMaterial } from '../../utils/storage';
+import { formatDuration, formatFileSize, getCategoryLabel, formatDate } from '@shared/utils/helpers';
+import { deleteMaterial, getCurrentUser, getPrograms, setCurrentClient } from '../../utils/storage';
 import { getAreaLabel, getAreaIcon, getStyleLabel, getAuthorityLabel } from '@shared/constants/coachingTaxonomy';
 import { generateUUID } from '../../utils/generateCode';
 import ServiceLogo from '../shared/ServiceLogo';
@@ -61,9 +62,7 @@ const MaterialCard = ({
   const [editOpen, setEditOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
-  const [sharedMaterialData, setSharedMaterialData] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
   const isVeryNarrow = useMediaQuery('(max-width:420px)');
   const isTouch = isTouchDevice();
 
@@ -87,28 +86,8 @@ const MaterialCard = ({
   };
 
   // Sdílení materiálu s klientkou
-  const handleShareMaterial = async () => {
-    setIsSharing(true);
-    try {
-      const currentUser = getCurrentUser();
-      if (!currentUser) {
-        console.error('No current user found');
-        showError('Chyba', 'Nejsi přihlášená. Zkus se znovu přihlásit.');
-        setIsSharing(false);
-        return;
-      }
-
-      // Vytvoř sdílený materiál s QR kódem a share code
-      const shared = await createSharedMaterial(material, currentUser.id);
-      setSharedMaterialData(shared);
-      setShareModalOpen(true);
-      showSuccess('Připraveno!', `Materiál "${material.title}" je připraven ke sdílení 🎉`);
-    } catch (error) {
-      console.error('Failed to create shared material:', error);
-      showError('Chyba', 'Nepodařilo se připravit materiál ke sdílení. Zkus to prosím znovu.');
-    } finally {
-      setIsSharing(false);
-    }
+  const handleShareMaterial = () => {
+    setShareModalOpen(true);
   };
 
   // Touch gestures - Swipe handlers
@@ -353,7 +332,6 @@ const MaterialCard = ({
               <QuickTooltip title="Sdílet s klientkou">
                 <IconButton
                   onClick={handleShareMaterial}
-                  disabled={isSharing}
                   sx={createIconButton('secondary', isDark, 'small')}
                 >
                   <Share2 size={isVeryNarrow ? 16 : 18} />
@@ -456,6 +434,26 @@ const MaterialCard = ({
                   }}
                 >
                   {formatFileSize(material.fileSize)}
+                </Typography>
+              </Box>
+            )}
+
+            {/* Datum vytvoření */}
+            {material.createdAt && (
+              <Box display="flex" alignItems="center" gap={0.5}>
+                <Calendar
+                  size={isVeryNarrow ? 11 : 12}
+                  style={{ flexShrink: 0 }}
+                  color={theme.palette.text.secondary}
+                />
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'text.secondary',
+                    fontSize: '0.7rem',
+                  }}
+                >
+                  {formatDate(material.createdAt, { day: 'numeric', month: 'numeric', year: 'numeric' })}
                 </Typography>
               </Box>
             )}
@@ -733,7 +731,7 @@ const MaterialCard = ({
       <ShareMaterialModal
         open={shareModalOpen}
         onClose={() => setShareModalOpen(false)}
-        sharedMaterial={sharedMaterialData}
+        material={material}
       />
     </>
   );

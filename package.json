@@ -12,6 +12,7 @@
     "@emotion/styled": "^11.11.5",
     "@mui/icons-material": "^6.1.0",
     "@mui/material": "^6.1.0",
+    "@mui/x-date-pickers": "^8.16.0",
     "@supabase/supabase-js": "^2.76.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^11.0.0",

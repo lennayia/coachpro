@@ -42,6 +42,29 @@ const MaterialView = () => {
           return;
         }
 
+        // ⏰ Kontrola časového omezení přístupu
+        const now = new Date();
+
+        if (shared.accessStartDate) {
+          const startDate = new Date(shared.accessStartDate);
+          if (now < startDate) {
+            const { formatDate } = await import('@shared/utils/helpers');
+            setError(`Přístup k tomuto materiálu je možný od ${formatDate(shared.accessStartDate, { day: 'numeric', month: 'numeric', year: 'numeric' })}`);
+            setLoading(false);
+            return;
+          }
+        }
+
+        if (shared.accessEndDate) {
+          const endDate = new Date(shared.accessEndDate);
+          if (now > endDate) {
+            const { formatDate } = await import('@shared/utils/helpers');
+            setError(`Přístup k tomuto materiálu skončil ${formatDate(shared.accessEndDate, { day: 'numeric', month: 'numeric', year: 'numeric' })}`);
+            setLoading(false);
+            return;
+          }
+        }
+
         // Coach name is already in shared material (no need for additional query)
         setSharedMaterial(shared);
         setLoading(false);

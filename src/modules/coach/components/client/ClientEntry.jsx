@@ -30,6 +30,7 @@ import {
   getPrograms,
 } from '../../utils/storage';
 import { generateUUID, isValidShareCode } from '../../utils/generateCode';
+import { formatDate } from '@shared/utils/helpers';
 import { useNotification } from '@shared/context/NotificationContext';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
 import { useTheme } from '@mui/material';
@@ -161,6 +162,27 @@ const ClientEntry = () => {
         };
 
         await saveClient(client);
+      }
+
+      // ⏰ Kontrola časového omezení přístupu
+      const now = new Date();
+
+      if (client.accessStartDate) {
+        const startDate = new Date(client.accessStartDate);
+        if (now < startDate) {
+          const errorMsg = `Přístup k tomuto programu je možný od ${formatDate(client.accessStartDate, { day: 'numeric', month: 'numeric', year: 'numeric' })}`;
+          showError('Přístup zatím není možný', errorMsg);
+          throw new Error(errorMsg);
+        }
+      }
+
+      if (client.accessEndDate) {
+        const endDate = new Date(client.accessEndDate);
+        if (now > endDate) {
+          const errorMsg = `Přístup k tomuto programu skončil ${formatDate(client.accessEndDate, { day: 'numeric', month: 'numeric', year: 'numeric' })}`;
+          showError('Přístup vypršel', errorMsg);
+          throw new Error(errorMsg);
+        }
       }
 
       // Ulož do session storage
