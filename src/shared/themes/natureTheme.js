@@ -54,11 +54,11 @@ export const createNatureTheme = (mode = 'light') => {
     breakpoints: {
       values: {
         xs: 0,
-        xsm: 480,    // ← Custom breakpoint pro 2 karty
-        sm: 600,
-        md: 900,
-        lg: 1200,
-        xl: 1536,
+        xsm: 500,    // ← Custom breakpoint pro 2 karty
+        sm: 600,    // 
+        md: 1000,    // ← Custom breakpoint pro 3 karty
+        lg: 1300,    // ← Custom breakpoint pro 4 karty
+        xl: 1536,    
       },
     },
     palette: {

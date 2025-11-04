@@ -2,6 +2,21 @@
 // Plain JavaScript funkce (ne React hooks) pro responsive design patterns
 
 /**
+ * Responsive spacing pro Layout a Page komponenty
+ *
+ * Centralizované responsive padding hodnoty pro konzistentní spacing napříč aplikací.
+ * Všechny komponenty by měly používat tyto konstanty místo hardcoded hodnot.
+ */
+export const PAGE_PADDING = {
+  px: { xs: 1.75, xsm: 1.875, md: 3 },  // 10px, 15px, 24px
+  py: 3,  // 24px všude
+};
+
+export const SECTION_PADDING = {
+  px: { xs: 0.5, sm: 1, md: 2 },  // 4px, 8px, 16px (navíc k PAGE_PADDING)
+};
+
+/**
  * Line clamping s ellipsis (...) - používá WebKit line-clamp
  *
  * Řeší overflow dlouhých textů na malých obrazovkách pomocí ellipsis.
@@ -31,5 +46,7 @@ export const createTextEllipsis = (lines = 1) => ({
 });
 
 export default {
+  PAGE_PADDING,
+  SECTION_PADDING,
   createTextEllipsis,
 };

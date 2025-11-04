@@ -2,7 +2,7 @@
 
 > **Účel**: Rychlý přehled nejdůležitějších pravidel. Pro detaily viz CLAUDE.md
 
-**Poslední update**: 4. listopadu 2025
+**Poslední update**: 4. listopadu 2025 (večer)
 **Pro full dokumentaci**: Čti CLAUDE.md (ale JEN když potřebuješ detaily!)
 
 ---
@@ -136,6 +136,88 @@ const newFunction = () => { ... };
 
 **VŽDY ČESKY** - uživatelka je česká!
 
+### 10. 🎯 PRODUCTION STATUS AWARENESS
+
+**KRITICKÉ - VŽDY SI PAMATUJ:**
+
+✅ **PROJEKT JE V PRODUKCI NA SUPABASE!** (od 3.11.2025)
+
+**Uživatelka zdůraznila (4.11.2025)**:
+- "A Supabase už přece máme!"
+- "my už jsme v produkčním režimu na supabase, to přece už musíš vědět za tu dobu!"
+
+**Co to znamená:**
+- ❌ NENAVRHUJ "future Supabase integration" - UŽ JE integrovaný!
+- ❌ NEŘÍKEJ "až budeme mít Supabase" - UŽ MÁME!
+- ✅ 300ms delay v MaterialsLibrary = simulace async, NE "čekání na Supabase"
+
+### 11. 🔄 INLINE VS MODULAR TRADE-OFFS
+
+**Někdy je lepší RYCHLÉ ŘEŠENÍ než VELKÝ REFACTOR:**
+
+**Příklad z 4.11.2025:**
+- Problém: Button není responsive
+- Option A: Inline fix (5 minut)
+- Option B: Full button modularity system (6-8 hodin)
+
+**User rozhodnutí**: "no, jenže to bychom zas měli opravdu hodně práce s tím, viď?"
+
+**Řešení:**
+```javascript
+// Inline responsive padding
+sx={{
+  px: { xs: 2, sm: 3 },
+  py: { xs: 0.75, sm: 1 }
+}}
+```
+
+**Pattern:**
+- Zeptej se na scope (inline vs modular)
+- Když time constraint → inline solution
+- Dokumentuj full refactor jako FUTURE TASK
+- Explicitně označ trade-off
+
+### 12. 📝 DOCUMENTATION PATTERN
+
+**COMPLETED vs FUTURE WORK - oddělit!**
+
+**User feedback (4.11.2025)**:
+> "já jsem ale chtěla, abys tam zapsal, že musíme udělat modularitu pro tlačítka a popsal, jak - jako úkol na později"
+
+**Správný pattern:**
+
+```markdown
+## Session Work (4.11.2025) ✅
+- MaterialCardSkeleton refactor
+- Button inline fix
+- Sprint 18b dokumentace
+
+## Sprint 18b: Button Modularity (FUTURE) ⏳
+- Status: Pending
+- Odhad: 6-8 hodin
+- 5 functions to create
+- 3 implementation phases
+```
+
+**KEY**: Hotovou práci ✅ vs budoucí úkoly ⏳ - VŽDY oddělit!
+
+### 13. 🛠️ USER INSTRUCTIONS PATTERN
+
+**Kdy poskytnout INSTRUKCE místo AUTOMATICKÉ OPRAVY:**
+
+**User říká**: "ukaž jak, opravím sama"
+
+**Příklad (4.11.2025)**:
+```
+User: "Beta badge by mělo být secondary color. Pokud stačí, ukaž jak, opravím sama."
+
+AI: Header.jsx:
+- Line 133: backgroundColor: '#FF9800' → 'secondary.main'
+- Line 138: backgroundColor: '#F57C00' → 'secondary.dark'
+```
+
+**Pattern:** Respektuj user autonomii - někdy chce opravit sama!
+
 ---
 
 ## 📁 DŮLEŽITÉ SOUBORY
@@ -143,11 +225,13 @@ const newFunction = () => { ... };
 **Kritické - NIKDY nemazat:**
 - `/src/styles/borderRadius.js` - Border-radius systém
 - `/src/shared/styles/modernEffects.js` - Glassmorphism funkce
+- `/src/shared/styles/responsive.js` - Responsive utilities (createTextEllipsis)
 - `/src/shared/components/FloatingMenu.jsx` - Settings menu
 - `/src/shared/components/NavigationFloatingMenu.jsx` - Navigace
 - `/src/shared/context/NotificationContext.jsx` - Toast systém
 - `/src/modules/coach/utils/storage.js` - LocalStorage + Supabase
 - `/src/modules/coach/utils/supabaseStorage.js` - Supabase upload/delete
+- `/src/modules/coach/components/coach/MaterialCardSkeleton.jsx` - 8-row loading pattern
 
 **Dokumentační:**
 - `CLAUDE.md` - Kompletní dokumentace (9000+ řádků)
@@ -191,15 +275,54 @@ import QuickTooltip from '@shared/components/AppTooltip';
 </QuickTooltip>
 ```
 
+### Skeleton Loader (8-row pattern):
+```javascript
+// MaterialCardSkeleton pattern - lze adaptovat pro Program/Client
+<Card sx={{ minHeight: 280, borderRadius: BORDER_RADIUS.card }}>
+  <CardContent sx={{ p: 3, pr: 2.5 }}>
+    {/* Row 1: Icons (large left + 4 action right) */}
+    <Box display="flex" justifyContent="space-between" mb={1.5}>
+      <Skeleton variant="circular" width={40} height={40} />
+      <Box display="flex" gap={0.75}>
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} variant="circular" width={22} height={22} />
+        ))}
+      </Box>
+    </Box>
+
+    {/* Rows 2-8: Chip, Metadata, URL, Title, Desc, Taxonomy, Button */}
+    {/* See MaterialCardSkeleton.jsx pro full pattern */}
+  </CardContent>
+</Card>
+```
+
+### Responsive Button Padding:
+```javascript
+// Inline solution pro responsive buttons
+sx={{
+  px: { xs: 2, sm: 3 },   // 16px → 24px
+  py: { xs: 0.75, sm: 1 }  // 6px → 8px
+}}
+```
+
 ---
 
-## 📊 AKTUÁLNÍ STAV (4.11.2025)
+## 📊 AKTUÁLNÍ STAV (4.11.2025, večer)
 
-**Sprint**: Session 11b - Modularity Cleanup
-**Status**: ✅ Logo změněno na bílé (filter: brightness(0) invert(1))
-**Pending**: Help buttons na ProgramsList a ClientsList
+**Session**: UI Polish & Modularity Cleanup (continuation)
+**Dokončeno**:
+- ✅ MaterialCardSkeleton refactor (8-row single-column)
+- ✅ Button responsive fix (inline solution)
+- ✅ Sprint 18b Button Modularity dokumentován (future task)
+- ✅ summary6.md updated
+- ✅ CLAUDE_QUICK.md updated
+
+**Pending**:
+- [ ] Help buttons na ProgramsList a ClientsList
+- [ ] Sprint 18b: Button Modularity System (6-8 hodin)
 
 **Tech Stack**: React 18, MUI v6, Vite, Supabase
+**Status**: ✅ V PRODUKCI na Supabase (od 3.11.2025)
 **Dev Server**: `http://localhost:3000/`
 **Production**: `https://coachpro-weld.vercel.app/`
 

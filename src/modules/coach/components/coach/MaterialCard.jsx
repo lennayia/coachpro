@@ -319,7 +319,7 @@ const MaterialCard = ({
                   onClick={() => setPreviewOpen(true)}
                   sx={createIconButton('secondary', isDark, 'small')}
                 >
-                  <Eye size={isVeryNarrow ? 16 : 18} />
+                  <Eye size={isVeryNarrow ? 20 : 22} />
                 </IconButton>
               </QuickTooltip>
 
@@ -328,7 +328,7 @@ const MaterialCard = ({
                   onClick={() => setEditOpen(true)}
                   sx={createIconButton('secondary', isDark, 'small')}
                 >
-                  <Pencil size={isVeryNarrow ? 16 : 18} />
+                  <Pencil size={isVeryNarrow ? 20 : 22} />
                 </IconButton>
               </QuickTooltip>
 
@@ -337,7 +337,7 @@ const MaterialCard = ({
                   onClick={handleShareMaterial}
                   sx={createIconButton('secondary', isDark, 'small')}
                 >
-                  <Share2 size={isVeryNarrow ? 16 : 18} />
+                  <Share2 size={isVeryNarrow ? 20 : 22} />
                 </IconButton>
               </QuickTooltip>
 
@@ -346,7 +346,7 @@ const MaterialCard = ({
                   onClick={handleDeleteClick}
                   sx={createIconButton('error', isDark, 'small')}
                 >
-                  <Trash2 size={isVeryNarrow ? 16 : 18} />
+                  <Trash2 size={isVeryNarrow ? 20 : 22} />
                 </IconButton>
               </QuickTooltip>
             </Box>

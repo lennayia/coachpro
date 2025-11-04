@@ -26,6 +26,7 @@
 - **Sprint 16a**: Certifikát - Upgrade s Podpisem
 - **Sprint 17a**: File Management - Limits & Duplicity
 - **Sprint 18a**: UX Improvements - Theming & Dark Mode
+- **Sprint 18b**: Button Modularity System - Responsive & Consistent
 - **Sprint 19a**: Dashboard - Quick Actions & Dates
 - **Sprint 20a**: Production Deployment - Pending Tasks
 - **Sprint 21a**: Material Workflow System (Audio, Document, Worksheet, Video, Reflection)
@@ -49,6 +50,50 @@
 ---
 
 ## 📝 CHANGELOG - Completed Sessions (1.-4. listopadu 2025)
+
+### UI Polish & Modularity Cleanup (4.11.2025, večer)
+
+**Implementováno:**
+- ✅ **Layout.jsx** - odstraněn backdrop strip (90px) a starý Sidebar
+  - Removed: 90px white strip, Sidebar component, hamburger menu
+  - Updated: responsive padding na modular `PAGE_PADDING` konstantu
+
+- ✅ **responsive.js** - nový modular spacing system
+  - `PAGE_PADDING`: { px: { xs: 1.25, xsm: 1.875, md: 3 }, py: 3 }
+  - `SECTION_PADDING`: { px: { xs: 0.5, sm: 1, md: 2 } }
+  - `createTextEllipsis(lines)` - multi-line ellipsis funkce
+
+- ✅ **MaterialCardSkeleton.jsx** - kompletní refactor
+  - Přepsán z 2-column na single-column 8-row layout
+  - Odpovídá novému MaterialCard designu (Session 11c)
+  - Modular BORDER_RADIUS, responsive sizes
+
+- ✅ **MaterialsLibrary.jsx** - button responsive fix
+  - "Přidat materiál" button: nikdy fullWidth
+  - Responsive padding: `px: { xs: 2, sm: 3 }, py: { xs: 0.75, sm: 1 }`
+  - `alignSelf: 'flex-start'`, `minWidth: 'fit-content'`
+
+- ✅ **Sidebar.jsx** - přesunut do `_deprecated/`
+
+- ✅ **useModernEffects.js** - sidebar preset zakomentován
+
+**Benefit:**
+- Konzistentní responsive padding napříč aplikací
+- Skeleton loader odpovídá aktuálnímu designu
+- Kompaktní buttons (ne fullWidth)
+- Token saving díky modularitě
+
+**Soubory upraveny:** 6
+- `Layout.jsx` - cleanup + modular padding
+- `Header.jsx` - removed hamburger menu
+- `responsive.js` - nový modular system ✨
+- `MaterialCardSkeleton.jsx` - 8-row layout
+- `MaterialsLibrary.jsx` - button fix
+- `useModernEffects.js` - sidebar deprecated
+
+**Status**: ✅ UI cleanup & modularity dokončeno
+
+---
 
 ### Sprint 21.1: Material Feedback System - Modulární (4.11.2025)
 
@@ -2146,6 +2191,189 @@
 **Soubory k úpravě**:
 - `CoachDashboard.jsx` (add quick actions)
 - `natureTheme.js` (expand with multiple themes)
+
+---
+
+## 🔘 Sprint 18b: Button Modularity System - Responsive & Consistent
+
+**Zdroj**: Session 4.11.2025 večer - zjištěno při práci na MaterialsLibrary
+**Priorita**: MEDIUM
+**Odhad**: 6-8 hodin (refactor všech buttons napříč aplikací)
+**Problém**: Buttons nemají modulární systém → hodně duplicitního kódu, nekonzistentní responsive behavior
+
+### 18b.1 Současný Stav - Co Je Problém
+
+**Theme overrides v `natureTheme.js` (lines 195-210)**:
+```javascript
+MuiButton: {
+  styleOverrides: {
+    root: {
+      borderRadius: 8,  // ❌ Hardcoded, mělo by být BORDER_RADIUS.compact
+      padding: '10px 24px',  // ❌ Hardcoded, není responsive
+      fontSize: '0.875rem',
+      fontWeight: 500,
+    }
+  }
+}
+```
+
+**Aktuální inline řešení** (MaterialsLibrary.jsx, řádek 221-234):
+```javascript
+<Button
+  variant="contained"
+  sx={{
+    whiteSpace: 'nowrap',
+    alignSelf: 'flex-start',
+    minWidth: 'fit-content',
+    px: { xs: 2, sm: 3 },     // ❌ Inline, ne modular
+    py: { xs: 0.75, sm: 1 }   // ❌ Inline, ne modular
+  }}
+>
+```
+
+**Co už máme modular** (funguje dobře):
+- ✅ `createClientPreviewButton(isDark)` - MaterialCard.jsx
+- ✅ `createIconButton(variant, isDark, size)` - modernEffects.js
+- ✅ `createPrimaryModalButton(isDark)` - ShareMaterialModal, ShareProgramModal
+- ✅ `createCancelButton(isDark)` - modaly
+- ✅ `createSubmitButton(isDark)` - modaly
+
+### 18b.2 Řešení - Modular Button System
+
+**Vytvořit v `modernEffects.js`**:
+
+```javascript
+// Primary action button (hlavní akce - Přidat, Uložit, atd.)
+export const createPrimaryButton = (isDark = false) => ({
+  px: { xs: 2, sm: 3 },      // 16px → 24px
+  py: { xs: 0.75, sm: 1 },   // 6px → 8px
+  borderRadius: BORDER_RADIUS.compact,  // 16px
+  whiteSpace: 'nowrap',
+  fontWeight: 600,
+  textTransform: 'none',
+  background: isDark
+    ? 'linear-gradient(135deg, rgba(139, 188, 143, 0.9) 0%, rgba(85, 107, 47, 0.85) 100%)'
+    : 'linear-gradient(135deg, rgba(139, 188, 143, 0.95) 0%, rgba(85, 107, 47, 0.9) 100%)',
+  boxShadow: '0 2px 8px rgba(85, 107, 47, 0.3)',
+  transition: 'all 0.3s',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0 4px 16px rgba(85, 107, 47, 0.4)',
+  },
+});
+
+// Secondary button (vedlejší akce - Zrušit, Zavřít, atd.)
+export const createSecondaryButton = (isDark = false) => ({
+  px: { xs: 2, sm: 3 },
+  py: { xs: 0.75, sm: 1 },
+  borderRadius: BORDER_RADIUS.compact,
+  whiteSpace: 'nowrap',
+  fontWeight: 500,
+  textTransform: 'none',
+  border: '2px solid',
+  borderColor: 'divider',
+  backgroundColor: 'transparent',
+  transition: 'all 0.3s',
+  '&:hover': {
+    borderColor: 'text.secondary',
+    backgroundColor: isDark
+      ? 'rgba(255, 255, 255, 0.05)'
+      : 'rgba(0, 0, 0, 0.05)',
+  },
+});
+
+// Outlined button (alternativa k secondary)
+export const createOutlinedButton = (isDark = false) => ({
+  px: { xs: 2, sm: 3 },
+  py: { xs: 0.75, sm: 1 },
+  borderRadius: BORDER_RADIUS.compact,
+  whiteSpace: 'nowrap',
+  fontWeight: 500,
+  textTransform: 'none',
+});
+
+// Text button (minimální styl - jen text)
+export const createTextButton = () => ({
+  px: { xs: 1.5, sm: 2 },
+  py: { xs: 0.5, sm: 0.75 },
+  fontWeight: 500,
+  textTransform: 'none',
+  minWidth: 'fit-content',
+});
+
+// Compact button (menší tlačítka pro UI s omezeným prostorem)
+export const createCompactButton = (isDark = false) => ({
+  px: { xs: 1.5, sm: 2 },
+  py: { xs: 0.5, sm: 0.75 },
+  fontSize: { xs: '0.75rem', sm: '0.8rem' },
+  borderRadius: BORDER_RADIUS.small,  // 12px
+  whiteSpace: 'nowrap',
+  minWidth: 'fit-content',
+});
+```
+
+### 18b.3 Aplikace Napříč Aplikací
+
+**Fáze 1 - Kritické buttons** (2-3 hodiny):
+- [ ] MaterialsLibrary.jsx - "Přidat materiál", "Vyčistit filtry"
+- [ ] ProgramsList.jsx - "Vytvořit program"
+- [ ] ClientsList.jsx - "Přidat klientku"
+- [ ] CoachDashboard.jsx - všechna quick action tlačítka
+- [ ] AddMaterialModal.jsx - "Zrušit", "Uložit změny"
+- [ ] ProgramEditor.jsx - "Zrušit", "Uložit program"
+
+**Fáze 2 - Modaly & Dialogy** (2-3 hodiny):
+- [ ] ShareProgramModal.jsx - všechna tlačítka
+- [ ] ShareMaterialModal.jsx - všechna tlačítka
+- [ ] Delete dialogs - "Zrušit", "Smazat"
+- [ ] Všechny confirmation dialogs
+
+**Fáze 3 - Theme Overrides Fix** (1-2 hodiny):
+- [ ] `natureTheme.js` - opravit MuiButton overrides:
+  - [ ] `borderRadius: BORDER_RADIUS.compact` místo hardcoded 8
+  - [ ] Responsive padding pomocí breakpoints
+  - [ ] Zachovat základní styly (fontWeight, transition)
+
+### 18b.4 Benefits
+
+**Konzistence**:
+- ✅ Všechna tlačítka vypadají stejně
+- ✅ Stejný responsive behavior všude
+- ✅ Jednotné hover efekty, transitions
+
+**Maintenance**:
+- ✅ Změna na jednom místě = změní se všude
+- ✅ Snadné testování (změnit padding jen v jedné funkci)
+- ✅ Token saving (méně duplicit)
+
+**UX**:
+- ✅ Lepší na touch zařízeních (větší touch targets na mobile)
+- ✅ Konzistentní spacing
+- ✅ Profesionální vzhled
+
+### 18b.5 Testing Checklist
+
+Po dokončení zkontrolovat:
+- [ ] Všechna primary buttons mají stejný styl
+- [ ] Všechna secondary buttons mají stejný styl
+- [ ] Responsive padding funguje (xs → sm → md)
+- [ ] Touch targets jsou dostatečné (min 44px na mobile)
+- [ ] Hover efekty fungují konzistentně
+- [ ] Dark/light mode support
+- [ ] Žádné hardcoded values v komponentách
+
+**Soubory k vytvoření**:
+- Žádné (vše v existujících souborech)
+
+**Soubory k úpravě**:
+- `modernEffects.js` - přidat 5 button funkcí
+- `natureTheme.js` - opravit MuiButton overrides
+- 15+ komponent - aplikovat modular functions
+
+**Dependencies**:
+- Žádné nové
+
+**Status**: ⏳ Pending - naplánováno na budoucnost
 
 ---
 

@@ -2,15 +2,10 @@ import { useState } from 'react';
 import { Box, Toolbar } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from './Header';
-import Sidebar from './Sidebar';
+import { PAGE_PADDING } from '../styles/responsive';
 
 const Layout = ({ children }) => {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [floatingMenuOpen, setFloatingMenuOpen] = useState(false);
-
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -46,17 +41,14 @@ const Layout = ({ children }) => {
         )}
       </AnimatePresence>
 
-      <Header onMenuClick={handleDrawerToggle} onFloatingMenuToggle={setFloatingMenuOpen} />
-      <Sidebar open={mobileOpen} onClose={handleDrawerToggle} />
+      <Header onFloatingMenuToggle={setFloatingMenuOpen} />
 
       {/* Main content */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
-          pr: 15,  // Extra padding for FloatingMenu backdrop (120px + 16px)
-          width: { md: `calc(100% - 200px)` },
+          ...PAGE_PADDING,
           minHeight: '100vh',
           position: 'relative',
           background: (theme) =>
@@ -85,30 +77,6 @@ const Layout = ({ children }) => {
       >
         {/* Toolbar spacer */}
         <Toolbar />
-
-        {/* Subtle backdrop strip for FloatingMenu - jemně zajímavé pozadí */}
-        <Box
-          sx={{
-            position: 'absolute',
-            right: 0,
-            top: 0,
-            bottom: 0,
-            width: 90,
-            background: (theme) =>
-              theme.palette.mode === 'dark'
-                ? `linear-gradient(135deg,
-                    rgba(26, 36, 26, 0.6) 0%,
-                    rgba(36, 46, 36, 0.5) 100%)`
-                : `linear-gradient(135deg,
-                    rgba(248, 250, 248, 0.95) 0%,
-                    rgba(240, 245, 240, 0.9) 100%)`,
-            backdropFilter: 'blur(10px)',
-            boxShadow: (theme) => theme.palette.mode === 'dark'
-              ? 'inset 2px 0 8px rgba(0, 0, 0, 0.3), inset -1px 0 0 rgba(139, 188, 143, 0.05)'
-              : 'inset 2px 0 8px rgba(0, 0, 0, 0.05), inset -1px 0 0 rgba(85, 107, 47, 0.08)',
-            zIndex: 0,
-          }}
-        />
 
         {/* Page content */}
         <Box sx={{ position: 'relative', zIndex: 1 }}>

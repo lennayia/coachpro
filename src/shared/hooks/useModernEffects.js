@@ -74,12 +74,12 @@ export const useModernEffects = () => {
       WebkitBackdropFilter: 'blur(40px) saturate(180%)',
     }), [glass]),
 
-    // Sidebar glassmorphism
-    sidebar: useCallback(() => ({
-      ...glass('subtle'),
-      borderRight: '1px solid',
-      borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
-    }), [glass, isDarkMode]),
+    // Sidebar glassmorphism (DEPRECATED - used by old Sidebar.jsx in _deprecated/)
+    // sidebar: useCallback(() => ({
+    //   ...glass('subtle'),
+    //   borderRight: '1px solid',
+    //   borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
+    // }), [glass, isDarkMode]),
 
     // Button glassmorphism
     button: useCallback(() => ({

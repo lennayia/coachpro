@@ -11,6 +11,7 @@ const MaterialCardSkeleton = () => {
       elevation={1}
       sx={{
         height: '100%',
+        minHeight: 280,
         display: 'flex',
         flexDirection: 'column',
         transition: 'all 0.2s',
@@ -27,127 +28,120 @@ const MaterialCardSkeleton = () => {
       <CardContent
         sx={{
           flexGrow: 1,
-          p: { xs: 1.5, sm: 2, md: 3 },
-          '&:last-child': { pb: { xs: 1.5, sm: 2, md: 3 } }
+          p: 3,
+          pr: 2.5,
+          '&:last-child': { pb: 3 }
         }}
       >
-        <Box display="flex" gap={isVeryNarrow ? 0.75 : 1.5}>
-          {/* Levý sloupec - obsah */}
-          <Box
-            display="flex"
-            flexDirection="column"
-            gap={0.5}
-            sx={{
-              flex: '1 1 0px',
-              minWidth: 0,
-              width: 0,
-              overflow: 'hidden',
-            }}
-          >
-            {/* Řádek 1: Chip */}
-            <Skeleton
-              variant="rounded"
-              width={80}
-              height={isVeryNarrow ? 16 : 18}
-              sx={{ borderRadius: '12px' }}
-            />
+        {/* Row 1: Icons (velká ikona vlevo + action ikony vpravo) */}
+        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1.5}>
+          {/* Velká ikona vlevo */}
+          <Skeleton
+            variant="circular"
+            width={isVeryNarrow ? 28 : 40}
+            height={isVeryNarrow ? 28 : 40}
+          />
 
-            {/* Řádek 2: URL/Filename */}
-            <Skeleton
-              variant="text"
-              width="70%"
-              height={isVeryNarrow ? 14 : 16}
-              sx={{ minHeight: '1.2em' }}
-            />
-
-            {/* Řádek 3: File size */}
-            <Skeleton
-              variant="text"
-              width="40%"
-              height={isVeryNarrow ? 14 : 16}
-              sx={{ minHeight: '1.2em' }}
-            />
-
-            {/* Řádek 4: Duration/page count */}
-            <Skeleton
-              variant="text"
-              width="50%"
-              height={isVeryNarrow ? 14 : 16}
-              sx={{ minHeight: '1.2em' }}
-            />
-
-            {/* Title (2 řádky) */}
-            <Box sx={{ mt: 0.5 }}>
-              <Skeleton
-                variant="text"
-                width="90%"
-                height={isVeryNarrow ? 18 : 20}
-              />
-              <Skeleton
-                variant="text"
-                width="70%"
-                height={isVeryNarrow ? 18 : 20}
-              />
-            </Box>
-
-            {/* Description (3 řádky) */}
-            <Box>
-              <Skeleton
-                variant="text"
-                width="100%"
-                height={14}
-              />
-              <Skeleton
-                variant="text"
-                width="95%"
-                height={14}
-              />
-              <Skeleton
-                variant="text"
-                width="60%"
-                height={14}
-              />
-            </Box>
-          </Box>
-
-          {/* Pravý sloupec - ikony */}
-          <Box
-            display="flex"
-            flexDirection="column"
-            alignItems="flex-end"
-            gap={isVeryNarrow ? 0.5 : 1}
-            sx={{
-              flexShrink: 0,
-              height: '100%',
-              justifyContent: 'flex-start'
-            }}
-          >
-            {/* Velká ikona */}
-            <Skeleton
-              variant="circular"
-              width={isVeryNarrow ? 28 : 40}
-              height={isVeryNarrow ? 28 : 40}
-            />
-
-            {/* Action ikony (5×) */}
-            {[...Array(5)].map((_, i) => (
+          {/* Action ikony vpravo */}
+          <Box display="flex" alignItems="center" gap={isVeryNarrow ? 0.5 : 0.75}>
+            {[...Array(4)].map((_, i) => (
               <Skeleton
                 key={i}
                 variant="circular"
-                width={isVeryNarrow ? 20 : 18}
-                height={isVeryNarrow ? 20 : 18}
+                width={isVeryNarrow ? 20 : 22}
+                height={isVeryNarrow ? 20 : 22}
               />
             ))}
-
-            {/* Trash ikona - separovaná */}
-            <Box sx={{ mt: 'auto', pt: 2 }}>
-              <Skeleton
-                variant="circular"
-                width={isVeryNarrow ? 20 : 18}
-                height={isVeryNarrow ? 20 : 18}
-              />
-            </Box>
           </Box>
+        </Box>
+
+        {/* Row 2: Category chip */}
+        <Box mb={1}>
+          <Skeleton
+            variant="rounded"
+            width={80}
+            height={isVeryNarrow ? 14 : 16}
+            sx={{ borderRadius: '12px' }}
+          />
+        </Box>
+
+        {/* Row 3: Metadata horizontal (duration/pages + file size) */}
+        <Box display="flex" alignItems="center" gap={1.5} mb={1}>
+          <Skeleton
+            variant="text"
+            width={isVeryNarrow ? 50 : 60}
+            height={isVeryNarrow ? 14 : 16}
+          />
+          <Skeleton
+            variant="text"
+            width={isVeryNarrow ? 40 : 50}
+            height={isVeryNarrow ? 14 : 16}
+          />
+        </Box>
+
+        {/* Row 4: URL/fileName */}
+        <Box sx={{ minHeight: '1.2em', mb: 1 }}>
+          <Skeleton
+            variant="text"
+            width="70%"
+            height={isVeryNarrow ? 14 : 16}
+          />
+        </Box>
+
+        {/* Row 5: Title (2 řádky) */}
+        <Box sx={{ minHeight: '2.6em', mb: 1 }}>
+          <Skeleton
+            variant="text"
+            width="90%"
+            height={isVeryNarrow ? 18 : 20}
+          />
+          <Skeleton
+            variant="text"
+            width="70%"
+            height={isVeryNarrow ? 18 : 20}
+          />
+        </Box>
+
+        {/* Row 6: Description (3 řádky) */}
+        <Box sx={{ minHeight: '4.2em', mb: 1 }}>
+          <Skeleton
+            variant="text"
+            width="100%"
+            height={14}
+          />
+          <Skeleton
+            variant="text"
+            width="95%"
+            height={14}
+          />
+          <Skeleton
+            variant="text"
+            width="60%"
+            height={14}
+          />
+        </Box>
+
+        {/* Row 7: Taxonomy chips */}
+        <Box display="flex" flexWrap="wrap" gap={0.5} mb={1.5}>
+          {[...Array(3)].map((_, i) => (
+            <Skeleton
+              key={i}
+              variant="rounded"
+              width={isVeryNarrow ? 60 : 70}
+              height={isVeryNarrow ? 16 : 18}
+              sx={{ borderRadius: '12px' }}
+            />
+          ))}
+        </Box>
+
+        {/* Row 8: Button "Jak to vidí klientka" */}
+        <Box mt={1.5}>
+          <Skeleton
+            variant="rounded"
+            width={isVeryNarrow ? 140 : 160}
+            height={isVeryNarrow ? 28 : 32}
+            sx={{ borderRadius: BORDER_RADIUS.compact }}
+          />
         </Box>
       </CardContent>
     </Card>

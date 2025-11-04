@@ -17,7 +17,6 @@ import {
 import {
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
-  Menu as MenuIcon,
 } from '@mui/icons-material';
 import { useThemeMode } from '../../App';
 import { getCurrentUser } from '../../modules/coach/utils/storage';
@@ -29,7 +28,7 @@ import { getBetaBadgeInfo } from '../constants/betaInfo';
 import FloatingMenu from './FloatingMenu';
 import NavigationFloatingMenu from './NavigationFloatingMenu';
 
-const Header = ({ onMenuClick, onFloatingMenuToggle }) => {
+const Header = ({ onFloatingMenuToggle }) => {
   const { mode, toggleTheme } = useThemeMode();
   const currentUser = getCurrentUser();
   const headerStyles = useHeader();
@@ -71,19 +70,6 @@ const Header = ({ onMenuClick, onFloatingMenuToggle }) => {
       }}
     >
       <Toolbar>
-        {/* Menu button (mobile) */}
-        <IconButton
-          edge="start"
-          onClick={onMenuClick}
-          sx={{
-            mr: 2,
-            display: { md: 'none' },
-            color: mode === 'dark' ? 'inherit' : 'rgba(0, 0, 0, 0.87)',
-          }}
-        >
-          <MenuIcon />
-        </IconButton>
-
         {/* Logo */}
         <Box
           sx={{
@@ -132,7 +118,7 @@ const Header = ({ onMenuClick, onFloatingMenuToggle }) => {
           </Box>
 
           {/* Beta Badge */}
-          <Tooltip title="Klikni pro více info o beta testování">
+          <Tooltip title="Klikni pro víc info o beta testování">
             <Chip
               label="BETA"
               size="small"
@@ -144,12 +130,12 @@ const Header = ({ onMenuClick, onFloatingMenuToggle }) => {
                 fontWeight: 700,
                 letterSpacing: 0.5,
                 cursor: 'pointer',
-                backgroundColor: '#FF9800',
+                backgroundColor: 'secondary.main',
                 color: '#fff',
                 border: 'none',
                 transition: 'all 0.2s',
                 '&:hover': {
-                  backgroundColor: '#F57C00',
+                  backgroundColor: 'secondary.dark',
                   transform: 'scale(1.05)',
                 },
               }}

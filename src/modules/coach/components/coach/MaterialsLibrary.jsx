@@ -24,6 +24,7 @@ import AddMaterialModal from './AddMaterialModal';
 import { getCurrentUser, getMaterials } from '../../utils/storage';
 import { staggerContainer, staggerItem } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
+import { SECTION_PADDING } from '@shared/styles/responsive';
 import HelpDialog from '@shared/components/HelpDialog';
 import QuickTooltip from '@shared/components/AppTooltip';
 import {
@@ -129,7 +130,7 @@ const MaterialsLibrary = () => {
   }, [materials, searchQuery, filterCategory, filterCoachingArea, filterTopics, filterCoachingStyle, filterCoachingAuthority]);
 
   return (
-  <Box sx={{ px: 3 }}>
+  <Box sx={{ ...SECTION_PADDING }}>
     {/* Header */}
     <Box mb={4} display="flex" justifyContent="space-between" alignItems="flex-start">
       <Box>
@@ -221,7 +222,13 @@ const MaterialsLibrary = () => {
         variant="contained"
         startIcon={<AddIcon />}
         onClick={() => setAddModalOpen(true)}
-        sx={{ whiteSpace: 'nowrap' }}
+        sx={{
+          whiteSpace: 'nowrap',
+          alignSelf: 'flex-start',
+          minWidth: 'fit-content',
+          px: { xs: 2, sm: 3 },
+          py: { xs: 0.75, sm: 1 }
+        }}
       >
         Přidat materiál
       </Button>
