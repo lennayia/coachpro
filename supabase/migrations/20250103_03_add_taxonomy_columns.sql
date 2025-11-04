@@ -1,9 +1,9 @@
 -- Add coaching taxonomy columns to coachpro_materials table
 ALTER TABLE coachpro_materials
-ADD COLUMN coaching_area TEXT DEFAULT 'life',
-ADD COLUMN topics JSONB DEFAULT '[]'::jsonb,
-ADD COLUMN coaching_style TEXT,
-ADD COLUMN coaching_authority TEXT;
+ADD COLUMN IF NOT EXISTS coaching_area TEXT DEFAULT 'life',
+ADD COLUMN IF NOT EXISTS topics JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN IF NOT EXISTS coaching_style TEXT,
+ADD COLUMN IF NOT EXISTS coaching_authority TEXT;
 
 -- Add comments for documentation
 COMMENT ON COLUMN coachpro_materials.coaching_area IS 'Oblast koučování (life, business, relationship, health, mindfulness)';
