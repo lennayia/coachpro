@@ -7073,16 +7073,27 @@ ADD COLUMN client_feedback JSONB DEFAULT '[]'::jsonb;
 Když přidáváš nové SQL změny:
 
 1. **Vytvoř SQL soubor** v `/supabase/migrations/YYYYMMDD_description.sql`
-2. **Spusť v Supabase SQL Editor** (Database → SQL Editor)
-3. **Aktualizuj tuto sekci v CLAUDE.md** - přidej do "✅ SPUŠTĚNO V SUPABASE"
-4. **Commit** - včetně aktualizace CLAUDE.md
+2. **VŽDY použij `IF NOT EXISTS`** pro idempotenci (bezpečné opakované spuštění)
+   ```sql
+   ALTER TABLE table_name
+   ADD COLUMN IF NOT EXISTS column_name TYPE;
+
+   CREATE INDEX IF NOT EXISTS index_name ON table_name (column);
+   ```
+3. **Spusť v Supabase SQL Editor** (Database → SQL Editor)
+4. **Aktualizuj tuto sekci v CLAUDE.md** - přidej do "✅ SPUŠTĚNO V SUPABASE"
+5. **Commit** - včetně aktualizace CLAUDE.md
 
 **NIKDY** nepředpokládej, že migrace je potřeba spustit - vždy zkontroluj tento seznam!
 
+**⚠️ OPRAVA (4. listopadu 2025, 14:30):**
+- Opraveny 3 migrace aby byly idempotentní (commit 55affe6)
+- Všech 6 SQL migrací má nyní `IF NOT EXISTS` ochranu ✅
+
 ---
 
-**Poslední update**: 4. listopadu 2025, 11:45
-**Status**: ✅ Sprint 21.1 dokončen - Modulární feedback systém pro všechny materiály
+**Poslední update**: 4. listopadu 2025, 14:30
+**Status**: ✅ Sprint 21.1 dokončen - Modulární feedback systém + SQL migrace idempotence fix
 **User Confirmation**: "ano, je to super" ✅
 **Production URL**: https://coachpro-weld.vercel.app/
 **Dev Server**: ✅ Běží bez chyb na http://localhost:3000/
