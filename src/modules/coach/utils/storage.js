@@ -390,6 +390,32 @@ export const addMaterialFeedback = async (materialId, feedback) => {
   }
 };
 
+export const addProgramFeedback = async (programId, feedback) => {
+  try {
+    // Get current program
+    const program = await getProgramById(programId);
+    if (!program) {
+      throw new Error('Program not found');
+    }
+
+    // Add feedback to array
+    const updatedFeedback = [...(program.programFeedback || []), feedback];
+
+    // Update program with new feedback
+    const updatedProgram = {
+      ...program,
+      programFeedback: updatedFeedback,
+    };
+
+    // Save back to storage
+    await saveProgram(updatedProgram);
+    return updatedProgram;
+  } catch (error) {
+    console.error('Error adding program feedback:', error);
+    throw error;
+  }
+};
+
 // ===== PROGRAMS =====
 export const getPrograms = async (coachId = null) => {
   try {

@@ -297,6 +297,18 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
           fileSize = processedFile.size;
           fileName = processedFile.name;
 
+          // ⚠️ File size validation (2 MB limit for beta)
+          const MAX_FILE_SIZE_MB = 2;
+          const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+          if (fileSize > MAX_FILE_SIZE_BYTES) {
+            const fileSizeMB = (fileSize / 1024 / 1024).toFixed(2);
+            const errorMsg = `Soubor je příliš velký (${fileSizeMB} MB). Maximální velikost je ${MAX_FILE_SIZE_MB} MB. Pro větší soubory použij Google Drive odkaz (Typ materiálu: Odkaz).`;
+            setError(errorMsg);
+            showError('Soubor je příliš velký', errorMsg);
+            throw new Error(errorMsg);
+          }
+
           // Get audio duration
           if (selectedType === 'audio') {
             duration = await getAudioDuration(processedFile);
@@ -644,6 +656,27 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
                       {getFileTypeHint(selectedType)}
                     </Typography>
                   </Box>
+
+                  {/* Helper Alert - File Size Limit */}
+                  <Alert
+                    severity="info"
+                    sx={{
+                      mb: 2,
+                      borderRadius: BORDER_RADIUS.compact,
+                      backgroundColor: (theme) =>
+                        theme.palette.mode === 'dark'
+                          ? 'rgba(66, 165, 245, 0.1)'
+                          : 'rgba(66, 165, 245, 0.05)',
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>
+                      📦 Maximální velikost souboru: 2 MB
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Pro větší soubory použij <strong>Google Drive odkaz</strong> (Typ materiálu: Odkaz).
+                      {' '}iCloud odkazy momentálně nepodporujeme.
+                    </Typography>
+                  </Alert>
 
                   {file && (
                     <Box

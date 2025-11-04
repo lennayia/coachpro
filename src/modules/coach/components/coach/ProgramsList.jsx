@@ -391,6 +391,49 @@ const ProgramsList = () => {
                           )}
                         </Box>
 
+                        {/* Program Feedback */}
+                        {program.programFeedback && program.programFeedback.length > 0 && (
+                          <Box
+                            mt={2}
+                            p={1.5}
+                            sx={{
+                              backgroundColor: (theme) =>
+                                theme.palette.mode === 'dark'
+                                  ? 'rgba(188, 143, 143, 0.1)'
+                                  : 'rgba(188, 143, 143, 0.05)',
+                              borderRadius: BORDER_RADIUS.small,
+                              border: '1px solid',
+                              borderColor: (theme) =>
+                                theme.palette.mode === 'dark'
+                                  ? 'rgba(188, 143, 143, 0.2)'
+                                  : 'rgba(188, 143, 143, 0.15)',
+                            }}
+                          >
+                            <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
+                              💬 Reflexe od klientek
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                              {pluralize(program.programFeedback.length, 'reflexe', 'reflexe', 'reflexí')}
+                            </Typography>
+                            {/* Preview nejnovější reflexe */}
+                            {program.programFeedback.length > 0 && (
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{
+                                  fontStyle: 'italic',
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical',
+                                  overflow: 'hidden',
+                                }}
+                              >
+                                "{program.programFeedback[program.programFeedback.length - 1].reflection}"
+                              </Typography>
+                            )}
+                          </Box>
+                        )}
+
                         {/* Share code */}
                         <Box
                           mt={2}

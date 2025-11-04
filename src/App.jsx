@@ -18,6 +18,9 @@ import { createContext, useContext } from 'react';
 import { NotificationProvider } from '@shared/context/NotificationContext';
 import { NotificationContainer } from '@shared/components/NotificationContainer';
 
+// Error boundary
+import ErrorBoundary from '@shared/components/ErrorBoundary';
+
 export const ThemeModeContext = createContext({
   mode: 'light',
   toggleTheme: () => {},
@@ -38,16 +41,18 @@ function App() {
         <NotificationProvider>
           <CssBaseline />
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Navigate to="/tester/signup" replace />} />
-              <Route path="/lenna" element={<AdminLogin />} />
-              <Route path="/tester/signup" element={<TesterSignup />} />
-              <Route path="/tester/login" element={<TesterLogin />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/coach/*" element={<CoachDashboard />} />
-              <Route path="/client/*" element={<ClientView />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/" element={<Navigate to="/tester/signup" replace />} />
+                <Route path="/lenna" element={<AdminLogin />} />
+                <Route path="/tester/signup" element={<TesterSignup />} />
+                <Route path="/tester/login" element={<TesterLogin />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/coach/*" element={<ErrorBoundary><CoachDashboard /></ErrorBoundary>} />
+                <Route path="/client/*" element={<ErrorBoundary><ClientView /></ErrorBoundary>} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </ErrorBoundary>
           </BrowserRouter>
           <NotificationContainer />
         </NotificationProvider>

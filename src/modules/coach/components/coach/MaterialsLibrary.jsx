@@ -12,8 +12,11 @@ import {
   InputAdornment,
   Autocomplete,
   Chip,
+  IconButton,
+  useTheme,
 } from '@mui/material';
 import { Search as SearchIcon, Add as AddIcon, FilterListOff as ClearIcon } from '@mui/icons-material';
+import { HelpCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import MaterialCard from './MaterialCard';
 import MaterialCardSkeleton from './MaterialCardSkeleton';
@@ -21,6 +24,8 @@ import AddMaterialModal from './AddMaterialModal';
 import { getCurrentUser, getMaterials } from '../../utils/storage';
 import { staggerContainer, staggerItem } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
+import HelpDialog from '@shared/components/HelpDialog';
+import QuickTooltip from '@shared/components/AppTooltip';
 import {
   COACHING_AREAS,
   TOPICS,
@@ -30,11 +35,14 @@ import {
 
 const MaterialsLibrary = () => {
   const currentUser = getCurrentUser();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const [materials, setMaterials] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [helpDialogOpen, setHelpDialogOpen] = useState(false);
 
   // Taxonomy filters (Session 12 - KROK 4)
   const [filterCoachingArea, setFilterCoachingArea] = useState('all');
@@ -123,13 +131,41 @@ const MaterialsLibrary = () => {
   return (
   <Box sx={{ px: 3 }}>
     {/* Header */}
-    <Box mb={4}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
-        Knihovna materiálů
-      </Typography>
-      <Typography variant="body1" color="text.secondary">
-        Spravujte své video i audio nahrávky, textové i PDF dokumenty a další materiály
-      </Typography>
+    <Box mb={4} display="flex" justifyContent="space-between" alignItems="flex-start">
+      <Box>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
+          Knihovna materiálů
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Spravujte své video i audio nahrávky, textové i PDF dokumenty a další materiály
+        </Typography>
+      </Box>
+
+      {/* Help Button */}
+      <QuickTooltip title="Nápověda ke Knihovně materiálů">
+        <IconButton
+          onClick={() => setHelpDialogOpen(true)}
+          sx={{
+            width: 48,
+            height: 48,
+            backgroundColor: isDark
+              ? 'rgba(120, 188, 143, 0.15)'
+              : 'rgba(65, 117, 47, 0.15)',
+            color: isDark
+              ? 'rgba(120, 188, 143, 0.9)'
+              : 'rgba(65, 117, 47, 0.9)',
+            transition: 'all 0.3s',
+            '&:hover': {
+              backgroundColor: isDark
+                ? 'rgba(120, 188, 143, 0.25)'
+                : 'rgba(65, 117, 47, 0.25)',
+              transform: 'scale(1.05)',
+            },
+          }}
+        >
+          <HelpCircle size={24} />
+        </IconButton>
+      </QuickTooltip>
     </Box>
 
     {/* Top bar - Search, Topics, Add */}
@@ -351,6 +387,13 @@ const MaterialsLibrary = () => {
       open={addModalOpen}
       onClose={() => setAddModalOpen(false)}
       onSuccess={refreshMaterials}
+    />
+
+    {/* Help Dialog */}
+    <HelpDialog
+      open={helpDialogOpen}
+      onClose={() => setHelpDialogOpen(false)}
+      initialPage="materials"
     />
   </Box>
 );

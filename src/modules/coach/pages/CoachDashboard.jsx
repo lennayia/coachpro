@@ -6,6 +6,7 @@ import DashboardOverview from '../components/coach/DashboardOverview';
 import MaterialsLibrary from '../components/coach/MaterialsLibrary';
 import ProgramsList from '../components/coach/ProgramsList';
 import ClientsList from '../components/coach/ClientsList';
+import ProfilePage from './ProfilePage';
 
 const CoachDashboard = () => {
   return (
@@ -16,6 +17,7 @@ const CoachDashboard = () => {
         <Route path="/materials" element={<MaterialsLibrary />} />
         <Route path="/programs" element={<ProgramsList />} />
         <Route path="/clients" element={<ClientsList />} />
+        <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </Layout>
   );

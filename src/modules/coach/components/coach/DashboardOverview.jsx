@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Grid, Card, CardContent, Button, Stack, Chip } from '@mui/material';
+import { Box, Typography, Grid, Card, CardContent, Button, Stack, Chip, IconButton, useTheme } from '@mui/material';
 import { motion } from 'framer-motion';
 import {
   People as PeopleIcon,
@@ -8,18 +8,44 @@ import {
   Add as AddIcon,
   TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
+import { HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, getMaterials, getPrograms, getClientsByCoachId } from '../../utils/storage';
 import { formatDate, formatRelativeTime } from '@shared/utils/helpers';
 import { staggerContainer, staggerItem } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
+import OnboardingModal from '@shared/components/OnboardingModal';
+import WelcomeBanner from '@shared/components/WelcomeBanner';
+import HelpDialog from '@shared/components/HelpDialog';
+import QuickTooltip from '@shared/components/AppTooltip';
+import { getBetaConfig } from '@shared/constants/betaInfo';
 
 const DashboardOverview = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const currentUser = getCurrentUser();
   const [materials, setMaterials] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [clients, setClients] = useState([]);
+
+  // Beta onboarding state
+  const config = getBetaConfig();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [helpDialogOpen, setHelpDialogOpen] = useState(false);
+
+  // Check if onboarding was completed
+  useEffect(() => {
+    const onboardingCompleted = localStorage.getItem(config.onboardingLocalStorageKey);
+    if (!onboardingCompleted) {
+      setShowOnboarding(true);
+    }
+  }, [config.onboardingLocalStorageKey]);
+
+  const handleOnboardingClose = () => {
+    setShowOnboarding(false);
+    localStorage.setItem(config.onboardingLocalStorageKey, 'true');
+  };
 
   // Load data from Supabase
   useEffect(() => {
@@ -97,25 +123,59 @@ const DashboardOverview = () => {
 
   return (
     <Box>
+      {/* Beta Onboarding Modal - při prvním přihlášení */}
+      <OnboardingModal open={showOnboarding} onClose={handleOnboardingClose} />
+
+      {/* Welcome Banner - zobrazí se 3× */}
+      <WelcomeBanner />
+
       {/* Uvítání */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <Box mb={4}>
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
-            Ahoj {currentUser?.name || 'koučko'}, hezký den!
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            {formatDate(new Date().toISOString(), {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })}
-            {activeClients > 0 && ` • ${activeClients} aktivních klientek`}
-          </Typography>
+        <Box mb={4} display="flex" justifyContent="space-between" alignItems="flex-start">
+          <Box>
+            <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
+              Ahoj {currentUser?.name || 'koučko'}, hezký den!
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              {formatDate(new Date().toISOString(), {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+              {activeClients > 0 && ` • ${activeClients} aktivních klientek`}
+            </Typography>
+          </Box>
+
+          {/* Help Button */}
+          <QuickTooltip title="Nápověda k Dashboardu">
+            <IconButton
+              onClick={() => setHelpDialogOpen(true)}
+              sx={{
+                width: 48,
+                height: 48,
+                backgroundColor: isDark
+                  ? 'rgba(120, 188, 143, 0.15)'
+                  : 'rgba(65, 117, 47, 0.15)',
+                color: isDark
+                  ? 'rgba(120, 188, 143, 0.9)'
+                  : 'rgba(65, 117, 47, 0.9)',
+                transition: 'all 0.3s',
+                '&:hover': {
+                  backgroundColor: isDark
+                    ? 'rgba(120, 188, 143, 0.25)'
+                    : 'rgba(65, 117, 47, 0.25)',
+                  transform: 'scale(1.05)',
+                },
+              }}
+            >
+              <HelpCircle size={24} />
+            </IconButton>
+          </QuickTooltip>
         </Box>
       </motion.div>
 
@@ -253,6 +313,13 @@ const DashboardOverview = () => {
           </Card>
         </Grid>
       </Grid>
+
+      {/* Help Dialog */}
+      <HelpDialog
+        open={helpDialogOpen}
+        onClose={() => setHelpDialogOpen(false)}
+        initialPage="dashboard"
+      />
     </Box>
   );
 };

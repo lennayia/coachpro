@@ -50,6 +50,7 @@ import PDFViewer from '../shared/PDFViewer';
 import DocumentViewer from '../shared/DocumentViewer';
 import CelebrationModal from './CelebrationModal';
 import MaterialFeedbackModal from './MaterialFeedbackModal';
+import ProgramEndFeedbackModal from './ProgramEndFeedbackModal';
 import {
   getCurrentClient,
   setCurrentClient,
@@ -57,6 +58,7 @@ import {
   getProgramById,
   getMaterialById,
   addMaterialFeedback,
+  addProgramFeedback,
 } from '../../utils/storage';
 import { getIconByType } from '@shared/utils/helpers';
 import { fadeIn, fadeInUp } from '@shared/styles/animations';
@@ -82,6 +84,7 @@ const DailyView = () => {
   const [programNotes, setProgramNotes] = useState('');
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [feedbackMaterial, setFeedbackMaterial] = useState(null);
+  const [programEndFeedbackOpen, setProgramEndFeedbackOpen] = useState(false);
 
   // Load data
   useEffect(() => {
@@ -172,6 +175,8 @@ const DailyView = () => {
     if (client.currentDay === program.duration) {
       updatedClient.completedAt = new Date().toISOString();
       setCelebrationOpen(true);
+      // Trigger program end feedback modal after celebration
+      setProgramEndFeedbackOpen(true);
     }
 
     await saveClient(updatedClient);
@@ -216,6 +221,21 @@ const DailyView = () => {
       setMaterials(loadedMaterials.filter(Boolean));
     } catch (error) {
       console.error('Failed to save feedback:', error);
+      throw error; // Let modal handle error display
+    }
+  };
+
+  const handleSaveProgramFeedback = async (feedback) => {
+    if (!program) return;
+
+    try {
+      await addProgramFeedback(program.id, feedback);
+
+      // Reload program to show updated feedback
+      const updatedProgram = await getProgramById(program.id);
+      setProgram(updatedProgram);
+    } catch (error) {
+      console.error('Failed to save program feedback:', error);
       throw error; // Let modal handle error display
     }
   };
@@ -1316,6 +1336,15 @@ const DailyView = () => {
         onClose={() => setCelebrationOpen(false)}
         program={program}
         client={client}
+      />
+
+      {/* Program End Feedback Modal */}
+      <ProgramEndFeedbackModal
+        open={programEndFeedbackOpen}
+        onClose={() => setProgramEndFeedbackOpen(false)}
+        program={program}
+        client={client}
+        onSave={handleSaveProgramFeedback}
       />
     </Box>
   );
