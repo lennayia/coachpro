@@ -1,9 +1,9 @@
 # 🎯 COACHPRO - MASTER TODO V2.0
 
-**Datum aktualizace:** 3. listopadu 2025, 20:00
-**Aktuální stav:** ✅ Sprint 10 dokončen - Critical Bugs Fixed + Performance Optimized
+**Datum aktualizace:** 4. listopadu 2025, 11:15
+**Aktuální stav:** ✅ Sprint 21.1 dokončen - Material Feedback System (modulární pro všechny typy)
 **Production URL:** https://coachpro-weld.vercel.app/
-**Další priorita:** Error Boundaries + LocalStorage Warning
+**Další priorita:** Program End Feedback (Phase 2) + Error Boundaries
 **Hosting:** Vercel (frontend) + Supabase (storage + database)
 **AI asistenti:** Claude Sonnet 4.5
 
@@ -770,6 +770,101 @@
 - Supabase Database (backup dat)
 - LocalStorage (cache)
 - Auto-sync pattern (localStorage ↔ Supabase)
+
+---
+
+### ✅ **Sprint 21.1: MATERIAL FEEDBACK SYSTEM - TEXT REFLECTIONS (1 den)** - HOTOVO!
+
+**Datum:** 4. listopadu 2025
+**Status:** ✅ Kompletně implementováno a funkční
+**User Confirmation:** "ano, je to super" ✅
+
+#### **Kontext**
+User questioned modularity: **"udělal jsi to modulárně? Budeme tu reflexi a postřehy dávat ke všem materiálům a na konec programů"**
+
+**Requirements:**
+- ✅ Feedback musí fungovat pro VŠECHNY typy materiálů (ne jen audio)
+- ⏳ Feedback na konec programů (pending - Phase 2)
+- ✅ Modulární systém - znovupoužitelný
+- ✅ Client attribution - kouč vidí, kdo napsal reflexi
+
+#### **21.1.1 Component Rename: AudioFeedbackModal → MaterialFeedbackModal**
+- ✅ Přejmenován z `AudioFeedbackModal.jsx` na `MaterialFeedbackModal.jsx`
+- ✅ Přidán `client` prop pro identifikaci (`clientId`, `clientName`)
+- ✅ Feedback object: `{clientId, clientName, moodAfter, reflection, timestamp}`
+- ✅ Validation: min text length
+- ✅ Toast notifications: success/error
+- ✅ Loading states
+
+#### **21.1.2 DailyView.jsx - Universal Feedback Integration**
+- ✅ Handler rename: `handleAudioEnded` → `handleOpenFeedback` (universal)
+- ✅ Removed type check - works for ALL material types
+- ✅ Added "💬 Napsat reflexi" button to ALL material types:
+  - Audio (CustomAudioPlayer onEnded + button)
+  - Video
+  - Image
+  - PDF
+  - Document
+  - Text
+  - Link (all embed types: YouTube, Vimeo, Spotify, SoundCloud, Instagram, Google Drive)
+- ✅ Conditional: Button visible only on current day (`!viewingDay`)
+- ✅ Modal props: added `client={client}` for attribution
+
+#### **21.1.3 ClientFeedbackModal.jsx - Display Client Name**
+- ✅ Added client name display next to mood rating
+- ✅ Format: "Nálada: 4/5 • Jana Nováková"
+- ✅ Coach can see WHO submitted each reflection
+
+#### **21.1.4 SQL Schema Update**
+- ✅ Updated comment in `20250104_add_client_feedback_to_materials.sql`
+- ✅ Schema: `{clientId: uuid, clientName: string, moodAfter: 1-5, reflection: string, timestamp: ISO string}`
+
+#### **Bug Fixed: JSX Parsing Error**
+- ❌ Error: `Expected corresponding JSX closing tag for <>. (962:18)`
+- ✅ Cause: Vite cache issue when adding fragment wrapper to link material type
+- ✅ Fix: Forced HMR refresh via minor whitespace edit
+- ✅ Result: Resolved at 11:09:36, JSX structure verified correct
+
+#### **Statistics**
+- Files Modified: 4
+- Lines Changed: ~200+
+- Material Types Enhanced: 7/7 (audio, video, image, pdf, document, text, link)
+- Bugs Fixed: 1 (JSX parsing/Vite cache)
+
+#### **Key Patterns**
+```javascript
+// Universal Modal Pattern
+<MaterialFeedbackModal
+  open={open}
+  onClose={onClose}
+  material={material}  // Any type
+  client={client}      // Attribution
+  onSave={onSave}
+/>
+
+// Conditional Button Pattern
+{!viewingDay && (
+  <Button onClick={() => handleOpenFeedback(material)}>
+    💬 Napsat reflexi
+  </Button>
+)}
+```
+
+#### **Production Readiness**
+- [x] Feedback pro všechny typy materiálů (7/7)
+- [x] Client identification in reflections
+- [x] Coach vidí, kdo napsal reflexi
+- [x] Only current day shows button
+- [x] Validation (min text length)
+- [x] Toast notifications
+- [x] Loading states
+- [x] Error handling
+
+#### **⏳ Pending - Phase 2**
+- [ ] **Program End Feedback** - User mentioned "na konec programů"
+  - Planned flow: Completion → Celebration modal → Final reflection option
+  - Store in `coachpro_programs.client_feedback` (similar structure)
+- [ ] **Sprint 15a: Feedback Request System** - Audio/video zprávy (items 9-19 pending)
 
 ---
 
@@ -7337,3 +7432,1590 @@ const adminUser = { ...sortedCoaches[0], isAdmin: true };
 **Dev Server**: ✅ Běží bez chyb na http://localhost:3000/
 **Next**: Spustit SQL migraci pro time-limited access sloupce v Supabase 🚀
 **Autor**: Lenka Roubalová + Claude Sonnet 4.5
+
+---
+
+## 🎨 CLIENT EXPERIENCE ENHANCEMENT (3.11.2025, 22:00)
+
+**Priorita**: HIGH - Zlepšit UX pro klientky
+**Kontext**: Aktuální client view je funkční, ale chybí struktura a engagement features
+**Design**: Minimalistický, moderní, BEZ barevných ikon
+
+### 🔧 Material Workflow System - Automatické struktury
+
+#### 1. Meditace/Audio Materiály
+- [ ] **Před poslechem:**
+  - Instrukce: "Najdi klidné místo, vypni mobil"
+  - "Připrav se" checklist (volitelný)
+- [ ] **Play interface:**
+  - Custom audio player s timer
+  - Gentle progress bar
+  - Pause/Resume s auto-save pozice
+- [ ] **Po dokončení:**
+  - Mood slider: 😟 → 😐 → 😊 (minimalistický)
+  - Reflexní prompt: "Co ses naučila?"
+  - Text area pro poznámky (volitelné)
+- [ ] **Design**: Glassmorphism card, gentle animations
+
+#### 2. PDF/Dokument Materiály
+- [ ] **Reading experience:**
+  - Estimated reading time: "~15 min"
+  - Progress bar based on scroll tracking
+  - Auto-save scroll position
+- [ ] **Interactive features:**
+  - Highlight tool (barevný marker - subtle colors)
+  - "Uložit pro později" bookmark button
+- [ ] **Po přečtení:**
+  - "3 věci, které zkusím:" checklist
+    - [ ] _____________
+    - [ ] _____________
+    - [ ] _____________
+  - Text area pro poznámky
+- [ ] **Design**: Clean typography, comfortable line-height
+
+#### 3. Cvičení/Worksheet Materiály
+- [ ] **Step-by-step flow:**
+  - Progress indicator: "Krok 1 z 4"
+  - Checklist s persistence:
+    - [ ] Krok 1: Přečti instrukce
+    - [ ] Krok 2: Udělej cvičení
+    - [ ] Krok 3: Zapiš výsledky
+    - [ ] Krok 4: Reflexe
+- [ ] **Input fields:**
+  - Text areas pro odpovědi
+  - Auto-save každých 5 sekund
+  - Character counter (gentle)
+- [ ] **Actions:**
+  - "Uložit a pokračovat později" button
+  - "Dokončit a označit hotové" button
+- [ ] **Design**: Form fields s glassmorphism, focus glow
+
+#### 4. Video Materiály
+- [ ] **Watch experience:**
+  - Watch progress tracking (%)
+  - Resume from last position
+  - Speed controls (0.75x, 1x, 1.25x, 1.5x)
+- [ ] **Key takeaways:**
+  - "3 hlavní myšlenky z videa:"
+  - Bullet point list (editable)
+- [ ] **Replay sections:**
+  - Bookmark favorite moments
+  - "Důležité časové body" s popisky
+- [ ] **Design**: Modern video player, minimalistické controls
+
+#### 5. Reflexe/Otázky Materiály
+- [ ] **Guided prompts:**
+  - "Co tě dnes překvapilo?"
+  - "Jaký je tvůj hlavní poznatek?"
+  - "Co příště uděláš jinak?"
+- [ ] **Input options:**
+  - Text input (default)
+  - Voice notes (optional - HTML5 MediaRecorder API)
+  - Drawing canvas (optional - pro vizuální typy)
+- [ ] **Private journal:**
+  - "Jen pro mě" toggle (default: sdíleno s koučkou)
+  - Archive všech reflexí
+- [ ] **Design**: Zen-like interface, tichý a klidný
+
+### 🏆 Motivation & Engagement Features
+
+#### 6. Client Dashboard
+- [ ] **Overview screen:**
+  - Aktuální program card (glassmorphism)
+  - Current streak display: "🔥 7 dní v řadě"
+  - Weekly progress chart (minimalistický)
+  - "Tvoje statistiky" section:
+    - Dokončené programy
+    - Celkové hodiny
+    - Nejdelší série
+- [ ] **Quick actions:**
+  - "Pokračovat tam, kde jsi skončila" button
+  - "Prohlédnout všechny programy" link
+- [ ] **Design**: Dashboard cards s gentle shadows, spacing
+
+#### 7. Certifikát po dokončení
+- [ ] **Auto-generation:**
+  - Trigger po dokončení posledního dne
+  - PDF certifikát s:
+    - Jméno klientky
+    - Název programu
+    - Datum dokončení
+    - Počet dní
+    - Podpis kouče (uploaded image)
+- [ ] **Template design:**
+  - Minimalistický, elegant
+  - Nature theme barvy
+  - QR kód pro ověření (optional)
+- [ ] **Download & Share:**
+  - "Stáhnout certifikát" button
+  - "Sdílet na LinkedIn" integration (optional)
+- [ ] **Kouč settings:**
+  - Upload podpis/logo
+  - Customize certifikát template
+
+#### 8. Streak Bonusy & Rewards
+- [ ] **Milestone animations:**
+  - 7 dní: "Týdenní bojovnice! 🌟" (subtle confetti)
+  - 14 dní: "Dvoutýdenní mistryně! ✨"
+  - 30 dní: "Měsíční královna! 🏆" (extra confetti)
+- [ ] **Unlock badges:**
+  - Collection na dashboardu
+  - SVG ikony (minimalistické, ne flashy)
+  - Tooltips s descriptions
+- [ ] **Share achievements:**
+  - "Podívej, co jsem dokázala!" share button
+  - Social media preview card (custom image)
+- [ ] **Design**: Gentle celebrations, not overwhelming
+
+#### 9. Poznámky & Bookmarks
+- [ ] **Material notes:**
+  - "Poznámka k tomuto materiálu" text area
+  - Timestamp + save indicator
+  - View all notes na dashboardu
+- [ ] **Bookmark system:**
+  - Star icon na každém materiálu
+  - "Oblíbené" filtered view
+  - Quick access z dashboardu
+- [ ] **Design**: Icon states (outline → filled), smooth transitions
+
+#### 10. Zpětná vazba pro koučku
+- [ ] **Feedback form:**
+  - Rating: 1-5 stars (nebo custom scale)
+  - "Co se ti líbilo?"
+  - "Co bys změnila?"
+  - Mood after program: 😟 → 😊
+- [ ] **Trigger points:**
+  - Po dokončení programu (automatic)
+  - "Zpětná vazba" button na dashboardu (optional)
+- [ ] **Kouč view:**
+  - Dashboard s feedback overview
+  - Individual client responses
+  - Aggregate data (charts)
+- [ ] **Design**: Simple form, glassmorphism modal
+
+### 📊 Organizace & Historie
+
+#### 11. Kalendářní View
+- [ ] **Month view:**
+  - Jednotlivé dny s barvami:
+    - Dokončeno: gentle green
+    - Přeskočeno: subtle gray
+    - Budoucí: transparent
+  - Hover tooltip: "Den 3: Ranní meditace"
+- [ ] **Click na den:**
+  - Jump to daily view
+  - Review completed materials
+- [ ] **Design**: Minimalistický kalendář, nature theme
+
+#### 12. Historie Materiálů
+- [ ] **"Co už jsem viděla" page:**
+  - List všech completed materials
+  - Filter by type, date, program
+  - Search bar
+- [ ] **Material card:**
+  - Thumbnail/ikona
+  - Název + datum completion
+  - "Přehrát znovu" button
+  - View notes (if any)
+- [ ] **Design**: Grid/list toggle, spacing consistency
+
+### 🎯 Pro koučku - Zero Extra Work
+
+#### 13. Automatic Structure Assignment
+- [ ] **Material type detection:**
+  - Audio → Audio workflow
+  - PDF → Document workflow
+  - Video → Video workflow
+  - Text → Reflexe workflow
+  - Link → detekce typu (YouTube = Video, atd.)
+- [ ] **One-click enable:**
+  - Checkbox v AddMaterialModal: "Použít interaktivní strukturu"
+  - Default: ON
+- [ ] **Preview mode:**
+  - "Jak to vidí klientka" button ukazuje full workflow
+
+#### 14. Analytics Dashboard pro koučku
+- [ ] **Completion metrics:**
+  - % klientek dokončilo kroky
+  - Avg. time spent na materiál
+  - Most bookmarked materials
+- [ ] **Engagement heatmap:**
+  - Které dny mají nejvíc interakcí
+  - Které materiály jsou nejpopulárnější
+- [ ] **Client reflexe view:**
+  - Read all private journal entries (if shared)
+  - Filter by client, date, material
+- [ ] **Design**: Charts, graphs, minimalistické UI
+
+### 🛠️ Technical Implementation
+
+#### Phase 1: Material Workflow System (8-10 hours)
+- [ ] Create workflow components:
+  - `AudioWorkflow.jsx`
+  - `DocumentWorkflow.jsx`
+  - `WorksheetWorkflow.jsx`
+  - `VideoWorkflow.jsx`
+  - `ReflectionWorkflow.jsx`
+- [ ] Update DailyView.jsx to use workflows
+- [ ] Add workflow state to localStorage/Supabase
+- [ ] Test all workflows
+
+#### Phase 2: Dashboard & Engagement (6-8 hours)
+- [ ] Create ClientDashboard.jsx
+- [ ] Implement streak tracking
+- [ ] Create CertificateGenerator.jsx
+- [ ] Add milestone animations
+- [ ] Test all features
+
+#### Phase 3: Notes & Feedback (4-6 hours)
+- [ ] Add notes system to materials
+- [ ] Implement bookmark functionality
+- [ ] Create feedback form
+- [ ] Coach feedback dashboard
+
+#### Phase 4: History & Organization (3-4 hours)
+- [ ] Calendar view component
+- [ ] Material history page
+- [ ] Search & filter functionality
+
+### 🎨 Design Principles
+
+**DŮLEŽITÉ - User preferences:**
+- ✅ Minimalistický, moderní design
+- ✅ Gentle colors (primary green, subtle accents)
+- ✅ Glassmorphism effects
+- ✅ Smooth animations (not flashy)
+- ❌ NO barevné ikony (emoji, flashy graphics)
+- ❌ NO overwhelming UI
+- ✅ Proporcionální border-radius
+- ✅ Konzistentní spacing
+- ✅ Dark/light mode support
+
+**Modular system použití:**
+- ✅ BORDER_RADIUS constants
+- ✅ Glassmorphism functions (createBackdrop, createGlassDialog)
+- ✅ QuickTooltip všude
+- ✅ Toast notifications
+- ✅ Touch handlers (swipe, long-press)
+- ✅ Path aliases (@shared, @styles)
+
+### 📊 Odhad času - CELKEM
+
+**Total implementation time**: 21-28 hodin
+
+**Rozdělení na sessions:**
+- Session 1 (3h): AudioWorkflow + DocumentWorkflow
+- Session 2 (3h): WorksheetWorkflow + VideoWorkflow + ReflectionWorkflow
+- Session 3 (3h): ClientDashboard + streak tracking
+- Session 4 (2h): Certificate generator + milestones
+- Session 5 (2h): Notes + bookmarks
+- Session 6 (2h): Feedback system
+- Session 7 (2h): Calendar view
+- Session 8 (2h): Material history
+- Session 9 (2h): Coach analytics dashboard
+- Session 10 (2h): Testing, polish, bug fixes
+
+### 🚀 PRIORITA PRO DALŠÍ SESSION
+
+**Start s Phase 1:**
+1. AudioWorkflow (nejpoužívanější typ)
+2. DocumentWorkflow (druhý nejčastější)
+3. Test v DailyView
+
+**User decision needed:**
+- Kterým workflow začít? (Audio/Document/Worksheet/Video/Reflection)
+- Jaké konkrétní features jsou must-have vs nice-to-have?
+
+---
+
+**Přidáno**: 3. listopadu 2025, 22:05
+**Status**: 📝 Naplánovano - čeká na user approval
+**Autor**: Lenka Roubalová + Claude Sonnet 4.5
+
+
+---
+
+## 📝 ADDITIONAL FEATURES & IMPROVEMENTS (3.11.2025, 22:15)
+
+**Priorita**: MEDIUM-HIGH - Extended functionality
+**User request**: 19+ nových features pro koučky i klientky
+
+### 📎 1. Rozšíření typů materiálů - Tabulky & Prezentace
+
+**Podporované formáty:**
+- [ ] **Excel**: `.xlsx`, `.xls` (Microsoft Excel)
+- [ ] **Google Sheets**: URL link s auto-detection
+- [ ] **PowerPoint**: `.pptx`, `.ppt` (Microsoft PowerPoint)
+- [ ] **Google Slides**: URL link s auto-detection
+- [ ] **Keynote**: `.key` (Apple Keynote) - export do PDF fallback
+- [ ] **Numbers**: `.numbers` (Apple Numbers) - export do PDF fallback
+
+**Implementation:**
+- [ ] AddMaterialModal - přidat file type detection
+- [ ] MaterialCard - ikony pro Excel/Sheets/PowerPoint/Slides
+- [ ] PreviewModal - iframe rendering nebo download only
+- [ ] Supabase Storage - upload limits (max 10 MB per file)
+
+**Design:**
+- Icon: 📊 pro tabulky, 📽️ pro prezentace
+- Preview: Iframe nebo "Download to view"
+- Tooltip: "Excel tabulka (5 MB)" nebo "Google Slides prezentace"
+
+---
+
+### 💬 2. Tooltips na všechny stránky
+
+**Aktuální stav:**
+- ✅ MaterialCard - všechny IconButtons mají QuickTooltip
+- ❌ Ostatní stránky - chybí tooltips
+
+**TODO - Přidat QuickTooltip na:**
+- [ ] **Dashboard:**
+  - Add tlačítka (Přidat materiál, Přidat program)
+  - Statistika cards (hover na čísla)
+  - Navigation links
+- [ ] **ProgramsList:**
+  - Edit, Share, Delete ikony
+  - Share code copy button
+  - QR download button
+- [ ] **ClientsList:**
+  - Filter dropdown
+  - Client cards akce
+- [ ] **AddMaterialModal:**
+  - Material type cards (hover = description)
+  - Upload area tooltip
+  - Category dropdown
+- [ ] **ProgramEditor:**
+  - Add day button
+  - Material selector chips
+  - Duration selector
+- [ ] **DailyView (klientka):**
+  - Navigation arrows
+  - Mood check emojis
+  - Complete button
+- [ ] **Header:**
+  - Theme toggle (Přepnout na světlý/tmavý režim)
+  - Hamburger menu (Otevřít menu)
+  - Logo (Domů)
+
+**Pattern:**
+```javascript
+import QuickTooltip from '@shared/components/AppTooltip';
+
+<QuickTooltip title="Stručný popis akce">
+  <IconButton>...</IconButton>
+</QuickTooltip>
+```
+
+---
+
+### 🔗 3. Otevřít textové soubory v novém okně
+
+**Aktuální stav:**
+- Textové materiály (type: 'text') se zobrazují jen v PreviewModal
+- Velká ikona v MaterialCard neotevírá text v novém okně
+
+**TODO:**
+- [ ] MaterialCard.jsx - velká ikona:
+  - Pokud `material.type === 'text'` → otevřít v novém okně
+  - URL: `/client/material-preview/${material.id}` (nová stránka)
+- [ ] Vytvořit `MaterialPreviewPage.jsx`:
+  - Standalone stránka pro text preview
+  - Clean layout, comfortable typography
+  - Print button
+  - Copy to clipboard button
+- [ ] Route: `/material-preview/:id`
+
+**Design:**
+- Typography: comfortable line-height (1.6)
+- Max-width: 800px (readable line length)
+- Glassmorphism card
+- Actions: Print, Copy, Close
+
+---
+
+### ✏️ 4. Editor poznámek pro koučku i klientku
+
+**Koncept:**
+- Každý materiál a program může mít poznámky
+- Kouč: vidí svoje poznámky + klientky poznámky (pokud sdílené)
+- Klientka: vidí svoje poznámky, může je sdílet s koučkou
+
+**TODO - Material Notes:**
+- [ ] Material object přidat fields:
+  - `coachNotes: string` - poznámky kouče (private)
+  - `clientNotes: [{ clientId, note, sharedWithCoach: boolean, timestamp }]`
+- [ ] MaterialCard - přidat "Poznámky" tab:
+  - Toggle mezi "Moje poznámky" a "Poznámky klientek"
+  - Rich text editor (TipTap nebo Quill.js)
+  - Auto-save každých 5s
+- [ ] DailyView - přidat "Poznámka k materiálu":
+  - Text area nebo rich editor
+  - Checkbox: "Sdílet s koučkou"
+  - Save button
+
+**TODO - Program Notes:**
+- [ ] Program object přidat fields:
+  - `coachNotes: string`
+  - `clientNotes: [{ clientId, note, sharedWithCoach: boolean, timestamp }]`
+- [ ] ProgramEditor - přidat "Poznámky" section
+- [ ] Client program view - přidat notes area
+
+**Rich Text Editor:**
+- Library: **Quill.js** nebo **TipTap** (lightweight)
+- Features: Bold, Italic, Lists, Links
+- NO: Images, Videos (keep it simple)
+- Auto-save s debounce (5s)
+
+---
+
+### 🎯 5. Cíle, Vize, Plán - Goal Setting System
+
+**Koncept:**
+- Klientka si nastaví cíle při vstupu do programu
+- Kouč vidí cíle a může k nim přiřazovat materiály/programy
+- Progress tracking vůči cílům
+
+**TODO - Client Goals:**
+- [ ] Client object přidat fields:
+  - `goals: [{ id, title, description, targetDate, status, createdAt }]`
+  - `vision: string` - dlouhodobá vize
+  - `plan: string` - akční plán
+- [ ] ClientEntry.jsx - po zadání kódu:
+  - Optional step: "Nastav si cíle"
+  - Form: Cíl 1, 2, 3 (max 5)
+  - Vision textarea
+  - Plan textarea
+- [ ] Client Dashboard - zobrazit cíle:
+  - Progress bar pro každý cíl
+  - "Dokončeno" checkbox
+  - Edit/delete akce
+
+**TODO - Integrate with Materials/Programs:**
+- [ ] Material object přidat field:
+  - `relatedGoals: [goalId1, goalId2]`
+- [ ] Program object přidat field:
+  - `relatedGoals: [goalId1, goalId2]`
+- [ ] AddMaterialModal - "Souvisí s cílem:" multi-select
+- [ ] ProgramEditor - "Souvisí s cíli:" multi-select
+- [ ] DailyView - zobrazit: "Tento materiál podporuje tvůj cíl: XYZ"
+
+**Analytics:**
+- Coach dashboard: Které materiály pomáhají kterým cílům
+- Client dashboard: Progress vůči každému cíli
+
+---
+
+### ✅ 6. Checklisty generované z poznámek
+
+**Koncept:**
+- AI generuje checklisty z poznámek kouče nebo klientky
+- Motivační + progress tracking
+- Smart suggestions based on notes
+
+**TODO - AI Checklist Generator:**
+- [ ] Integration s OpenAI API nebo Claude API:
+  - Input: Coach notes + client notes
+  - Prompt: "Generate motivational checklist based on these notes"
+  - Output: 5-10 actionable items
+- [ ] "Vygeneruj checklist" button v notes editoru
+- [ ] Preview & edit checklist před save
+- [ ] Checklist persistence v material/program object
+
+**TODO - Client Checklist View:**
+- [ ] DailyView - zobrazit checklist:
+  - [ ] Item 1
+  - [ ] Item 2
+  - Progress bar: "2/5 dokončeno"
+- [ ] Completion tracking
+- [ ] Celebration animation při 100%
+
+**Fallback bez AI:**
+- Manual checklist creation
+- Template library (pre-made checklisty)
+
+---
+
+### 📋 8. Zápisky ze sezení - Session Notes
+
+**Koncept:**
+- Kouč si dělá poznámky během sezení s klientkou
+- Strukturované - vždy ke konkrétní klientce + datum
+- Historie všech sezení
+
+**TODO - Session Notes:**
+- [ ] Vytvořit tabulku `coachpro_session_notes`:
+  - id, coach_id, client_id, session_date, duration, notes, tags, created_at
+- [ ] Vytvořit `SessionNotesPage.jsx`:
+  - List všech sezení (filtrovatelný po klientce)
+  - "Nové sezení" button
+  - Search & filter
+- [ ] Session detail modal:
+  - Klientka (dropdown)
+  - Datum sezení (DatePicker)
+  - Trvání (number input)
+  - Poznámky (rich text editor)
+  - Tagy (multi-select: breakthrough, homework, resistance, atd.)
+  - Save button
+- [ ] Client detail view:
+  - Tab "Historie sezení"
+  - Timeline všech session notes
+  - Quick stats (celkem hodin, poslední sezení)
+
+**Design:**
+- Timeline layout (chronologicky)
+- Color coding podle tagů
+- Print session summary
+
+---
+
+### 👁️ 9. Live Preview jména klientky při zadání kódu
+
+**Aktuální stav:**
+- ClientEntry - zadá kód → načte program/materiál
+- Žádný live preview
+
+**TODO:**
+- [ ] ClientEntry.jsx - při onChange kódu:
+  - Debounce 500ms
+  - Query Supabase `coachpro_programs` nebo `coachpro_shared_materials`
+  - Display preview:
+    - ✅ "Program nalezen: [název]"
+    - 👤 "Od kouče: [jméno kouče]"
+    - 📅 "Začíná: [datum]"
+    - ⏱️ "Trvání: [X dní]"
+- [ ] Preview card design:
+  - Glassmorphism
+  - Gentle fade-in animation
+  - Success icon (✅)
+- [ ] Error states:
+  - ❌ "Kód nenalezen"
+  - ⚠️ "Kód vypršel" (pokud je časově omezený)
+
+**Pattern:**
+```javascript
+const [preview, setPreview] = useState(null);
+
+const handleCodeChange = debounce(async (code) => {
+  const shared = await getSharedMaterialByCode(code);
+  if (shared) {
+    setPreview({
+      title: shared.material.title,
+      coachName: shared.coach_name,
+      // ...
+    });
+  }
+}, 500);
+```
+
+---
+
+### 🔄 10. Migrace tester → platící zákazník (bezpečný převod dat)
+
+**Koncept:**
+- Testerky se stanou platícími zákaznicemi
+- Data NESMÍ zmizet (materiály, programy, klientky, progress)
+- Bezpečný upgrade flow
+
+**TODO - Upgrade Flow:**
+- [ ] Vytvořit `upgradeAccount()` funkce v storage.js:
+  - Input: tester_id
+  - Actions:
+    1. Update `coachpro_coaches` - `is_tester: false`, `subscription_status: 'active'`
+    2. Update `testers` - `is_active: false`, `upgraded_at: now()`
+    3. Link tester → coach (foreign key update)
+    4. Verify all data migrated (materials, programs, clients)
+  - Rollback on error
+- [ ] Admin panel - "Upgrade to paid" button:
+  - Confirmation modal
+  - Show data summary (X materiálů, Y programů, Z klientek)
+  - "Potvrdit upgrade" button
+- [ ] Email notification:
+  - Testerka gets "Welcome to paid plan!" email
+  - Coach ID, subscription details, invoice
+
+**Data Integrity Checks:**
+- [ ] Before upgrade:
+  - Count materials, programs, clients
+  - Check for orphaned data
+- [ ] After upgrade:
+  - Verify counts match
+  - Test login s upgraded account
+  - Test CRUD operations
+
+**Rollback Strategy:**
+- Database transaction (BEGIN → COMMIT/ROLLBACK)
+- Backup před upgradem (JSON export)
+
+---
+
+### 📝 11. Poznámky v detailu materiálu i programu
+
+**Aktuální stav:**
+- Materiály/programy nemají detail view s poznámkami
+
+**TODO - Material Detail Page:**
+- [ ] Vytvořit `MaterialDetailPage.jsx`:
+  - Route: `/coach/materials/:id`
+  - Sections:
+    - Overview (title, description, category, taxonomy)
+    - Content preview
+    - **Poznámky kouče** (rich text editor)
+    - **Poznámky klientek** (read-only, filtrovatelné)
+    - Share history (komu sdíleno, kdy)
+    - Analytics (completion rate, avg. time spent)
+- [ ] MaterialCard - "Detail" button nebo click na název
+
+**TODO - Program Detail Page:**
+- [ ] Vytvořit `ProgramDetailPage.jsx`:
+  - Route: `/coach/programs/:id`
+  - Sections:
+    - Overview
+    - Days timeline
+    - **Poznámky kouče**
+    - **Poznámky klientek**
+    - Share history
+    - Client progress (aggregate)
+- [ ] ProgramsList - "Detail" button
+
+---
+
+### 📊 12. Seznam sdílení - Share History
+
+**Koncept:**
+- Kouč vidí, komu a kdy sdílel programy/materiály
+- Historie všech share codes
+- Filter & search
+
+**TODO - Share History Page:**
+- [ ] Vytvořit `ShareHistoryPage.jsx`:
+  - Route: `/coach/share-history`
+  - Table columns:
+    - Typ (Program/Materiál)
+    - Název
+    - Kód
+    - Datum sdílení
+    - Datum expirace (pokud časově omezené)
+    - Status (Aktivní/Vypršelo)
+    - Akce (Copy kód, Delete)
+- [ ] Filters:
+  - Typ (Program/Materiál/Vše)
+  - Status (Aktivní/Vypršelo/Vše)
+  - Date range picker
+- [ ] Search bar (hledání v názvu)
+
+**TODO - Integration:**
+- [ ] Dashboard - "Historie sdílení" link v sidebaru
+- [ ] Quick stats na Dashboard:
+  - "Aktivních sdílení: X"
+  - "Expiruje brzy: Y"
+
+**Data source:**
+- `coachpro_shared_materials` tabulka
+- `coachpro_programs` + filter by share_code not null
+
+---
+
+### 🎮 13. Gamifikace - Odznaky a odměny
+
+**Koncept:**
+- Klientky sbírají odznaky za aktivity
+- Odznaky lze vyměnit za odměny (pokud kouč umožní)
+- Motivace k dokončování programů
+
+**TODO - Badge System:**
+- [ ] Vytvořit `coachpro_badges` tabulku:
+  - id, name, description, icon, requirement_type, requirement_value, points
+  - Příklady:
+    - "První krok" - dokončení prvního dne (10 bodů)
+    - "Týdenní bojovnice" - 7 dní v řadě (50 bodů)
+    - "Reflektivní duše" - 10 reflexí napsáno (30 bodů)
+    - "Čtenářka" - 5 PDF materiálů dokončeno (20 bodů)
+- [ ] Vytvořit `coachpro_client_badges` tabulku:
+  - id, client_id, badge_id, earned_at, seen
+- [ ] Badge unlock logic:
+  - After každé akce (complete day, write note, atd.)
+  - Check všechny badge requirements
+  - Unlock nové badges
+  - Toast notification + animation
+
+**TODO - Badge Collection UI:**
+- [ ] Client Dashboard - "Moje odznaky" section:
+  - Grid všech badges (locked/unlocked)
+  - Hover tooltip: requirement + progress
+  - Click → detail modal
+- [ ] Badge unlock animation:
+  - Confetti
+  - Badge card flip animation
+  - Sound effect (optional)
+
+**TODO - Rewards System:**
+- [ ] Vytvořit `coachpro_rewards` tabulku:
+  - id, coach_id, name, description, cost_in_points, quantity, active
+  - Příklady:
+    - "30 min sezení zdarma" - 100 bodů
+    - "Bonus materiál" - 50 bodů
+    - "Certifikát zdarma" - 30 bodů
+- [ ] Client Dashboard - "Odměny" page:
+  - List dostupných odměn
+  - "Vyměnit" button (pokud dost bodů)
+  - "Moje odměny" - vouchery k použití
+- [ ] Coach Dashboard - "Správa odměn":
+  - CRUD pro rewards
+  - View redeemed rewards
+  - Approve/reject redemptions
+
+**Points calculation:**
+- Aggregate z earned badges
+- Display: "Celkem bodů: 250"
+
+---
+
+### 💬 14. Vykání / Tykání - Personalizace jazyka
+
+**Koncept:**
+- Kouč i klientka si vyberou preferenci (tykat/vykat)
+- Všechny texty v aplikaci se přizpůsobí
+- V: Velké V pro vykání
+
+**TODO - User Preference:**
+- [ ] Coach object přidat field:
+  - `language_formality: 'informal' | 'formal'` (default: 'informal')
+- [ ] Client object přidat field:
+  - `language_formality: 'informal' | 'formal'`
+- [ ] Settings page:
+  - Toggle: "Jak tě má aplikace oslovovat?"
+  - Radio buttons: "Tykání (ty, tvůj)" vs "Vykání (Vy, Váš)"
+  - Save button
+
+**TODO - Text Replacement System:**
+- [ ] Vytvořit `/src/shared/utils/languageFormality.js`:
+  - `t(key, formality)` funkce
+  - Dictionary všech textů:
+    ```javascript
+    {
+      'welcome': {
+        informal: 'Vítej zpátky!',
+        formal: 'Vítejte zpátky!'
+      },
+      'your_materials': {
+        informal: 'Tvoje materiály',
+        formal: 'Vaše materiály'
+      },
+      // ... 100+ phrases
+    }
+    ```
+- [ ] Context provider:
+  - `LanguageFormalityContext`
+  - `useFormality()` hook
+  - Auto-detect z user object
+- [ ] Replace všechny hardcoded texty:
+  - Dashboard: "Tvoje statistiky" → `t('your_statistics', formality)`
+  - Buttons: "Pokračuj" → `t('continue', formality)`
+  - atd. (500+ míst!)
+
+**Scope:**
+- 🎯 Priorita 1: UI texty (buttons, headings, labels)
+- 🎯 Priorita 2: Notifications (toast messages)
+- 🎯 Priorita 3: Email templates
+- 🎯 Priorita 4: PDF certifikáty
+
+**Odhad času**: 10-15 hodin (massive text replacement)
+
+---
+
+### 🔒 16. Ochrana proti smazání - Active Usage Protection
+
+**Koncept:**
+- Materiál/program nelze smazat, pokud ho klientka používá
+- Klientku nelze smazat, pokud má aktivní programy/materiály
+
+**TODO - Material Delete Protection:**
+- [ ] `deleteMaterial()` funkce přidat check:
+  - Query `coachpro_clients` - má některá klientka tento materiál v `currentDay`?
+  - Query `coachpro_programs` - je materiál přiřazen k aktivnímu programu?
+  - Pokud ANO → throw error "Materiál je používán klientkami"
+  - Modal: "Tento materiál používají tyto klientky: [list]. Opravdu smazat?"
+    - Option 1: "Zrušit" (recommended)
+    - Option 2: "Smazat i tak" (dangerous - remove from active clients)
+- [ ] MaterialCard - disable Delete button pokud aktivní
+  - Tooltip: "Materiál je používán [X] klientkami"
+
+**TODO - Program Delete Protection:**
+- [ ] `deleteProgram()` podobný check:
+  - Query `coachpro_clients` - má některá klientka tento program?
+  - Pokud ANO → error modal s options
+
+**TODO - Client Delete Protection:**
+- [ ] `deleteClient()` check:
+  - Má klientka aktivní program (not completed)?
+  - Má klientka nezodpovězené materiály?
+  - Pokud ANO → warning modal:
+    - "Klientka má aktivní program. Opravdu smazat?"
+    - Option: "Označit jako neaktivní" (soft delete)
+
+**Soft Delete Pattern:**
+- Add `is_active: boolean` field
+- Filter out inactive v queries
+- "Archivované klientky" view
+
+---
+
+### 🚫 17. Kontrola duplicit - Validation System
+
+**Koncept:**
+- Prevence duplicitních klientek (podle jména nebo emailu)
+- Prevence duplicitních názvů materiálů/programů
+
+**TODO - Client Duplicate Check:**
+- [ ] `saveClient()` před uložením:
+  - Query existing clients by coach_id
+  - Check:
+    - Exact name match (case-insensitive)
+    - Email match (if email provided)
+  - Pokud duplicita → warning modal:
+    - "Klientka s tímto jménem už existuje. Pokračovat?"
+    - Show existing client card
+    - Options: "Použít existující" | "Vytvořit novou" | "Zrušit"
+
+**TODO - Material Duplicate Check:**
+- [ ] `saveMaterial()` před uložením:
+  - Query materials by coach_id + title
+  - Pokud exact match → warning:
+    - "Materiál s tímto názvem už existuje"
+    - Show existing material card
+    - Option: "Přejmenovat nový" | "Přepsat existující" | "Zrušit"
+
+**TODO - Program Duplicate Check:**
+- [ ] `saveProgram()` podobný check
+- [ ] Warning před přepsáním
+
+**Fuzzy Matching (optional):**
+- Library: `fuse.js`
+- Detect similar names (Levenshtein distance)
+- "Možná duplicita: Našli jsme podobný materiál"
+
+---
+
+### 🏷️ 18. Taxonomy - Přidání "Podle kouče"
+
+**Aktuální coaching styles:**
+- ICF, NLP, Ontologický, Systémový, atd.
+
+**TODO:**
+- [ ] `/src/shared/constants/coachingTaxonomy.js`:
+  - Přidat do `COACHING_STYLES` array:
+    ```javascript
+    {
+      value: 'custom',
+      label: 'Podle kouče',
+      description: 'Vlastní přístup nebo kombinace stylů'
+    }
+    ```
+- [ ] AddMaterialModal - dropdown má novou option
+- [ ] MaterialCard - zobrazí chip "Podle kouče"
+- [ ] Filtering - funguje stejně
+
+**Optional:**
+- Allow custom style name input pokud "Podle kouče" selected
+- Material object: `coachingStyle: 'custom', customStyleName: 'Moje metoda'`
+
+---
+
+### 👤 19. Oslovení v 5. pádu při registraci
+
+**Koncept:**
+- Kouč/klientka zadá, jak chce být oslovována
+- 5. pád jednotného čísla (vokativ) - např. "Lenko" místo "Lenka"
+- Použití v uvítacích zprávách, certifikátech, atd.
+
+**TODO - Registration Fields:**
+- [ ] TesterSignup.jsx přidat pole:
+  - "Jak tě máme oslovovat? (5. pád)"
+  - Placeholder: "např. Lenko, Jano, Petro"
+  - Helper text: "Používáme v uvítacích zprávách"
+- [ ] ClientEntry.jsx přidat pole:
+  - Při prvním vstupu do programu
+  - "Jak tě má aplikace oslovovat?"
+  - Save do client object: `vocative_name: string`
+
+**TODO - Coach Registration:**
+- [ ] CoachAuth.jsx (nebo TesterSignup) přidat pole
+- [ ] Coach object: `vocative_name: string`
+
+**TODO - Usage:**
+- [ ] Welcome messages:
+  - "Vítej zpátky, [vocative_name]!"
+  - "Dobrý den, [vocative_name]!"
+- [ ] Notifications:
+  - "[vocative_name], máš nový materiál!"
+- [ ] Certificates:
+  - "Gratulujeme, [vocative_name]!"
+- [ ] Emails:
+  - Subject: "Ahoj, [vocative_name]!"
+
+**Fallback:**
+- Pokud vocative_name není zadán → použij normal name
+
+**BONUS - Vykání/Tykání toggle:**
+- [ ] TesterSignup + ClientEntry - přidat toggle:
+  - "Jak tě má aplikace oslovovat?"
+  - Radio: "Tykání" | "Vykání"
+  - Save do user object: `language_formality`
+- [ ] Integrate s feature #14
+
+---
+
+## 📊 IMPLEMENTATION PRIORITY & TIME ESTIMATES
+
+### 🔥 Priority 1 - CRITICAL (Must-have):
+1. **Ochrana proti smazání** (#16) - 2-3h
+2. **Kontrola duplicit** (#17) - 3-4h
+3. **Migrace tester→paid** (#10) - 4-6h
+4. **Session notes** (#8) - 4-5h
+
+**Subtotal**: 13-18 hodin
+
+### ⚡ Priority 2 - HIGH (Should-have):
+5. **Tooltips na všechny stránky** (#2) - 3-4h
+6. **Textové soubory v novém okně** (#3) - 2h
+7. **Live preview jména při zadání kódu** (#9) - 2-3h
+8. **Share History** (#12) - 3-4h
+9. **Poznámky v detailu** (#11) - 4-5h
+
+**Subtotal**: 14-18 hodin
+
+### 🎨 Priority 3 - MEDIUM (Nice-to-have):
+10. **Editor poznámek** (#4) - 6-8h (s rich text editorem)
+11. **Cíle, vize, plán** (#5) - 6-8h
+12. **Tabulky & prezentace** (#1) - 3-4h
+13. **Taxonomy "Podle kouče"** (#18) - 1h
+14. **Oslovení v 5. pádu** (#19) - 2-3h
+
+**Subtotal**: 18-24 hodin
+
+### 🚀 Priority 4 - LOW (Future):
+15. **Gamifikace - odznaky** (#13) - 10-15h (komplexní systém)
+16. **Vykání/Tykání** (#14) - 10-15h (500+ text replacements!)
+17. **AI Checklisty** (#6) - 8-10h (s OpenAI/Claude API)
+
+**Subtotal**: 28-40 hodin
+
+---
+
+## 🎯 CELKOVÝ ODHAD ČASU
+
+**Total všechny features**: 73-100 hodin
+
+**Rozdělení na sprinty** (2-3h sessions):
+- Sprint 1-6: Priority 1 (CRITICAL)
+- Sprint 7-12: Priority 2 (HIGH)
+- Sprint 13-20: Priority 3 (MEDIUM)
+- Sprint 21-35: Priority 4 (LOW)
+
+---
+
+## 🤔 USER DECISION NEEDED
+
+**Které features implementovat jako první?**
+1. Start s Priority 1 (ochrana, duplicity, migrace)?
+2. Nebo jiný pořadí?
+3. Některé features přesunout do Phase 2 (po launch)?
+
+**Návrh pro další session:**
+- Feature #16 (Ochrana proti smazání) - 2-3h
+- Feature #17 (Kontrola duplicit) - 3-4h
+- **NEBO**
+- Pokračovat v Material Workflow System (#1-5 z předchozí sekce)
+
+---
+
+**Přidáno**: 3. listopadu 2025, 22:30
+**Status**: 📝 Naplánovano - čeká na user approval
+**Autor**: Lenka Roubalová + Claude Sonnet 4.5
+
+
+---
+
+## 📚 PRŮVODCE DRUHY KOUČINKU - Informační stránka (3.11.2025, 22:45)
+
+**Priorita**: MEDIUM - Vzdělávací obsah pro kouče i klientky
+**Kontext**: Vytvořit dedikovanou stránku s kompletním přehledem všech typů koučinku, velikostí trhu a trendů
+**Design**: Minimalistický, glassmorphism, expandovatelné sekce, responzivní
+
+### 🎯 Cíl
+
+Poskytnout uživatelům (koučům i klientkám) komplexní vzdělávací zdroj o různých typech koučinku, který:
+- Pomůže koučům identifikovat jejich specializaci
+- Ukáže klientkám, jaký typ koučinku jim může pomoci
+- Zobrazí velikost trhu a trendy (pro kouče rozhodující se o kariéře)
+- Bude reference point pro výběr coaching oblasti v taxonomii
+
+---
+
+## 🏗️ TECHNICKÁ IMPLEMENTACE
+
+### Komponenty
+
+#### 1. CoachingTypesPage.jsx (hlavní stránka)
+**Route**: `/coaching-guide` nebo `/coach/coaching-types`
+
+**Struktura**:
+- [ ] Vytvořit komponentu `CoachingTypesPage.jsx` v `/src/modules/coach/pages/`
+- [ ] Import coachingTypesData
+- [ ] Layout s MUI Grid
+- [ ] Sticky sidebar s kategoriovým menu (desktop)
+- [ ] Scroll-to-section navigace
+
+**Sections**:
+1. Hero section - nadpis + intro text
+2. Kategorie koučinku (podle oblasti života)
+3. Nové specializace (trendy 2024-2025)
+4. Rozdělení podle hloubky působení
+5. Rozdělení podle formátu
+6. Trendy v moderním koučinku 2025
+
+---
+
+#### 2. CoachingTypeCard.jsx (znovupoužitelná karta)
+
+**Props**:
+```javascript
+{
+  title: string,
+  description: string,
+  includes: string[],  // bullet points "Co zahrnuje"
+  marketSize?: string, // "15.4 miliard dolarů"
+  forWhom: string,     // "Pro koho je vhodný"
+  trend?: string,      // "Rychle rostoucí segment"
+  icon?: ReactElement  // Lucide icon
+}
+```
+
+**Design**:
+- [ ] MUI Accordion pro expandování
+- [ ] Glassmorphism efekt
+- [ ] Icon v headeru (Lucide React)
+- [ ] Barevné rozlišení podle kategorie:
+  - Osobní: zelená (primary)
+  - Profesní: modrá (secondary)
+  - Zdravotní: růžová
+  - Finanční: zlatá
+  - Nové trendy: fialová
+- [ ] Hover efekt (gentle glow)
+- [ ] Responsive: fullWidth na mobile, max 800px na desktop
+
+**Features**:
+- Expandovatelný obsah (default: collapsed)
+- "Co zahrnuje" - bullet points s checkmark ikonami
+- Market size badge (pokud existuje)
+- "Pro koho" section s user ikonu
+- Trend badge (pokud existuje)
+
+---
+
+#### 3. coachingTypesData.js (data source)
+
+**Path**: `/src/shared/constants/coachingTypesData.js`
+
+**Struktura**:
+```javascript
+export const COACHING_CATEGORIES = {
+  personal: {
+    id: 'personal',
+    name: 'Osobní / Životní koučink',
+    color: '#8FBC8F', // primary green
+    icon: 'User',
+    types: [
+      {
+        id: 'life-coaching',
+        title: 'Osobní / Životní koučink (Life Coaching)',
+        description: 'Zaměřuje se na osobní rozvoj...',
+        includes: [
+          'Osobní růst a sebedůvěra',
+          'Hledání smyslu života',
+          'Work-Life Balance',
+          // ...
+        ],
+        forWhom: 'Pro každého, kdo hledá větší spokojenost...',
+      },
+      // ... další typy
+    ]
+  },
+  
+  business: {
+    id: 'business',
+    name: 'Profesní koučink',
+    color: '#82aaff', // modrá
+    icon: 'Briefcase',
+    types: [
+      {
+        id: 'career-coaching',
+        title: 'Kariérní koučink (Career Coaching)',
+        description: 'Pomáhá s kariérními přechody...',
+        marketSize: '15,4 miliard dolarů',
+        includes: [...],
+        forWhom: '...',
+      },
+      {
+        id: 'executive-coaching',
+        title: 'Výkonný/Manažerský koučink',
+        marketSize: '9,3 miliard dolarů v roce 2024, očekává se růst na 27 miliard do roku 2032',
+        trend: 'Jeden z nejlukrativnějších oborů koučinku',
+        includes: [...],
+        forWhom: '...',
+      },
+      // ... další
+    ]
+  },
+  
+  // ... další kategorie
+};
+
+export const COACHING_TRENDS_2025 = [
+  {
+    id: 'hybrid-models',
+    title: 'Hybridní modely',
+    description: 'Kombinace osobních setkání a online sessions...',
+  },
+  // ...
+];
+
+export const COACHING_DEPTH_TYPES = [
+  {
+    id: 'transactional',
+    title: 'Transakční koučink',
+    description: '...',
+    characteristics: [...],
+  },
+  // ...
+];
+
+export const COACHING_FORMAT_TYPES = [
+  {
+    id: 'individual',
+    title: 'Individuální koučink',
+    description: '...',
+  },
+  // ...
+];
+```
+
+**Total data size**: ~500-700 řádků (všechny typy + popisy)
+
+---
+
+### Navigace
+
+#### Option 1: Přidat do sidebaru
+- [ ] Sidebar.jsx - přidat novou položku:
+  - Icon: `BookOpen` (Lucide)
+  - Label: "Průvodce druhy koučinku"
+  - Route: `/coaching-guide`
+  - Position: Pod "Knihovna materiálů"
+
+#### Option 2: Přidat do dropdown "Oblast koučinku"
+- [ ] MaterialsLibrary.jsx - filter dropdown přidat:
+  - Divider
+  - MenuItem: "📚 Průvodce druhy koučinku"
+  - onClick: navigate('/coaching-guide')
+
+**Doporučení**: Option 1 (sidebar) - lepší viditelnost
+
+---
+
+## 📋 OBSAH STRÁNKY - KOMPLETNÍ SEZNAM
+
+### 1. Hlavní kategorie koučinku (podle oblasti života)
+
+#### 1.1 Osobní / Životní koučink (Life Coaching)
+- [ ] **Data**:
+  - Popis: Osobní rozvoj, životní spokojenost, dosahování cílů
+  - Zahrnuje: 6 bodů (osobní růst, work-life balance, vztahový/párový, rodinný)
+  - Pro koho: Pro každého, kdo hledá větší spokojenost
+  - Icon: User
+
+---
+
+#### 1.2 Profesní koučink (Business / Corporate Coaching)
+
+##### 1.2.1 Kariérní koučink
+- [ ] **Data**:
+  - Popis: Kariérní přechody, změna zaměstnání, pohovory
+  - Market size: 15,4 miliard dolarů
+  - Zahrnuje: 6 bodů (rozhodování, změna zaměstnání, pohovory, CV, branding)
+  - Pro koho: Pro lidi v kariérním přechodu, absolventy
+  - Icon: TrendingUp
+
+##### 1.2.2 Výkonný/Manažerský koučink (Executive Coaching)
+- [ ] **Data**:
+  - Popis: Pro top management, leadership dovednosti
+  - Market size: 9,3 miliard → 27 miliard do 2032
+  - Trend: Jeden z nejlukrativnějších oborů
+  - Zahrnuje: 6 bodů (leadership, strategie, řízení týmů, EQ, změnové řízení)
+  - Pro koho: Top manažery, ředitele, lídry
+  - Icon: Award
+
+##### 1.2.3 Výkonnostní koučink (Performance Coaching)
+- [ ] **Data**:
+  - Popis: Dosahování cílů, efektivita, motivace
+  - Zahrnuje: 5 bodů (efektivita, cíle, mentální trénink, návyky)
+  - Pro koho: Profesionály, sportovce, umělce
+  - Icon: Target
+
+##### 1.2.4 Podnikatelský koučink (Business Coaching)
+- [ ] **Data**:
+  - Popis: Pro podnikatele a vlastníky firem
+  - Zahrnuje: 6 bodů (strategie, produktivita, leadership, inovace, startup)
+  - Pro koho: Majitele MSP, startupové zakladatele
+  - Icon: Briefcase
+
+##### 1.2.5 Týmový koučink (Team Coaching)
+- [ ] **Data**:
+  - Popis: Práce s celými týmy v organizacích
+  - Zahrnuje: 6 bodů (dynamika, komunikace, konflikty, důvěra, cíle)
+  - Pro koho: Firemní týmy, projektové skupiny
+  - Icon: Users
+
+---
+
+#### 1.3 Zdravotní a wellness koučink (Health & Wellness Coaching)
+- [ ] **Data**:
+  - Popis: Holistic přístup k fyzickému, mentálnímu a duchovnímu zdraví
+  - Market size: 26,61 miliard dolarů do roku 2029
+  - Trend: Rychle rostoucí segment
+  - Zahrnuje: 6 bodů (výživa, fitness, stres, mentální zdraví, spánek)
+  - Specializace: 4 body (gut health, sleep, nurse, digital wellness)
+  - Pro koho: Pro každého hledajícího udržitelný přístup ke zdraví
+  - Icon: Heart
+
+---
+
+#### 1.4 Koučink mentálního zdraví a resilience
+- [ ] **Data**:
+  - Popis: Psychická kondice, resilience, emocionální well-being
+  - Trend: S rostoucím povědomím o mentálním zdraví prudce roste
+  - Zahrnuje: 7 bodů (stres, resilience, well-being, mindfulness, burnout)
+  - Pro koho: Lidi pod tlakem, kdo chtějí posílit duševní pohodu
+  - Icon: Brain
+
+---
+
+#### 1.5 Finanční koučink (Financial Coaching)
+- [ ] **Data**:
+  - Popis: Osobní finance, rozpočtování, investování
+  - Market size: 1,5 miliardy dolarů s 12% ročním růstem
+  - Zahrnuje: 6 bodů (rozpočet, finance, šetření, investice, gramotnost)
+  - Pro koho: Pro každého, kdo chce lépe zvládat peníze
+  - Icon: DollarSign
+
+---
+
+#### 1.6 Spirituální koučink
+- [ ] **Data**:
+  - Popis: Rozvoj spirituality, vlastní duchovní cesty
+  - Zahrnuje: 5 bodů (smysl života, spiritualita, vnitřní já, růst, hodnoty)
+  - Pro koho: Lidi hledající hlubší smysl života
+  - Icon: Sparkles
+
+---
+
+#### 1.7 Koučink produktivity a time managementu
+- [ ] **Data**:
+  - Popis: Efektivní organizace času, prioritizace, prokrastinace
+  - Zahrnuje: 6 bodů (čas, priority, prokrastinace, návyky, plánování, balance)
+  - Pro koho: Zaneprázdněné profesionály, podnikatele
+  - Icon: Clock
+
+---
+
+### 2. Nové a rychle rostoucí specializace (trendy 2024-2025)
+
+#### 2.1 DEI Koučink (Diversity, Equity & Inclusion)
+- [ ] **Data**:
+  - Popis: Podpora diverzity, rovnosti a inkluze v organizacích
+  - Pro koho: HR manažery, lídry, organizace zaměřené na diverzitu
+  - Icon: Users
+
+#### 2.2 Data-Driven Coaching
+- [ ] **Data**:
+  - Popis: Využití dat, analytiky a wearables pro personalizované koučování
+  - Pro koho: Tech-savvy klienty
+  - Icon: BarChart
+
+#### 2.3 Eco-coaching / Sustainability Coaching
+- [ ] **Data**:
+  - Popis: Propojení osobního růstu s environmentální odpovědností
+  - Pro koho: Ekologicky orientované klienty a firmy
+  - Icon: Leaf
+
+#### 2.4 Remote Work Coaching
+- [ ] **Data**:
+  - Popis: Výzvy práce na dálku, work-life balance, produktivita
+  - Pro koho: Remote workers a distribuované týmy
+  - Icon: Home
+
+#### 2.5 Tech/AI Coaching
+- [ ] **Data**:
+  - Popis: Adaptace na technologie, digitální kompetence, práce s AI
+  - Pro koho: Profesionály v digitální transformaci
+  - Icon: Cpu
+
+#### 2.6 Metaverse Coaching
+- [ ] **Data**:
+  - Popis: Koučování v digitálních a virtuálních prostorech, VR
+  - Pro koho: Tech early adopters a experimentující firmy
+  - Icon: Glasses
+
+#### 2.7 Gaming & E-sports Coaching
+- [ ] **Data**:
+  - Popis: Koučink pro hráče, streamery a esports profesionály
+  - Pro koho: Profesionální hráče, streamery, herní průmysl
+  - Icon: Gamepad2
+
+---
+
+### 3. Rozdělení podle hloubky působení
+
+#### 3.1 Transakční koučink
+- [ ] **Data**:
+  - Popis: Změna akce (chování), rychlé dosažení cílů
+  - Charakteristika: Rychlé výsledky, konkrétní kroky, měřitelné cíle
+  - Icon: Zap
+
+#### 3.2 Transformační koučink
+- [ ] **Data**:
+  - Popis: Změna člověka (hodnoty, přesvědčení, identita)
+  - Charakteristika: Dlouhodobá změna, práce s hodnotami, hlubší růst
+  - Icon: Repeat
+
+#### 3.3 Transpersonální koučink
+- [ ] **Data**:
+  - Popis: Rozvoj spirituality, vlastní duchovní cesty
+  - Charakteristika: Spirituální rozměr, transcendence, vyšší účel
+  - Icon: Sparkles
+
+---
+
+### 4. Rozdělení podle formátu
+
+#### 4.1 Individuální koučink
+- [ ] **Data**:
+  - Popis: Práce jeden na jednoho, osobně nebo online
+  - Icon: User
+
+#### 4.2 Týmový / Skupinový koučink
+- [ ] **Data**:
+  - Popis: Práce s celým týmem nebo skupinou
+  - Icon: Users
+
+#### 4.3 Párový / Rodinný koučink
+- [ ] **Data**:
+  - Popis: Vztahový koučink, komunikace mezi partnery/rodinou
+  - Icon: Heart
+
+---
+
+### 5. Trendy v moderním koučinku 2025
+
+#### Trendy seznam (MUI Chip komponenty):
+- [ ] **Hybridní modely** - Kombinace osobních + online sessions
+- [ ] **Micro-coaching** - Krátké session (15-30 min)
+- [ ] **Asynchronní koučink** - Komunikace přes zprávy
+- [ ] **AI-powered nástroje** - Chatboti, doporučení, AI asistenti
+- [ ] **Specializace na úzké segmenty** - Leadership pro ženy v tech, Gen Z, atd.
+- [ ] **Online / Distanční koučink** - Dominující forma
+- [ ] **Integrativní přístup** - Kombinace metod (NLP, Gestalt, CBT)
+- [ ] **Důraz na well-being** - Celostní pohoda, řešení stresu
+
+**Design**:
+- Grid 2-3 sloupce
+- Chip s ikonou + label
+- Tooltip s delším popisem
+- Barvy: fialová/růžová (trendy)
+
+---
+
+## 🎨 UI/UX DESIGN
+
+### Layout
+
+#### Desktop (>900px):
+```
+┌─────────────────────────────────────────────────┐
+│ Header: "Kompletní průvodce druhy koučinku"    │
+├──────────┬──────────────────────────────────────┤
+│ Sidebar  │ Main Content                         │
+│ (sticky) │                                      │
+│          │ 1. Hlavní kategorie (Accordions)    │
+│ • Osobní │    - Osobní koučink                  │
+│ • Profesní│    - Profesní (5 podtypů)          │
+│ • Zdraví │    - Zdraví & Wellness              │
+│ • Finance│    - ... atd.                        │
+│ • Trendy │                                      │
+│ • Hloubka│ 2. Nové specializace (Cards 2×3)    │
+│ • Formát │                                      │
+│          │ 3. Rozdělení podle hloubky (3 karty)│
+│          │                                      │
+│          │ 4. Rozdělení podle formátu (3 karty)│
+│          │                                      │
+│          │ 5. Trendy 2025 (Chips grid)         │
+└──────────┴──────────────────────────────────────┘
+```
+
+#### Mobile (<600px):
+```
+┌──────────────────────────┐
+│ Header + Intro           │
+├──────────────────────────┤
+│ Category Tabs (scroll)   │
+│ [Osobní][Profesní][...]  │
+├──────────────────────────┤
+│ Content (1 column)       │
+│                          │
+│ Accordion 1 ▼            │
+│ Accordion 2 ▼            │
+│ ...                      │
+└──────────────────────────┘
+```
+
+---
+
+### Komponenty
+
+#### Header Section:
+```jsx
+<Box sx={{ textAlign: 'center', mb: 6 }}>
+  <Typography variant="h3" sx={{ fontWeight: 700, mb: 2 }}>
+    Kompletní průvodce druhy koučinku
+  </Typography>
+  <Typography variant="body1" color="text.secondary">
+    Objevte různé typy koučinku, jejich zaměření a pro koho jsou vhodné.
+    Zvolte si specializaci nebo najděte kouče, který vám pomůže.
+  </Typography>
+</Box>
+```
+
+#### Category Accordion:
+```jsx
+<Accordion
+  sx={{
+    mb: 2,
+    borderRadius: BORDER_RADIUS.card,
+    backdropFilter: 'blur(20px)',
+    backgroundColor: isDark ? 'rgba(26, 26, 26, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+  }}
+>
+  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+    <Box display="flex" alignItems="center" gap={2}>
+      <Icon size={24} /> {/* Lucide icon */}
+      <Typography variant="h6">{title}</Typography>
+      {marketSize && <Chip label={marketSize} size="small" />}
+    </Box>
+  </AccordionSummary>
+  <AccordionDetails>
+    {/* Obsah */}
+  </AccordionDetails>
+</Accordion>
+```
+
+#### Trend Chip:
+```jsx
+<Chip
+  icon={<SparklesIcon size={16} />}
+  label="Hybridní modely"
+  onClick={() => setSelectedTrend('hybrid')}
+  sx={{
+    borderRadius: BORDER_RADIUS.small,
+    backgroundColor: 'rgba(188, 143, 188, 0.2)',
+    '&:hover': {
+      boxShadow: '0 0 20px rgba(188, 143, 188, 0.3)',
+    }
+  }}
+/>
+```
+
+---
+
+## 🛠️ IMPLEMENTAČNÍ KROKY
+
+### Phase 1: Data & Struktura (2-3h)
+- [ ] Vytvořit `/src/shared/constants/coachingTypesData.js`
+- [ ] Strukturovat všechna data (25+ typů)
+- [ ] Export konstant (COACHING_CATEGORIES, TRENDS, DEPTH, FORMAT)
+- [ ] Přidat market size data
+- [ ] Přidat "Pro koho" descriptions
+
+### Phase 2: Komponenty (3-4h)
+- [ ] Vytvořit `CoachingTypesPage.jsx`
+- [ ] Vytvořit `CoachingTypeCard.jsx` (reusable)
+- [ ] Vytvořit `TrendChip.jsx` (optional, nebo inline)
+- [ ] Sidebar s kategoriemi (scroll-to-section)
+- [ ] Mobile tabs navigation
+
+### Phase 3: Routing & Navigace (1h)
+- [ ] Přidat route `/coaching-guide` do App.jsx
+- [ ] Přidat link do Sidebar.jsx
+- [ ] Breadcrumbs (optional)
+
+### Phase 4: Styling & Polish (2h)
+- [ ] Glassmorphism efekty
+- [ ] Hover animations
+- [ ] Responsive testing (320px+)
+- [ ] Dark/light mode testing
+- [ ] Border-radius konzistence
+
+### Phase 5: SEO & Accessibility (1h)
+- [ ] Meta tags (title, description)
+- [ ] Alt texts pro ikony
+- [ ] ARIA labels pro Accordions
+- [ ] Keyboard navigation
+
+---
+
+## 📊 ODHAD ČASU
+
+**Total**: 9-11 hodin
+
+**Rozdělení na sessions**:
+- Session 1 (3h): Data struktura + CoachingTypesPage skeleton
+- Session 2 (3h): CoachingTypeCard komponenta + všechny typy
+- Session 3 (2h): Trendy section + styling
+- Session 4 (2h): Responsive design + testing + polish
+
+---
+
+## 🎯 BENEFITY
+
+### Pro kouče:
+- ✅ Pomoc s identifikací specializace
+- ✅ Market size data pro rozhodování o kariéře
+- ✅ Seznámení s trendy a novými oblastmi
+- ✅ Reference při výběru coaching oblasti v taxonomii
+
+### Pro klientky:
+- ✅ Pochopení, jaký typ koučinku potřebují
+- ✅ Vzdělání o různých přístupech
+- ✅ Lepší komunikace s koučkou (znají terminologii)
+
+### Pro aplikaci:
+- ✅ Přidaná hodnota (vzdělávací obsah)
+- ✅ SEO benefit (dlouhé, hodnotné texty)
+- ✅ Authority building (odbornost v koučinku)
+
+---
+
+## 🚀 PRIORITA
+
+**Priority**: MEDIUM-LOW (nice-to-have, ne critical)
+
+**Důvod**: Informační stránka, ne funkcionální feature. Může počkat po implementaci Priority 1-2 features (ochrana proti smazání, duplicity, workflows).
+
+**Doporučení**: Implementovat jako "quick win" mezi většími features (9-11h je přijatelné).
+
+---
+
+**Přidáno**: 3. listopadu 2025, 22:50
+**Status**: 📝 Naplánovano - čeká na implementaci
+**Autor**: Lenka Roubalová + Claude Sonnet 4.5
+

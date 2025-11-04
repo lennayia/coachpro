@@ -361,6 +361,9 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
         coachingStyle: coachingStyle || undefined, // From state (optional)
         coachingAuthority: coachingAuthority || undefined, // From state (optional)
 
+        // Client Feedback (Sprint 21.1):
+        clientFeedback: isEditMode ? (editMaterial.clientFeedback || []) : [],
+
         createdAt: isEditMode ? editMaterial.createdAt : new Date().toISOString(),
         updatedAt: isEditMode ? new Date().toISOString() : undefined,
       };
@@ -915,13 +918,17 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
                   />
                 )}
                 renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
-                      label={option}
-                      size="small"
-                      {...getTagProps({ index })}
-                    />
-                  ))
+                  value.map((option, index) => {
+                    const { key, ...chipProps } = getTagProps({ index });
+                    return (
+                      <Chip
+                        key={key}
+                        label={option}
+                        size="small"
+                        {...chipProps}
+                      />
+                    );
+                  })
                 }
                 sx={{ mt: 2 }}
               />

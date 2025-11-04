@@ -6816,9 +6816,275 @@ const adminUser = { ...sortedCoaches[0], isAdmin: true };
 
 ---
 
-**Poslední update**: 3. listopadu 2025, 21:30
-**Status**: ✅ Time-limited access + SQL migrations dokončeno
+## 📋 Sprint 21.1: Material Feedback System - Full Modularity (4.11.2025)
+
+**Datum**: 4. listopadu 2025
+**AI**: Claude Sonnet 4.5
+**Status**: ✅ DOKONČENO
+
+### 🎯 User Request
+
+**"udělal jsi to modulárně? Budeme tu reflexi a postřehy dávat ke všem materiálům a na konec programů"**
+
+Uživatelka questioned modularity of feedback system and explicitly stated requirements:
+- ✅ Feedback musí fungovat pro VŠECHNY typy materiálů (ne jen audio)
+- ⏳ Feedback na konec programů (pending - Phase 2)
+- ✅ Modulární systém - znovupoužitelný
+- ✅ Client attribution - kouč vidí, kdo napsal reflexi
+
+### ✅ Implementace
+
+#### 1. Component Rename: AudioFeedbackModal → MaterialFeedbackModal
+
+**File**: `/src/modules/coach/components/client/MaterialFeedbackModal.jsx`
+
+**Změny**:
+- Přejmenován z `AudioFeedbackModal` na `MaterialFeedbackModal`
+- Přidán `client` prop pro identifikaci
+- Feedback object obsahuje: `clientId`, `clientName`, `moodAfter`, `reflection`, `timestamp`
+
+```javascript
+const feedback = {
+  clientId: client?.id || null,
+  clientName: client?.name || 'Neznámá klientka',
+  moodAfter,
+  reflection: reflection.trim(),
+  timestamp: new Date().toISOString(),
+};
+```
+
+#### 2. DailyView.jsx - Univerzální integrace
+
+**A) Handler generalizace:**
+```javascript
+// PŘED (audio-specific)
+const handleAudioEnded = (material) => {
+  if (!viewingDay && material.type === 'audio') {
+    setFeedbackMaterial(material);
+    setFeedbackModalOpen(true);
+  }
+};
+
+// PO (universal)
+const handleOpenFeedback = (material) => {
+  if (!viewingDay) {  // Funguje pro všechny typy
+    setFeedbackMaterial(material);
+    setFeedbackModalOpen(true);
+  }
+};
+```
+
+**B) Přidán button "💬 Napsat reflexi" ke všem typům:**
+- ✅ Audio (CustomAudioPlayer onEnded + button)
+- ✅ Video
+- ✅ Image
+- ✅ PDF
+- ✅ Document
+- ✅ Text
+- ✅ Link (všechny embed typy)
+
+**Pattern:**
+```javascript
+{material.type === '[TYPE]' && (
+  <>
+    {/* Material renderer */}
+    {!viewingDay && (
+      <Box sx={{ mt: 2, textAlign: 'center' }}>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => handleOpenFeedback(material)}
+          sx={{
+            borderRadius: BORDER_RADIUS.compact,
+            textTransform: 'none',
+          }}
+        >
+          💬 Napsat reflexi
+        </Button>
+      </Box>
+    )}
+  </>
+)}
+```
+
+**Conditional:** Button je viditelný pouze na současný den (`!viewingDay`)
+
+#### 3. ClientFeedbackModal.jsx - Zobrazení jména klientky
+
+Přidáno zobrazení client name vedle mood ratingu:
+
+```javascript
+<Typography variant="caption">
+  Nálada: {feedback.moodAfter}/5 • {feedback.clientName}
+</Typography>
+```
+
+**Result:** Coach vidí "Nálada: 4/5 • Jana Nováková"
+
+### 🐛 Bug Fix: JSX Parsing Error
+
+**Error:**
+```
+Expected corresponding JSX closing tag for <>. (962:18)
+```
+
+**Cause:** Vite cache issue při přidávání fragment wrapperu k link material type
+
+**Fix:** Forced HMR refresh pomocí minor whitespace edit
+
+**Result:** ✅ Resolved at 11:09:36, JSX struktura correct
+
+### 📊 Statistiky
+
+- **Files Modified**: 4
+- **Lines Changed**: ~200+
+- **Material Types Enhanced**: 7 (audio, video, image, pdf, document, text, link)
+- **Bugs Fixed**: 1 (JSX parsing/Vite cache)
+
+### 🎓 Key Patterns
+
+**Universal Modal Pattern:**
+```javascript
+<MaterialFeedbackModal
+  open={open}
+  onClose={onClose}
+  material={material}  // Any type
+  client={client}      // Attribution
+  onSave={onSave}
+/>
+```
+
+**Conditional Button Pattern:**
+```javascript
+{!viewingDay && (
+  <Button onClick={() => handleOpenFeedback(material)}>
+    💬 Napsat reflexi
+  </Button>
+)}
+```
+
+### ✅ Production Readiness
+
+- [x] Feedback pro všechny typy materiálů (7/7)
+- [x] Client identification
+- [x] Coach vidí, kdo napsal reflexi
+- [x] Jen na současný den
+- [x] Validace (min text length)
+- [x] Toast notifications
+- [x] Loading states
+- [x] Error handling
+
+### ⏳ Pending - Phase 2
+
+**Program End Feedback:**
+- User zmínila "na konec programů"
+- Planned flow: Completion → Celebration → Final reflection option
+- Store in `coachpro_programs.client_feedback`
+
+**Sprint 15a: Feedback Request System**
+- Audio/video zprávy kouč ↔ klient (items 9-19 pending)
+
+---
+
+## 🗄️ SUPABASE MIGRATIONS - TRACKING
+
+> **⚠️ CRITICAL**: Při každé nové SQL změně VŽDY aktualizuj tuto sekci!
+> Tento seznam slouží k tomu, aby AI asistent VĚDĚL, co už bylo spuštěno a co ne.
+
+### ✅ SPUŠTĚNO V SUPABASE (Completed)
+
+**Datum posledního update**: 4. listopadu 2025
+
+#### 1. **CoachPro Database Schema** (Initial Setup)
+```sql
+-- Celé schema: coaches, materials, programs, clients, shared_materials
+-- Všechny tabulky, indexy, RLS policies, triggers
+-- Status: ✅ Spuštěno v produkci
+```
+
+#### 2. **Beta Testers Table with GDPR**
+```sql
+CREATE TABLE testers (
+  id uuid PRIMARY KEY,
+  name text NOT NULL,
+  email text UNIQUE NOT NULL,
+  access_code text UNIQUE NOT NULL,
+  marketing_consent boolean,
+  terms_accepted boolean,
+  -- ... další GDPR fields
+);
+-- Status: ✅ Spuštěno v produkci
+```
+
+#### 3. **Add coach_name to Programs**
+```sql
+ALTER TABLE coachpro_programs
+ADD COLUMN coach_name TEXT;
+-- Status: ✅ Spuštěno (Performance optimization)
+```
+
+#### 4. **Add coach_name to Shared Materials**
+```sql
+ALTER TABLE coachpro_shared_materials
+ADD COLUMN coach_name TEXT;
+-- Status: ✅ Spuštěno (Performance optimization)
+```
+
+#### 5. **Coaching Taxonomy Columns**
+```sql
+ALTER TABLE coachpro_materials
+ADD COLUMN coaching_area TEXT DEFAULT 'life',
+ADD COLUMN topics JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN coaching_style TEXT,
+ADD COLUMN coaching_authority TEXT;
+-- Status: ✅ Spuštěno (Sprint 12 - Taxonomy System)
+```
+
+#### 6. **Clients Access Dates**
+```sql
+ALTER TABLE coachpro_clients
+ADD COLUMN access_start_date TIMESTAMP WITH TIME ZONE,
+ADD COLUMN access_end_date TIMESTAMP WITH TIME ZONE;
+-- Status: ✅ Spuštěno (Time-limited access)
+```
+
+#### 7. **Shared Materials Access Dates**
+```sql
+ALTER TABLE coachpro_shared_materials
+ADD COLUMN access_start_date TIMESTAMP WITH TIME ZONE,
+ADD COLUMN access_end_date TIMESTAMP WITH TIME ZONE;
+-- Status: ✅ Spuštěno (Time-limited access)
+```
+
+#### 8. **Client Feedback on Materials** (Sprint 21.1)
+```sql
+ALTER TABLE coachpro_materials
+ADD COLUMN client_feedback JSONB DEFAULT '[]'::jsonb;
+-- Schema: {clientId: uuid, clientName: string, moodAfter: 1-5, reflection: string, timestamp: ISO string}
+-- Status: ✅ Spuštěno (4. listopadu 2025)
+```
+
+### ⏳ PENDING (Not Yet Run)
+
+**Žádné pending migrace** - všechny SQL změny jsou spuštěny! ✅
+
+### 📝 WORKFLOW PRO NOVÉ MIGRACE
+
+Když přidáváš nové SQL změny:
+
+1. **Vytvoř SQL soubor** v `/supabase/migrations/YYYYMMDD_description.sql`
+2. **Spusť v Supabase SQL Editor** (Database → SQL Editor)
+3. **Aktualizuj tuto sekci v CLAUDE.md** - přidej do "✅ SPUŠTĚNO V SUPABASE"
+4. **Commit** - včetně aktualizace CLAUDE.md
+
+**NIKDY** nepředpokládej, že migrace je potřeba spustit - vždy zkontroluj tento seznam!
+
+---
+
+**Poslední update**: 4. listopadu 2025, 11:45
+**Status**: ✅ Sprint 21.1 dokončen - Modulární feedback systém pro všechny materiály
+**User Confirmation**: "ano, je to super" ✅
 **Production URL**: https://coachpro-weld.vercel.app/
 **Dev Server**: ✅ Běží bez chyb na http://localhost:3000/
-**SQL Migrations**: ✅ Připraveny k spuštění v Supabase
-**Příští priorita**: Spustit SQL migrace v Supabase, pak Error boundaries 🚀
+**SQL Migrations**: ✅ Všechny migrace spuštěny v Supabase (viz sekce výše)
+**Příští priorita**: Testování feedback workflow + Program end feedback (Phase 2) 🚀

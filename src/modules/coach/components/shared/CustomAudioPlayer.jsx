@@ -10,7 +10,7 @@ import BORDER_RADIUS from '@styles/borderRadius';
 import { useNotification } from '@shared/context/NotificationContext';
 
 // Note: wavesurfer.js se použije později - zatím jednoduchý HTML5 audio player
-const CustomAudioPlayer = ({ src, title }) => {
+const CustomAudioPlayer = ({ src, title, onEnded }) => {
   const audioRef = useRef(null);
   const { showError } = useNotification();
   const [isPlaying, setIsPlaying] = useState(false);
@@ -38,6 +38,7 @@ const CustomAudioPlayer = ({ src, title }) => {
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
+      if (onEnded) onEnded();
     };
 
     const handleError = (e) => {

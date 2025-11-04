@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import {
   Box,
   Container,
@@ -48,12 +49,14 @@ import CustomAudioPlayer from '../shared/CustomAudioPlayer';
 import PDFViewer from '../shared/PDFViewer';
 import DocumentViewer from '../shared/DocumentViewer';
 import CelebrationModal from './CelebrationModal';
+import MaterialFeedbackModal from './MaterialFeedbackModal';
 import {
   getCurrentClient,
   setCurrentClient,
   saveClient,
   getProgramById,
   getMaterialById,
+  addMaterialFeedback,
 } from '../../utils/storage';
 import { getIconByType } from '@shared/utils/helpers';
 import { fadeIn, fadeInUp } from '@shared/styles/animations';
@@ -77,6 +80,8 @@ const DailyView = () => {
   const [celebrationOpen, setCelebrationOpen] = useState(false);
   const [viewingDay, setViewingDay] = useState(null); // For reviewing past days
   const [programNotes, setProgramNotes] = useState('');
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [feedbackMaterial, setFeedbackMaterial] = useState(null);
 
   // Load data
   useEffect(() => {
@@ -189,6 +194,30 @@ const DailyView = () => {
     await saveClient(updatedClient);
     setCurrentClient(updatedClient); // Update session storage
     window.location.reload(); // Reload to show next day
+  };
+
+  const handleOpenFeedback = (material) => {
+    if (!viewingDay) {
+      setFeedbackMaterial(material);
+      setFeedbackModalOpen(true);
+    }
+  };
+
+  const handleSaveFeedback = async (feedback) => {
+    if (!feedbackMaterial) return;
+
+    try {
+      await addMaterialFeedback(feedbackMaterial.id, feedback);
+
+      // Reload materials to show updated feedback
+      const dayData = program.days?.[client.currentDay - 1];
+      const materialPromises = (dayData.materialIds || []).map((id) => getMaterialById(id));
+      const loadedMaterials = await Promise.all(materialPromises);
+      setMaterials(loadedMaterials.filter(Boolean));
+    } catch (error) {
+      console.error('Failed to save feedback:', error);
+      throw error; // Let modal handle error display
+    }
   };
 
   const handleBack = () => {
@@ -577,81 +606,185 @@ const DailyView = () => {
 
                     {/* Render by type */}
                     {material.type === 'audio' && (
-                      <CustomAudioPlayer
-                        src={material.content}
-                        title={material.title}
-                      />
+                      <>
+                        <CustomAudioPlayer
+                          src={material.content}
+                          title={material.title}
+                          onEnded={() => handleOpenFeedback(material)}
+                        />
+                        {!viewingDay && (
+                          <Box sx={{ mt: 2, textAlign: 'center' }}>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => handleOpenFeedback(material)}
+                              sx={{
+                                borderRadius: BORDER_RADIUS.compact,
+                                textTransform: 'none',
+                              }}
+                            >
+                              💬 Napsat reflexi
+                            </Button>
+                          </Box>
+                        )}
+                      </>
                     )}
 
                     {material.type === 'video' && (
-                      <Box
-                        sx={{
-                          borderRadius: BORDER_RADIUS.small,
-                          overflow: 'hidden',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                          backgroundColor: '#000',
-                        }}
-                      >
-                        <video
-                          controls
-                          style={{
-                            width: '100%',
-                            height: 'auto',
-                            display: 'block',
+                      <>
+                        <Box
+                          sx={{
+                            borderRadius: BORDER_RADIUS.small,
+                            overflow: 'hidden',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            backgroundColor: '#000',
                           }}
                         >
-                          <source src={material.content} />
-                          Tvůj prohlížeč nepodporuje přehrávání videa.
-                        </video>
-                      </Box>
+                          <video
+                            controls
+                            style={{
+                              width: '100%',
+                              height: 'auto',
+                              display: 'block',
+                            }}
+                          >
+                            <source src={material.content} />
+                            Tvůj prohlížeč nepodporuje přehrávání videa.
+                          </video>
+                        </Box>
+                        {!viewingDay && (
+                          <Box sx={{ mt: 2, textAlign: 'center' }}>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => handleOpenFeedback(material)}
+                              sx={{
+                                borderRadius: BORDER_RADIUS.compact,
+                                textTransform: 'none',
+                              }}
+                            >
+                              💬 Napsat reflexi
+                            </Button>
+                          </Box>
+                        )}
+                      </>
                     )}
 
                     {material.type === 'image' && (
-                      <Box
-                        sx={{
-                          borderRadius: BORDER_RADIUS.small,
-                          overflow: 'hidden',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                        }}
-                      >
-                        <img
-                          src={material.content}
-                          alt={material.title}
-                          style={{
-                            width: '100%',
-                            height: 'auto',
-                            display: 'block',
+                      <>
+                        <Box
+                          sx={{
+                            borderRadius: BORDER_RADIUS.small,
+                            overflow: 'hidden',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                           }}
-                        />
-                      </Box>
+                        >
+                          <img
+                            src={material.content}
+                            alt={material.title}
+                            style={{
+                              width: '100%',
+                              height: 'auto',
+                              display: 'block',
+                            }}
+                          />
+                        </Box>
+                        {!viewingDay && (
+                          <Box sx={{ mt: 2, textAlign: 'center' }}>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => handleOpenFeedback(material)}
+                              sx={{
+                                borderRadius: BORDER_RADIUS.compact,
+                                textTransform: 'none',
+                              }}
+                            >
+                              💬 Napsat reflexi
+                            </Button>
+                          </Box>
+                        )}
+                      </>
                     )}
 
                     {material.type === 'pdf' && (
-                      <PDFViewer src={material.content} title={material.title} />
+                      <>
+                        <PDFViewer src={material.content} title={material.title} />
+                        {!viewingDay && (
+                          <Box sx={{ mt: 2, textAlign: 'center' }}>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => handleOpenFeedback(material)}
+                              sx={{
+                                borderRadius: BORDER_RADIUS.compact,
+                                textTransform: 'none',
+                              }}
+                            >
+                              💬 Napsat reflexi
+                            </Button>
+                          </Box>
+                        )}
+                      </>
                     )}
 
                     {material.type === 'document' && (
-                      <DocumentViewer src={material.content} title={material.title} />
+                      <>
+                        <DocumentViewer src={material.content} title={material.title} />
+                        {!viewingDay && (
+                          <Box sx={{ mt: 2, textAlign: 'center' }}>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => handleOpenFeedback(material)}
+                              sx={{
+                                borderRadius: BORDER_RADIUS.compact,
+                                textTransform: 'none',
+                              }}
+                            >
+                              💬 Napsat reflexi
+                            </Button>
+                          </Box>
+                        )}
+                      </>
                     )}
 
                     {material.type === 'text' && (
-                      <Box
-                        sx={{
-                          p: 2,
-                          backgroundColor: (theme) =>
-                            theme.palette.mode === 'dark'
-                              ? 'rgba(255, 255, 255, 0.05)'
-                              : 'rgba(0, 0, 0, 0.02)',
-                          borderRadius: BORDER_RADIUS.small,
-                          whiteSpace: 'pre-wrap',
-                        }}
-                      >
-                        <Typography variant="body1">{material.content}</Typography>
-                      </Box>
+                      <>
+                        <Box
+                          sx={{
+                            p: 2,
+                            backgroundColor: (theme) =>
+                              theme.palette.mode === 'dark'
+                                ? 'rgba(255, 255, 255, 0.05)'
+                                : 'rgba(0, 0, 0, 0.02)',
+                            borderRadius: BORDER_RADIUS.small,
+                            whiteSpace: 'pre-wrap',
+                          }}
+                        >
+                          <Typography variant="body1">{material.content}</Typography>
+                        </Box>
+                        {!viewingDay && (
+                          <Box sx={{ mt: 2, textAlign: 'center' }}>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => handleOpenFeedback(material)}
+                              sx={{
+                                borderRadius: BORDER_RADIUS.compact,
+                                textTransform: 'none',
+                              }}
+                            >
+                              💬 Napsat reflexi
+                            </Button>
+                          </Box>
+                        )}
+                      </>
                     )}
 
                     {material.type === 'link' && (
-                      <Box sx={{ borderRadius: BORDER_RADIUS.dayHeader, overflow: 'hidden' }}>
+                      <>
+                        <Box sx={{ borderRadius: BORDER_RADIUS.dayHeader, overflow: 'hidden' }}>
                         {/* YouTube embed */}
                         {material.linkType === 'youtube' && (
                           <Box
@@ -825,7 +958,23 @@ const DailyView = () => {
                             </Button>
                           </Box>
                         )}
-                      </Box>
+                        </Box>
+                        {!viewingDay && (
+                          <Box sx={{ mt: 2, textAlign: 'center' }}>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => handleOpenFeedback(material)}
+                              sx={{
+                                borderRadius: BORDER_RADIUS.compact,
+                                textTransform: 'none',
+                              }}
+                            >
+                              💬 Napsat reflexi
+                            </Button>
+                          </Box>
+                        )}
+                      </>
                     )}
                   </CardContent>
                 </Card>
@@ -1151,6 +1300,15 @@ const DailyView = () => {
           />
         </motion.div>
       </Container>
+
+      {/* Material Feedback Modal - Univerzální pro všechny typy materiálů */}
+      <MaterialFeedbackModal
+        open={feedbackModalOpen}
+        onClose={() => setFeedbackModalOpen(false)}
+        material={feedbackMaterial}
+        client={client}
+        onSave={handleSaveFeedback}
+      />
 
       {/* Celebration Modal */}
       <CelebrationModal

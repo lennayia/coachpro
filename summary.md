@@ -10162,5 +10162,271 @@ CLAUDE CODE 3/11/2025 - 20:50
 **Doporučení**: Spustit SQL migraci v Supabase před dalším vývojem 🚀
 
 -----------
-CLAUDE CODE 3/11/2025 -
+CLAUDE CODE 4/11/2025 - 11:11
 ---------------
+
+---
+
+## 📋 Sprint 21.1 - Audio Workflow: Making Feedback System Fully Modular (4.11.2025)
+
+**Datum**: 4. listopadu 2025
+**AI**: Claude Sonnet 4.5
+**Status**: ✅ Modulární systém dokončen
+
+### 🎯 Kontext a User Request
+
+User questioned the modularity of the feedback system with critical requirement:
+
+**"udělal jsi to modulárně? Budeme tu reflexi a postřehy dávat ke všem materiálům a na konec programů"**
+
+Translation: "Did you make it modular? We'll be adding reflections and feedback to all materials and at the end of programs"
+
+**User's explicit requirements:**
+- ✅ Feedback system must work for ALL material types (not just audio)
+- ⏳ Feedback must be available at program end (pending implementation)
+- ✅ System must be truly modular and reusable
+- ✅ Reflections must be connected to specific clients (coach can see WHO submitted)
+
+**User's final confirmation:** "ano, je to super" (yes, it's great) ✅
+
+### ✅ Co bylo implementováno
+
+#### 1. Component Rename: AudioFeedbackModal → MaterialFeedbackModal
+
+**File**: `/src/modules/coach/components/client/MaterialFeedbackModal.jsx` (renamed from AudioFeedbackModal.jsx)
+
+**Why:** Remove audio-specific naming to make component truly universal for all material types.
+
+**Key Changes:**
+- Component export renamed: `export default MaterialFeedbackModal`
+- Added `client` prop for attribution: `const MaterialFeedbackModal = ({ open, onClose, material, client, onSave })`
+- Feedback object now includes:
+  ```javascript
+  const feedback = {
+    clientId: client?.id || null,
+    clientName: client?.name || 'Neznámá klientka',
+    moodAfter,
+    reflection: reflection.trim(),
+    timestamp: new Date().toISOString(),
+  };
+  ```
+
+#### 2. DailyView.jsx - Universal Feedback Integration
+
+**File**: `/src/modules/coach/components/client/DailyView.jsx`
+
+**A) Updated Import:**
+```javascript
+import MaterialFeedbackModal from './MaterialFeedbackModal';
+```
+
+**B) Generalized Handler (removed type check):**
+```javascript
+// BEFORE (audio-specific)
+const handleAudioEnded = (material) => {
+  if (!viewingDay && material.type === 'audio') {
+    setFeedbackMaterial(material);
+    setFeedbackModalOpen(true);
+  }
+};
+
+// AFTER (universal)
+const handleOpenFeedback = (material) => {
+  if (!viewingDay) {  // Works for ALL types
+    setFeedbackMaterial(material);
+    setFeedbackModalOpen(true);
+  }
+};
+```
+
+**C) Modal Props (added client):**
+```javascript
+<MaterialFeedbackModal
+  open={feedbackModalOpen}
+  onClose={() => setFeedbackModalOpen(false)}
+  material={feedbackMaterial}
+  client={client}  // ← ADDED for attribution
+  onSave={handleSaveFeedback}
+/>
+```
+
+**D) Added "💬 Napsat reflexi" Button to ALL Material Types:**
+
+**Pattern Applied:**
+```javascript
+{material.type === '[TYPE]' && (
+  <>
+    {/* Material renderer */}
+    {!viewingDay && (
+      <Box sx={{ mt: 2, textAlign: 'center' }}>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => handleOpenFeedback(material)}
+          sx={{
+            borderRadius: BORDER_RADIUS.compact,
+            textTransform: 'none',
+          }}
+        >
+          💬 Napsat reflexi
+        </Button>
+      </Box>
+    )}
+  </>
+)}
+```
+
+**Applied to:**
+- ✅ Audio (CustomAudioPlayer with onEnded callback + button)
+- ✅ Video (HTML5 video element + button)
+- ✅ Image (img tag + button)
+- ✅ PDF (PDFViewer component + button)
+- ✅ Document (DocumentViewer component + button)
+- ✅ Text (Typography component + button)
+- ✅ Link (all embed types: YouTube, Vimeo, Spotify, SoundCloud, Instagram, Google Drive + button)
+
+**Conditional:** Button only shows on current day (`!viewingDay`) - prevents reflections on past/future days.
+
+#### 3. ClientFeedbackModal.jsx - Display Client Name
+
+**File**: `/src/modules/coach/components/coach/ClientFeedbackModal.jsx`
+
+**Why:** Coach needs to see WHO submitted each reflection.
+
+**Change:**
+```javascript
+<Box display="flex" alignItems="center" gap={1}>
+  <Typography variant="h5">{moodEmoji}</Typography>
+  <Box display="flex" alignItems="center" gap={0.5}>
+    <Typography variant="caption" sx={{ fontWeight: 600, color: 'primary.main' }}>
+      Nálada: {feedback.moodAfter}/5
+    </Typography>
+    {feedback.clientName && (
+      <>
+        <Typography variant="caption" color="text.secondary">•</Typography>
+        <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+          {feedback.clientName}
+        </Typography>
+      </>
+    )}
+  </Box>
+</Box>
+```
+
+**Result:** Coach now sees "Nálada: 4/5 • Jana Nováková" in feedback list.
+
+#### 4. SQL Schema Update
+
+**File**: `/supabase/migrations/20250104_add_client_feedback_to_materials.sql`
+
+**Updated Comment:**
+```sql
+COMMENT ON COLUMN coachpro_materials.client_feedback IS 'Array of client feedback objects: {clientId: uuid, clientName: string, moodAfter: 1-5, reflection: string, timestamp: ISO string}';
+```
+
+### 🐛 Bug Fix: JSX Parsing Error
+
+**Error Encountered:**
+```
+[vite] Internal server error: Expected corresponding JSX closing tag for <>. (962:18)
+/Users/lenkaroubalova/Documents/Projekty/coachpro/src/modules/coach/components/client/DailyView.jsx
+
+  960 |                       </Box>
+  961 |                     )}
+> 962 |                   </CardContent>
+      |                   ^
+  963 |                 </Card>
+```
+
+**Location:** Lines 784-977 in DailyView.jsx (link material type section)
+
+**Cause:** When adding fragment wrapper `<>...</</>` for link material type with reflection button, Vite's cache appeared to have malformed JSX structure, even though actual code was correct.
+
+**Solution:**
+Forced Vite HMR refresh by making minor whitespace edit (added newline in imports). This cleared Vite's cache.
+
+**Result:**
+✅ Error completely resolved at 11:09:36
+✅ JSX structure verified correct:
+  - Fragment opens at line 785
+  - Fragment closes at line 976
+  - All nested elements properly closed
+
+### 📊 Statistiky
+
+**Files Modified**: 4
+1. `MaterialFeedbackModal.jsx` (renamed from AudioFeedbackModal.jsx)
+2. `DailyView.jsx` (universal handler + buttons for all material types)
+3. `ClientFeedbackModal.jsx` (display client name)
+4. `20250104_add_client_feedback_to_materials.sql` (schema comment)
+
+**Lines Changed**: ~200+
+**Material Types Enhanced**: 7 (audio, video, image, pdf, document, text, link)
+**Bugs Fixed**: 1 (JSX parsing/Vite cache)
+
+### 🎓 Key Patterns
+
+**1. Universal Modal Pattern:**
+```javascript
+// Works for ALL material types
+<MaterialFeedbackModal
+  open={open}
+  onClose={onClose}
+  material={material}  // Can be any type
+  client={client}      // For attribution
+  onSave={onSave}
+/>
+```
+
+**2. Conditional Button Pattern:**
+```javascript
+{!viewingDay && (
+  <Button onClick={() => handleOpenFeedback(material)}>
+    💬 Napsat reflexi
+  </Button>
+)}
+```
+
+**3. Client Attribution Pattern:**
+```javascript
+const feedback = {
+  clientId: client?.id || null,
+  clientName: client?.name || 'Neznámá klientka',
+  moodAfter,
+  reflection,
+  timestamp: new Date().toISOString(),
+};
+```
+
+### ✅ Production Readiness
+
+- [x] Feedback works for all material types (7/7)
+- [x] Client identification in reflections
+- [x] Coach can see who submitted what
+- [x] Only current day shows button (`!viewingDay`)
+- [x] Error-free HMR compilation
+- [x] Validation (min text length)
+- [x] Success/error toasts
+- [x] Loading states
+- [x] Schema documented
+
+### ⏳ Pending - Phase 2
+
+**Program End Feedback:**
+User mentioned "na konec programů" (at program end), but not yet implemented.
+
+**Planned Flow:**
+1. User completes last day of program
+2. Celebration modal shows
+3. Option to submit final program reflection
+4. Stored in `coachpro_programs.client_feedback` (similar structure)
+
+**Sprint 15a: Feedback Request System**
+Audio/video zprávy pro komunikaci kouč ↔ klient (items 9-19 pending)
+
+---
+
+**Status**: ✅ Sprint 21.1 - Modulární feedback systém dokončen (4.11.2025)
+**User Confirmation**: "ano, je to super" ✅
+**Dev Server**: ✅ Běží bez chyb
+**Doporučení**: Testování všech typů materiálů + implementace program end feedback 🚀

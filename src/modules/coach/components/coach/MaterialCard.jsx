@@ -30,7 +30,8 @@ import {
   Paperclip,
   Share2,
   User,
-  Calendar
+  Calendar,
+  MessageSquare
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDuration, formatFileSize, getCategoryLabel, formatDate } from '@shared/utils/helpers';
@@ -41,6 +42,7 @@ import ServiceLogo from '../shared/ServiceLogo';
 import PreviewModal from '../shared/PreviewModal';
 import AddMaterialModal from './AddMaterialModal';
 import ShareMaterialModal from './ShareMaterialModal';
+import ClientFeedbackModal from './ClientFeedbackModal';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { createBackdrop, createGlassDialog, createIconButton, createClientPreviewButton } from '../../../../shared/styles/modernEffects';
 import { createTextEllipsis } from '../../../../shared/styles/responsive';
@@ -62,6 +64,7 @@ const MaterialCard = ({
   const [editOpen, setEditOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const isVeryNarrow = useMediaQuery('(max-width:420px)');
   const isTouch = isTouchDevice();
@@ -671,6 +674,55 @@ const MaterialCard = ({
             Jak to vidí klientka
           </Button>
 
+          {/* Řádek 9: Feedback ikona (pouze pokud existuje) */}
+          {material.clientFeedback && material.clientFeedback.length > 0 && (
+            <Box
+              onClick={() => setFeedbackModalOpen(true)}
+              sx={{
+                mt: 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.75,
+                px: 1.25,
+                py: 0.5,
+                marginLeft: 'auto',
+                backgroundColor: isDark
+                  ? 'rgba(139, 188, 143, 0.1)'
+                  : 'rgba(85, 107, 47, 0.08)',
+                border: '1px solid',
+                borderColor: isDark
+                  ? 'rgba(139, 188, 143, 0.2)'
+                  : 'rgba(85, 107, 47, 0.2)',
+                borderRadius: BORDER_RADIUS.small,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                width: 'fit-content',
+                '&:hover': {
+                  backgroundColor: isDark
+                    ? 'rgba(139, 188, 143, 0.15)'
+                    : 'rgba(85, 107, 47, 0.12)',
+                  transform: 'translateY(-1px)',
+                },
+              }}
+            >
+              <MessageSquare
+                size={14}
+                strokeWidth={2}
+                style={{ color: isDark ? 'rgba(139, 188, 143, 0.9)' : 'rgba(85, 107, 47, 0.9)' }}
+              />
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 600,
+                  color: 'primary.main',
+                  fontSize: '0.7rem',
+                }}
+              >
+                {material.clientFeedback.length}× reflexe
+              </Typography>
+            </Box>
+          )}
+
         </CardContent>
       </Card>
 
@@ -731,6 +783,13 @@ const MaterialCard = ({
       <ShareMaterialModal
         open={shareModalOpen}
         onClose={() => setShareModalOpen(false)}
+        material={material}
+      />
+
+      {/* Client Feedback Modal */}
+      <ClientFeedbackModal
+        open={feedbackModalOpen}
+        onClose={() => setFeedbackModalOpen(false)}
         material={material}
       />
     </>

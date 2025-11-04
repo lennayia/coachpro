@@ -196,6 +196,7 @@ const convertMaterialFromDB = (dbMaterial) => {
     topics: dbMaterial.topics,
     coachingStyle: dbMaterial.coaching_style,
     coachingAuthority: dbMaterial.coaching_authority,
+    clientFeedback: dbMaterial.client_feedback || [],
     createdAt: dbMaterial.created_at,
     updatedAt: dbMaterial.updated_at,
   };
@@ -264,6 +265,7 @@ export const saveMaterial = async (material) => {
       topics: material.topics || [],
       coaching_style: material.coachingStyle || null,
       coaching_authority: material.coachingAuthority || null,
+      client_feedback: material.clientFeedback || [],
       created_at: material.createdAt || new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -353,6 +355,38 @@ export const deleteMaterial = async (id) => {
     const materials = loadFromStorage(STORAGE_KEYS.MATERIALS, []);
     const filtered = materials.filter(m => m.id !== id);
     return saveToStorage(STORAGE_KEYS.MATERIALS, filtered);
+  }
+};
+
+/**
+ * Add client feedback to a material
+ * @param {string} materialId - Material ID
+ * @param {object} feedback - Feedback object { moodAfter, reflection, timestamp }
+ * @returns {Promise<Material>} Updated material
+ */
+export const addMaterialFeedback = async (materialId, feedback) => {
+  try {
+    // Get current material
+    const material = await getMaterialById(materialId);
+    if (!material) {
+      throw new Error('Material not found');
+    }
+
+    // Add feedback to array
+    const updatedFeedback = [...(material.clientFeedback || []), feedback];
+
+    // Update material with new feedback
+    const updatedMaterial = {
+      ...material,
+      clientFeedback: updatedFeedback,
+    };
+
+    // Save back to storage
+    await saveMaterial(updatedMaterial);
+    return updatedMaterial;
+  } catch (error) {
+    console.error('Error adding material feedback:', error);
+    throw error;
   }
 };
 
@@ -953,6 +987,7 @@ export default {
   saveMaterial,
   getMaterialById,
   deleteMaterial,
+  addMaterialFeedback,
 
   // Programs
   getPrograms,
