@@ -47,6 +47,10 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [duration, setDuration] = useState(7);
+  const [availabilityStartDate, setAvailabilityStartDate] = useState('');
+  const [availabilityEndDate, setAvailabilityEndDate] = useState('');
+  const [externalLink, setExternalLink] = useState('');
+  const [externalLinkLabel, setExternalLinkLabel] = useState('');
 
   // Step 2 - Days
   const [days, setDays] = useState([]);
@@ -70,13 +74,17 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
       title,
       description,
       duration,
+      availabilityStartDate,
+      availabilityEndDate,
+      externalLink,
+      externalLinkLabel,
       days,
       programId: program?.id,
       timestamp: new Date().toISOString(),
     };
     localStorage.setItem(draftKey, JSON.stringify(draftData));
     showSuccess('Auto-save', 'Změny uloženy ✓');
-  }, [title, description, duration, days, draftKey, program?.id, showSuccess]);
+  }, [title, description, duration, availabilityStartDate, availabilityEndDate, externalLink, externalLinkLabel, days, draftKey, program?.id, showSuccess]);
 
   // Load draft from localStorage
   const loadDraft = useCallback(() => {
@@ -107,12 +115,20 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
       setTitle(program.title || '');
       setDescription(program.description || '');
       setDuration(program.duration || 7);
+      setAvailabilityStartDate(program.availabilityStartDate || '');
+      setAvailabilityEndDate(program.availabilityEndDate || '');
+      setExternalLink(program.externalLink || '');
+      setExternalLinkLabel(program.externalLinkLabel || '');
       setDays(program.days || []);
       setActiveStep(0);
     } else {
       // Reset form and create days for new program
       setTitle('');
       setDescription('');
+      setAvailabilityStartDate('');
+      setAvailabilityEndDate('');
+      setExternalLink('');
+      setExternalLinkLabel('');
       const initialDuration = 7;
       setDuration(initialDuration);
 
@@ -169,7 +185,7 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [title, description, duration, days, open, saveDraft]);
+  }, [title, description, duration, availabilityStartDate, availabilityEndDate, externalLink, externalLinkLabel, days, open, saveDraft]);
 
   // Load materials for all days
   useEffect(() => {
@@ -278,6 +294,10 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
         qrCode,
         days: processedDays,
         isActive: program?.isActive !== undefined ? program.isActive : true,
+        availabilityStartDate: availabilityStartDate || null,
+        availabilityEndDate: availabilityEndDate || null,
+        externalLink: externalLink || null,
+        externalLinkLabel: externalLinkLabel || null,
         createdAt: program?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -395,6 +415,58 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
                     Můžete změnit délku programu. Existující dny zůstanou zachovány, nové dny budou přidány na konec.
                   </Alert>
                 )}
+
+                {/* Dostupnost programu */}
+                <Typography variant="subtitle2" sx={{ mt: 3, mb: 1, fontWeight: 600 }}>
+                  Dostupnost programu (volitelné)
+                </Typography>
+
+                <Box display="flex" gap={2}>
+                  <TextField
+                    fullWidth
+                    label="Dostupný od"
+                    type="date"
+                    value={availabilityStartDate}
+                    onChange={(e) => setAvailabilityStartDate(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    helperText="Pokud nevyplníte, program je dostupný ihned"
+                  />
+
+                  <TextField
+                    fullWidth
+                    label="Dostupný do"
+                    type="date"
+                    value={availabilityEndDate}
+                    onChange={(e) => setAvailabilityEndDate(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    helperText="Pokud nevyplníte, program je dostupný neomezeně"
+                  />
+                </Box>
+
+                {/* Externí odkaz */}
+                <Typography variant="subtitle2" sx={{ mt: 3, mb: 1, fontWeight: 600 }}>
+                  Externí odkaz (volitelné)
+                </Typography>
+
+                <TextField
+                  fullWidth
+                  label="Odkaz na program"
+                  placeholder="https://..."
+                  value={externalLink}
+                  onChange={(e) => setExternalLink(e.target.value)}
+                  margin="normal"
+                  helperText="Např. odkaz na kurz na jiné platformě"
+                />
+
+                <TextField
+                  fullWidth
+                  label="Popisek odkazu"
+                  placeholder="např. Celý kurz na Kajabi"
+                  value={externalLinkLabel}
+                  onChange={(e) => setExternalLinkLabel(e.target.value)}
+                  margin="normal"
+                  helperText="Co se zobrazí místo URL"
+                />
               </Box>
             )}
 

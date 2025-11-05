@@ -412,3 +412,43 @@ Session Updates (4.11.2025 večer 21:40)
   ---
   Konec CLAUDE.md
   Další update: Po další významné session nebo na požádání
+
+
+---
+
+## 📋 Session: MaterialCard Layout Reorganization (5.11.2025)
+
+**Branch**: `feature/sprint18c-basecard-modularity`
+**Commit**: `d8eef24`
+
+### Hlavní změny:
+
+1. **Layout reorganization** - Akční ikony přesunuty na vlastní řádek
+   - Row 1: Large icon + Chip + Date
+   - Row 2: Action icons (Eye, Pencil, Copy, Share2, Trash2)
+
+2. **Creation date přidáno** s Calendar icon (numeric format: 5. 11. 2025)
+
+3. **Metadata reordering** - fileSize → duration → pageCount
+
+4. **Alignment fixes** pomocí negative margins (ml/mr)
+
+5. **Row 9 always present** s minHeight (i když prázdný)
+
+6. **CARD_PADDING zvětšen** na desktopu (20px místo 16px)
+
+7. **Responsive touch targets** - 36px mobil, 44px desktop
+
+8. **Icon gap optimization** - 0.5 xs, 0.75 sm+
+
+### Files changed (7):
+- MaterialCard.jsx, responsive.js, modernEffects.js, BaseCard.jsx
+- AddMaterialModal.jsx, MaterialsLibrary.jsx, ProgramEditor.jsx
+
+**Problém vyřešen**: Overflow ikony koše v range 500-572px
+
+---
+
+**Poslední update**: 5. listopadu 2025
+**Status**: MaterialCard layout production-ready ✅
+

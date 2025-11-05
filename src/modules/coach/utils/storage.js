@@ -459,6 +459,10 @@ const convertProgramFromDB = (dbProgram) => {
     isActive: dbProgram.is_active,
     days: dbProgram.days,
     programFeedback: dbProgram.program_feedback || [],
+    availabilityStartDate: dbProgram.availability_start_date,
+    availabilityEndDate: dbProgram.availability_end_date,
+    externalLink: dbProgram.external_link,
+    externalLinkLabel: dbProgram.external_link_label,
     createdAt: dbProgram.created_at,
     updatedAt: dbProgram.updated_at,
   };
@@ -497,6 +501,10 @@ export const saveProgram = async (program) => {
       is_active: program.isActive !== undefined ? program.isActive : true,
       days: program.days, // JSONB column - Supabase handles this
       program_feedback: program.programFeedback || [],
+      availability_start_date: program.availabilityStartDate || null,
+      availability_end_date: program.availabilityEndDate || null,
+      external_link: program.externalLink || null,
+      external_link_label: program.externalLinkLabel || null,
       created_at: program.createdAt || new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

@@ -518,3 +518,230 @@ const footer = <Box sx={{ ... 40 řádků }}><MessageSquare /></Box>;
 
 **Konec Summary 6**
 **Další summary**: Po dalších ~2000 řádcích změn nebo na požádání
+
+-------------
+CLAUDE CODE 4-5/11/2025 - 14:15
+-------------
+
+## 📋 Session: MaterialCard Layout Reorganization & Responsive Polish (5.11.2025, odpoledne)
+
+**Datum**: 5. listopadu 2025, odpoledne
+**AI**: Claude Sonnet 4.5
+**Status**: ✅ DOKONČENO
+**Branch**: `feature/sprint18c-basecard-modularity`
+**Commit**: `d8eef24`
+
+### 🎯 Cíle Session
+
+1. Reorganizovat layout MaterialCard - přesunout akční ikony na samostatný řádek
+2. Přidat datum přidání do řádku 1 (s chipem)
+3. Opravit zarovnání všech řádků (konzistentní odsazení vlevo i vpravo)
+4. Zvětšit padding karet na desktopu
+5. Optimalizovat responsive touch targets
+6. Zajistit konzistentní výšku všech karet (i prázdná řádek 9)
+
+### ✅ Implementované změny
+
+#### 1. Layout Reorganization - Rows 1-2
+
+**PŘED:**
+```
+Row 1: Large icon (left) | Action icons (right)
+Row 2: Category chip + Creation date
+```
+
+**PO:**
+```
+Row 1: Large icon + Category chip + Creation date (ml="auto")
+Row 2: All action icons (Eye, Pencil, Copy, Share2, Trash2) - flex-end
+```
+
+**Důvod změny**: V range 500-572px přetékala ikona koše - potřeba více prostoru pro akční ikony.
+
+#### 2. Creation Date s Calendar Icon
+
+**Formát**: "Přidáno 📅 5. 11. 2025"
+
+```javascript
+{material.createdAt && (
+  <Box display="flex" alignItems="center" gap={0.5} ml="auto">
+    <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>
+      Přidáno
+    </Typography>
+    <Calendar size={11} />
+    <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>
+      {formatDate(material.createdAt, { month: 'numeric' })}
+    </Typography>
+  </Box>
+)}
+```
+
+**Features**:
+- Numeric month format (5. 11. 2025 místo 5. listopadu 2025)
+- Calendar icon (lucide-react)
+- Right-aligned pomocí `ml="auto"`
+
+#### 3. Metadata Reordering (Row 3)
+
+**PŘED**: duration OR pageCount → fileSize
+**PO**: fileSize → duration → pageCount (all separate conditions)
+
+```javascript
+{/* 1. File size */}
+{material.fileSize && <Box>...</Box>}
+
+{/* 2. Duration */}
+{material.duration && <Box>...</Box>}
+
+{/* 3. Page count */}
+{material.pageCount && <Box>...</Box>}
+```
+
+#### 4. Alignment Fixes s Negative Margins
+
+**Problém**: Řádky 1-3 měly nekonzistentní odsazení od okrajů karty
+
+**Řešení**:
+
+```javascript
+// Row 1: Large icon
+<IconButton sx={{ p: 0, ml: -0.5 }}>  // Posun vlevo k okraji
+
+// Row 1: Date
+<Box ml="auto">  // No mr (standard padding pro více prostoru)
+
+// Row 2: Action icons
+<Box mr={-1}>  // Koš blíž k pravému okraji
+
+// Row 3: Metadata
+<Box mr={-1}>  // Konzistentní s row 2
+```
+
+#### 5. Row 9 Always Present
+
+**Problém**: Když materiál neměl reflexe, řádek 9 chybí → karta je kratší
+
+**Řešení**:
+```javascript
+<Box sx={{ minHeight: '2em', mt: 1 }}>
+  {material.clientFeedback && material.clientFeedback.length > 0 && (
+    <Box>...chip s reflexemi...</Box>
+  )}
+</Box>
+```
+
+Teď je řádek 9 vždy přítomen s `minHeight`, prázdný = 2em prostor.
+
+#### 6. CARD_PADDING Zvětšen
+
+**responsive.js**:
+```javascript
+export const CARD_PADDING = {
+  p: { xs: 1.5, sm: 2.5 },    // 12px mobil → 20px desktop (bylo 16px)
+  pr: { xs: 1.25, sm: 2 },    // 10px mobil → 16px desktop (bylo 14px)
+};
+```
+
+**Důvod**: Uživatelka chtěla větší vzdušnost na desktopu.
+
+#### 7. Responsive Touch Targets
+
+**modernEffects.js - createIconButton**:
+```javascript
+return {
+  p: padding,
+  minWidth: { xs: 36, sm: 44 },  // 36px mobil, 44px desktop
+  minHeight: { xs: 36, sm: 44 },
+  // ... rest
+};
+```
+
+**Důvod**:
+- 44px ideal touch target (Apple HIG)
+- 36px minimum na mobilu (prevence overflow)
+
+#### 8. Icon Gap Optimization
+
+```javascript
+// Row 2 action icons
+<Box gap={{ xs: 0.5, sm: 0.75 }}>  // 4px mobil, 6px desktop
+```
+
+**Důvod**: Pri 500px bylo 5 ikon × 36px + 4 × 6px = 204px (moc). Teď: 5 × 36px + 4 × 4px = 196px (ok).
+
+### 📊 Statistiky
+
+**Soubory změněny**: 7
+- `MaterialCard.jsx` - Complete layout refactor
+- `responsive.js` - CARD_PADDING increased
+- `modernEffects.js` - Responsive touch targets
+- `BaseCard.jsx` - Creation date added
+- `AddMaterialModal.jsx`, `MaterialsLibrary.jsx`, `ProgramEditor.jsx` - Minor updates
+
+**Řádky kódu**: +386 / -274
+
+**Čas**: ~2 hodiny
+
+### 🎓 Klíčové Lekce
+
+1. **Layout reorganization > padding squeezing**
+   - Snížení paddingu globálně = wrong approach (ovlivní všechno)
+   - Lepší: přesunout ikony na vlastní řádek
+
+2. **Negative margins pro fine-tuning alignment**
+   - `ml={-0.5}` posune element k levému okraji
+   - `mr={-1}` posune k pravému okraji
+   - Bez mr = standard padding (více prostoru)
+
+3. **Always present rows s minHeight**
+   - Řešení nekonzistentních výšek karet
+   - Prázdné řádky = placeholder s minHeight
+
+4. **Responsive touch targets must prevent overflow**
+   - 44px ideal, ale může přetékat na mobilu
+   - 36px minimum = kompromis
+
+5. **Gap must be responsive too**
+   - `gap={{ xs: 0.5, sm: 0.75 }}` místo `isVeryNarrow` condition
+   - Pokrývá celý xs range (0-600px)
+
+### ✅ Production Readiness
+
+- [x] Layout reorganizován (2 rows místo 1)
+- [x] Creation date s Calendar icon
+- [x] Metadata reordered
+- [x] All rows konzistentně zarovnané
+- [x] Row 9 vždy přítomný
+- [x] CARD_PADDING zvětšen na desktopu
+- [x] Responsive touch targets (36px/44px)
+- [x] Icon gap optimalizován
+- [x] Žádný overflow na 320px+
+- [x] Dark/light mode tested
+- [x] Dev server běží bez chyb
+
+### 🔄 Git
+
+**Commit**: `d8eef24`
+```
+feat: MaterialCard layout reorganization & responsive improvements
+
+- Reorganized rows 1-2: Large icon + chip + date | Action icons row
+- Added creation date to row 1 with Calendar icon (numeric format)
+- Removed date from row 3 (metadata)
+- Reordered metadata: fileSize → duration → pageCount
+- Fixed row alignment with negative margins (ml/mr)
+- Row 9 (feedback) always present with minHeight for consistency
+- Increased CARD_PADDING on desktop (20px padding)
+- Responsive touch targets: 36px mobile, 44px desktop
+- Icon gap optimization: 0.5 on xs, 0.75 on sm+
+- Improved right edge alignment for date and action icons
+```
+
+**Branch**: `feature/sprint18c-basecard-modularity`
+**Push**: ✅ Úspěšný (NOT merged to main)
+
+---
+
+**Status**: ✅ Session dokončena (5.11.2025)
+**Příští priorita**: Testování na různých breakpointech, případně další UI polish 🚀
+

@@ -18,12 +18,24 @@
 
 ## 🎯 Aktuální Práce (5.11.2025)
 
-**Aktuální task**: Sprint 18c - BaseCard Feedback Modularity Fix - DOKONČENO ✅
-**Status**: ✅ BaseCard.jsx - feedback jako built-in feature (feedbackData, onFeedbackClick props)
-**Status**: ✅ ProgramCard.jsx - refactored na modular řešení (47 řádků odstraněno)
-**Status**: ✅ Dokumentace aktualizována (summary6.md, MASTER_TODO_V3.md, claude.md)
-**Discovery**: ⚠️ MaterialCard.jsx NEpoužívá BaseCard - tech debt (čeká na rozhodnutí)
-**Pending**: MaterialCard refactor na BaseCard (pending user decision)
+**Aktuální task**: MaterialCard Layout Reorganization - DOKONČENO ✅
+**Commit**: `d8eef24`
+**Branch**: `feature/sprint18c-basecard-modularity`
+
+### Co bylo hotové:
+- ✅ Layout reorganized: Row 1 (icon+chip+date) | Row 2 (actions)
+- ✅ Creation date s Calendar icon (numeric format)
+- ✅ Metadata reordered: fileSize → duration → pageCount
+- ✅ Alignment fixes pomocí negative margins
+- ✅ Row 9 always present (minHeight)
+- ✅ CARD_PADDING zvětšen (20px desktop)
+- ✅ Responsive touch targets (36px/44px)
+- ✅ Icon gap optimization (4px/6px)
+
+### Předchozí (Sprint 18c):
+- ✅ BaseCard.jsx - feedback jako built-in feature
+- ✅ ProgramCard.jsx - refactored na modular řešení
+- ⚠️ MaterialCard.jsx NEpoužívá BaseCard (tech debt zůstává)
 
 ---
 

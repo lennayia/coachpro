@@ -34,6 +34,7 @@ import { formatDate } from '@shared/utils/helpers';
 import { useNotification } from '@shared/context/NotificationContext';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
 import { useTheme } from '@mui/material';
+import { supabase } from '@shared/config/supabase';
 
 const ClientEntry = () => {
   const navigate = useNavigate();
@@ -50,10 +51,41 @@ const ClientEntry = () => {
   const [previewProgram, setPreviewProgram] = useState(null);
   const [lookupLoading, setLookupLoading] = useState(false);
 
+  // OAuth user (pokud je přihlášen přes Google)
+  const [authUser, setAuthUser] = useState(null);
+
   // Admin mode
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [selectedProgramId, setSelectedProgramId] = useState('');
   const [allPrograms, setAllPrograms] = useState([]);
+
+  // Check OAuth status při načtení stránky
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setAuthUser(user);
+
+          // Pre-fill name z profilu (pokud existuje)
+          const { data: profile } = await supabase
+            .from('coachpro_client_profiles')
+            .select('name')
+            .eq('auth_user_id', user.id)
+            .single();
+
+          if (profile && profile.name) {
+            setClientName(profile.name);
+          }
+        }
+      } catch (err) {
+        // OAuth není povinný, pokračujeme bez něj
+        console.log('No OAuth user:', err);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   const handleCodeChange = (e) => {
     const value = e.target.value.toUpperCase().slice(0, 6);
@@ -159,6 +191,8 @@ const ClientEntry = () => {
           completedDays: [],
           completedAt: null,
           certificateGenerated: false,
+          // ✅ Propojení s OAuth uživatelem (pokud existuje)
+          auth_user_id: authUser?.id || null,
         };
 
         await saveClient(client);
@@ -588,6 +622,26 @@ const ClientEntry = () => {
                 }}
               >
                 Vstup k materiálu →
+              </MuiLink>
+            </Box>
+
+            <Box mt={2} textAlign="center">
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Chcete si vytvořit profil pro lepší přístup?
+              </Typography>
+              <MuiLink
+                onClick={() => navigate('/client/signup')}
+                sx={{
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  color: 'primary.main',
+                  textDecoration: 'none',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                  },
+                }}
+              >
+                Registrace přes Google →
               </MuiLink>
             </Box>
 

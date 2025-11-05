@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Typography,
   Box,
@@ -6,10 +6,7 @@ import {
   useTheme,
   useMediaQuery
 } from '@mui/material';
-import {
-  CheckCircle as ActiveIcon,
-  Cancel as InactiveIcon,
-} from '@mui/icons-material';
+import { Calendar, Link2 } from 'lucide-react';
 import { formatDate, pluralize } from '@shared/utils/helpers';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { createTextEllipsis } from '@shared/styles/responsive';
@@ -37,16 +34,6 @@ const ProgramCard = ({
   const activeClients = clients.filter(c => !c.completedAt).length;
   const totalMaterials = program.days.reduce((acc, day) => acc + (day.materialIds?.length || 0), 0);
 
-  // Získání unikátních typů materiálů v programu
-  const materialTypes = useMemo(() => {
-    const materialIds = program.days.flatMap(day => day.materialIds || []);
-    const programMaterials = materials.filter(m => materialIds.includes(m.id));
-
-    // Získat unikátní typy
-    const types = [...new Set(programMaterials.map(m => m.type))];
-    return types;
-  }, [program.days, materials]);
-
   // Touch gestures - Swipe handlers
   const swipeHandlers = createSwipeHandlers({
     onSwipeLeft: () => {
@@ -72,15 +59,31 @@ const ProgramCard = ({
     delay: 600,
   });
 
-  // Chip configuration for BaseCard (row 2)
-  const chipConfig = {
-    label: program.isActive ? 'Aktivní' : 'Neaktivní',
-    icon: program.isActive ? <ActiveIcon /> : <InactiveIcon />,
-    color: 'primary',
-    active: program.isActive,
-  };
+  // Row 2: Dostupnost s Calendar ikonou
+  const availabilityChip = (() => {
+    let label;
+    if (program.availabilityStartDate && program.availabilityEndDate) {
+      const start = formatDate(program.availabilityStartDate, { month: 'numeric', year: 'numeric' });
+      const end = formatDate(program.availabilityEndDate, { month: 'numeric', year: 'numeric' });
+      label = `${start} - ${end}`;
+    } else if (program.availabilityStartDate && !program.availabilityEndDate) {
+      const start = formatDate(program.availabilityStartDate, { month: 'numeric', year: 'numeric' });
+      label = `${start} - Neomezeně`;
+    } else if (!program.availabilityStartDate && program.availabilityEndDate) {
+      const end = formatDate(program.availabilityEndDate, { month: 'numeric', year: 'numeric' });
+      label = `Ihned - ${end}`;
+    } else {
+      label = 'Ihned - Neomezeně';
+    }
 
-  // Metadata configuration for BaseCard (row 4)
+    return {
+      label,
+      icon: <Calendar size={14} />,
+      color: 'secondary',
+    };
+  })();
+
+  // Row 3: Metadata (bez dostupnosti, prázdný řádek pokud nejsou data)
   const metadataItems = [
     {
       label: pluralize(program.duration, 'den', 'dny', 'dní'),
@@ -88,7 +91,7 @@ const ProgramCard = ({
     {
       label: pluralize(totalMaterials, 'materiál', 'materiály', 'materiálů'),
     },
-    ...(clients.length > 0 ? [{
+    ...(activeClients > 0 ? [{
       label: pluralize(activeClients, 'aktivní klientka', 'aktivní klientky', 'aktivních klientek'),
     }] : []),
   ];
@@ -133,59 +136,69 @@ const ProgramCard = ({
     </Box>
   );
 
-  // Link/File section - Seznam materiálů (row 5)
-  const linkOrFile = totalMaterials > 0 ? (
-    <Typography
-      variant="caption"
-      sx={{
-        color: 'text.secondary',
-        fontSize: '0.7rem',
-      }}
-    >
-      {pluralize(totalMaterials, 'materiál', 'materiály', 'materiálů')} • {pluralize(program.duration, 'den', 'dny', 'dní')}
-    </Typography>
+  // Row 4: External link s Link2 ikonou nebo prázdno
+  const linkOrFile = program.externalLink ? (
+    <Box display="flex" alignItems="center" gap={0.5} sx={{ minWidth: 0, maxWidth: '100%' }}>
+      <Link2 size={isVeryNarrow ? 11 : 12} color={theme.palette.text.secondary} style={{ flexShrink: 0 }} />
+      <Typography
+        component="a"
+        href={program.externalLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        variant="caption"
+        sx={{
+          color: 'text.secondary',
+          fontSize: isVeryNarrow ? '0.65rem' : '0.7rem',
+          minWidth: 0,
+          ...createTextEllipsis(1),
+          textDecoration: 'none',
+          '&:hover': {
+            textDecoration: 'underline',
+            color: 'primary.main',
+          },
+        }}
+      >
+        {program.externalLinkLabel || program.externalLink}
+      </Typography>
+    </Box>
   ) : null;
 
-  // Material type chips (row 7.5)
+  // Row 7: Material type chips
+  const materialTypes = (() => {
+    const allMaterialIds = program.days.flatMap(day => day.materialIds || []);
+    const types = allMaterialIds
+      .map(id => materials.find(m => m.id === id)?.type)
+      .filter(Boolean);
+    return [...new Set(types)]; // Unique types
+  })();
+
+  const materialTypeLabels = {
+    audio: 'Audio',
+    video: 'Video',
+    pdf: 'PDF',
+    image: 'Obrázek',
+    document: 'Dokument',
+    text: 'Text',
+    link: 'Odkaz',
+  };
+
   const materialTypeChips = materialTypes.length > 0 ? (
     <>
-      {materialTypes.map((type) => {
-        const typeLabels = {
-          audio: 'Audio',
-          video: 'Video',
-          pdf: 'PDF',
-          image: 'Obrázek',
-          document: 'Dokument',
-          text: 'Text',
-          link: 'Odkaz',
-        };
-
-        return (
-          <Chip
-            key={type}
-            label={typeLabels[type] || type}
-            size="small"
-            sx={{
-              height: isVeryNarrow ? 14 : 16,
-              fontSize: isVeryNarrow ? '0.55rem' : '0.6rem',
-              fontWeight: 500,
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              backgroundColor: isDark
-                ? 'rgba(255, 255, 255, 0.08)'
-                : 'rgba(0, 0, 0, 0.06)',
-              color: 'text.secondary',
-              border: 'none',
-              '& .MuiChip-label': {
-                px: isVeryNarrow ? 0.5 : 0.75,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              },
-            }}
-          />
-        );
-      })}
+      {materialTypes.map((type, index) => (
+        <Chip
+          key={index}
+          label={materialTypeLabels[type] || type}
+          size="small"
+          sx={{
+            height: isVeryNarrow ? 14 : 16,
+            fontSize: isVeryNarrow ? '0.55rem' : '0.6rem',
+            fontWeight: 500,
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+            color: 'text.secondary',
+            border: 'none',
+          }}
+        />
+      ))}
     </>
   ) : null;
 
@@ -200,33 +213,25 @@ const ProgramCard = ({
         onEdit={() => onEdit(program)}
         onDelete={() => onDelete(program)}
 
-        // Row 2: Chips
-        chips={[chipConfig]}
+        // Row 2: Dostupnost chip s Calendar ikonou
+        chips={[availabilityChip]}
 
-        // Row 3: Dates (programs don't have access dates yet)
-        creationDate={program.createdAt ? formatDate(program.createdAt, { day: 'numeric', month: 'numeric', year: 'numeric' }) : null}
-        accessFromDate={null}
-        accessToDate={null}
-
-        // Row 4: Metadata
+        // Row 3: Metadata
         metadata={metadataItems}
 
-        // Row 5: Link/File
+        // Row 4: Link/File
         linkOrFile={linkOrFile}
 
-        // Row 6: Title
+        // Row 5: Title
         title={program.title}
 
-        // Row 7: Description
+        // Row 6: Description
         description={program.description}
 
-        // Row 7.5: Material type chips
-        materialTypeChips={materialTypeChips}
+        // Row 7: Material type chips
+        taxonomyOrAvailability={materialTypeChips}
 
-        // Row 8: Taxonomy (programs don't have taxonomy yet)
-        taxonomyOrAvailability={null}
-
-        // Row 9: Footer (button "Jak to vidí klientka" + feedback button)
+        // Row 8-9: Footer (button "Jak to vidí klientka" + feedback)
         onClientPreview={() => onPreview(program)}
         feedbackData={program.programFeedback}
         onFeedbackClick={() => setFeedbackModalOpen(true)}

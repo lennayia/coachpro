@@ -347,20 +347,31 @@ sx={{
 
 ---
 
-## 📊 AKTUÁLNÍ STAV (5.11.2025, večer)
+## 📊 AKTUÁLNÍ STAV (5.11.2025, odpoledne)
 
-**Session**: Sprint 18c - BaseCard Feedback Modularity Fix
+**Session**: MaterialCard Layout Reorganization
+**Commit**: `d8eef24`
+**Branch**: `feature/sprint18c-basecard-modularity`
+
 **Dokončeno**:
-- ✅ BaseCard.jsx - feedback jako built-in feature (feedbackData, onFeedbackClick props)
-- ✅ ProgramCard.jsx - refactored na modular (47 řádků odstraněno, 2 props přidány)
-- ✅ Dokumentace (summary6.md, MASTER_TODO_V3.md, claude.md, CONTEXT_QUICK.md, CLAUDE_QUICK.md)
-- ✅ Nové KRITICKÉ pravidlo #14: BaseCard Modularity
+- ✅ MaterialCard layout reorganized (Row 1: icon+chip+date | Row 2: actions)
+- ✅ Creation date s Calendar icon (numeric: 5. 11. 2025)
+- ✅ Metadata reordered: fileSize → duration → pageCount
+- ✅ Alignment fixes s negative margins (ml/mr)
+- ✅ Row 9 always present (minHeight pro konzistenci)
+- ✅ CARD_PADDING zvětšen na desktopu (20px)
+- ✅ Responsive touch targets (36px mobil, 44px desktop)
+- ✅ Icon gap optimization (4px xs, 6px sm+)
+- ✅ Overflow ikony koše vyřešen (500-572px range)
 
-**Discovery**:
-- ⚠️ MaterialCard.jsx NEpoužívá BaseCard - tech debt identifikován
+**Předchozí (Sprint 18c)**:
+- ✅ BaseCard.jsx - feedback jako built-in feature
+- ✅ ProgramCard.jsx - refactored na modular
+
+**Tech Debt**:
+- ⚠️ MaterialCard.jsx NEpoužívá BaseCard (zůstává standalone)
 
 **Pending**:
-- [ ] MaterialCard refactor na BaseCard (čeká na user rozhodnutí: quick fix vs. proper refactor)
 - [ ] Help buttons na ProgramsList a ClientsList
 - [ ] Sprint 18b: Button Modularity System (6-8 hodin)
 
