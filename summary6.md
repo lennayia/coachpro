@@ -356,5 +356,165 @@ Někdy je lepší inline solution (rychlé fix) než full refactor (hodiny prác
 
 ---
 
+-------------
+CLAUDE CODE 4-5/11/2025 - 11:50
+-------------
+
+
+## 📋 Sprint 18c: BaseCard Feedback Modularity Fix (5.11.2025, večer)
+
+**Datum**: 5. listopadu 2025, večer
+**AI**: Claude Sonnet 4.5
+**Status**: ✅ ProgramCard opraveno, MaterialCard čeká na refactor
+
+### 🎯 Kontext
+
+User identifikoval kritické porušení modularity: "k čemu ale máme baseCard.jsx, když to pak napíšeš natvrdo do ProgramCard?"
+
+**Problém**: V předchozí session jsem implementoval feedback button pro ProgramCard tím, že jsem celý UI hardcodoval přímo do ProgramCard (47 řádků kódu), místo aby to byl modular feature BaseCard.
+
+### ✅ Co bylo opraveno
+
+#### 1. BaseCard.jsx - Feedback jako Built-in Feature
+**Soubor**: `/src/shared/components/cards/BaseCard.jsx`
+
+**Nové props**:
+```javascript
+feedbackData,      // Array - pole feedbacků (zobrazí button pokud existuje)
+onFeedbackClick,   // Handler pro klik na feedback button
+```
+
+**Implementace** (lines 461-509):
+```javascript
+{/* Feedback button - kompaktní tlačítko s reflexemi */}
+{feedbackData && feedbackData.length > 0 && (
+  <Box
+    onClick={onFeedbackClick}
+    sx={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 0.75,
+      px: 1.25,
+      py: 0.5,
+      marginLeft: 'auto',
+      backgroundColor: isDark
+        ? 'rgba(139, 188, 143, 0.1)'
+        : 'rgba(85, 107, 47, 0.08)',
+      border: '1px solid',
+      borderColor: isDark
+        ? 'rgba(139, 188, 143, 0.2)'
+        : 'rgba(85, 107, 47, 0.2)',
+      borderRadius: BORDER_RADIUS.small,
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      width: 'fit-content',
+      '&:hover': {
+        backgroundColor: isDark
+          ? 'rgba(139, 188, 143, 0.15)'
+          : 'rgba(85, 107, 47, 0.12)',
+        transform: 'translateY(-1px)',
+      },
+    }}
+  >
+    <MessageSquare size={14} strokeWidth={2} />
+    <Typography variant="caption" sx={{ fontWeight: 600, color: 'primary.main', fontSize: '0.7rem' }}>
+      {feedbackData.length}× reflexe
+    </Typography>
+  </Box>
+)}
+```
+
+**Změny**:
+- Import MessageSquare z lucide-react
+- Footer condition rozšířena: `(onClientPreview || feedbackData || footer)`
+- Feedback button se renderuje automaticky když `feedbackData` existuje
+
+#### 2. ProgramCard.jsx - Modular Řešení
+**Soubor**: `/src/modules/coach/components/coach/ProgramCard.jsx`
+
+**Odstraněno** (lines 193-240, 47 řádků):
+```javascript
+// Footer - Reflexe od klientek (row 9) - kompaktní tlačítko
+const footer = program.programFeedback && program.programFeedback.length > 0 ? (
+  <Box onClick={() => setFeedbackModalOpen(true)} sx={{ ... 40+ řádků hardcoded styling }}>
+    <MessageSquare ... />
+    <Typography ...>{program.programFeedback.length}× reflexe</Typography>
+  </Box>
+) : null;
+```
+
+**Nahrazeno** (lines 230-233):
+```javascript
+// Row 9: Footer (button "Jak to vidí klientka" + feedback button)
+onClientPreview={() => onPreview(program)}
+feedbackData={program.programFeedback}
+onFeedbackClick={() => setFeedbackModalOpen(true)}
+```
+
+**Cleanup**:
+- Odstraněn unused MessageSquare import
+
+### 🔍 Zjištění: MaterialCard není na BaseCard
+
+**Problém**: MaterialCard.jsx NEpoužívá BaseCard - má vlastní Card implementaci s hardcoded feedback button (lines 677-724).
+
+**Dva přístupy**:
+1. **Nechat jak je** - MaterialCard zůstává standalone s hardcoded feedback (rychlé)
+2. **Velký refactor** - přepsat MaterialCard na použití BaseCard (časově náročné, ale plně modular)
+
+**Status**: ⏳ Čeká na rozhodnutí před implementací
+
+### 📊 Statistiky
+
+**Soubory upraveny**: 2
+- `BaseCard.jsx` - feedback feature přidán (50+ řádků)
+- `ProgramCard.jsx` - hardcoded footer odstraněn (47 řádků smazáno)
+
+**Řádky kódu**: ~50 nových, ~47 smazáno = net +3 (ale výrazně lepší modularita!)
+
+**Čas**: ~15 minut
+
+### 🎓 Klíčové Lekce
+
+**1. Modularita musí být dodržena důsledně**
+```javascript
+// ❌ ŠPATNĚ - hardcoded v ProgramCard
+const footer = <Box sx={{ ... 40 řádků }}><MessageSquare /></Box>;
+
+// ✅ SPRÁVNĚ - modular v BaseCard
+<BaseCard
+  feedbackData={program.programFeedback}
+  onFeedbackClick={() => setFeedbackModalOpen(true)}
+/>
+```
+
+**2. BaseCard je single source of truth pro feedback UI**
+- ProgramCard jen předává data
+- MaterialCard by měl dělat stejně (po refactoru)
+- Změny UI na jednom místě → propagují se všude
+
+**3. Technical debt visibility**
+- MaterialCard není na BaseCard - identifikováno jako tech debt
+- Potřeba rozhodnout: quick fix vs. proper refactor
+
+### ✅ Production Readiness
+
+- [x] BaseCard má feedback feature
+- [x] ProgramCard používá modular řešení
+- [x] Žádné console errors
+- [x] Dev server běží bez chyb
+- [ ] MaterialCard refactor (pending decision)
+
+### ⏳ Pending Tasks
+
+**Kritická rozhodnutí před pokračováním**:
+1. Dokumentace aktuálního stavu (summary6.md) ✅
+2. Aktualizace MASTER_TODO_V3.md (pending)
+3. Aktualizace claude6.md (pending)
+4. Záloha před velkým refactorem MaterialCard (pending)
+5. Rozhodnutí: refactor MaterialCard → BaseCard? (pending user decision)
+
+---
+
 **Konec Summary 6**
 **Další summary**: Po dalších ~2000 řádcích změn nebo na požádání

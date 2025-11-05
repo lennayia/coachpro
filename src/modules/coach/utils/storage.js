@@ -458,6 +458,7 @@ const convertProgramFromDB = (dbProgram) => {
     qrCode: dbProgram.qr_code,
     isActive: dbProgram.is_active,
     days: dbProgram.days,
+    programFeedback: dbProgram.program_feedback || [],
     createdAt: dbProgram.created_at,
     updatedAt: dbProgram.updated_at,
   };
@@ -495,6 +496,7 @@ export const saveProgram = async (program) => {
       qr_code: program.qrCode || null,
       is_active: program.isActive !== undefined ? program.isActive : true,
       days: program.days, // JSONB column - Supabase handles this
+      program_feedback: program.programFeedback || [],
       created_at: program.createdAt || new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

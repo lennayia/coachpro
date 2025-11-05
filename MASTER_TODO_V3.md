@@ -49,7 +49,44 @@
 
 ---
 
-## 📝 CHANGELOG - Completed Sessions (1.-4. listopadu 2025)
+## 📝 CHANGELOG - Completed Sessions (1.-5. listopadu 2025)
+
+### Sprint 18c: BaseCard Feedback Modularity Fix (5.11.2025)
+
+**Kontext:** User identifikoval kritickou modularity violation: "k čemu ale máme baseCard.jsx, když to pak napíšeš natvrdo do ProgramCard?"
+
+**Implementováno:**
+- ✅ **BaseCard.jsx** - přidán feedback jako built-in feature
+  - Nové props: `feedbackData` (array), `onFeedbackClick` (handler)
+  - Automatické zobrazení feedback buttonu když data existují
+  - MessageSquare ikona, kompaktní design, primary barva
+  - Footer condition rozšířena: `(onClientPreview || feedbackData || footer)`
+
+- ✅ **ProgramCard.jsx** - refactored na modular řešení
+  - ODSTRANĚNO: 47 řádků hardcoded footer (lines 193-240)
+  - NAHRAZENO: 2 props (`feedbackData`, `onFeedbackClick`)
+  - Odebrán unused MessageSquare import
+  - Plně modular, žádné duplicity
+
+**Discovery:**
+- ⚠️ **MaterialCard.jsx** - nepoužívá BaseCard
+  - Má vlastní Card implementaci z MUI
+  - Obsahuje hardcoded feedback button (lines 677-724)
+  - Vyžaduje major refactor na BaseCard (pending user decision)
+
+**Soubory:**
+- `BaseCard.jsx` - feedback feature (50+ lines added)
+- `ProgramCard.jsx` - modular refactor (47 lines deleted)
+- `MaterialCard.jsx` - technical debt identified
+
+**Benefit:**
+- Feedback UI změny na jednom místě (BaseCard)
+- ProgramCard o 47 řádků kratší
+- Consistency napříč kartami (když MaterialCard bude refactored)
+
+**Status**: ✅ ProgramCard modular, MaterialCard pending refactor
+
+---
 
 ### UI Polish & Modularity Cleanup (4.11.2025, večer)
 

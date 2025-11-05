@@ -16,13 +16,14 @@
 
 ---
 
-## 🎯 Aktuální Práce (4.11.2025)
+## 🎯 Aktuální Práce (5.11.2025)
 
-**Aktuální task**: FloatingMenu + NavigationFloatingMenu - DOKONČENO ✅
-**Status**: ✅ Logo změněno na bílé (filter: brightness(0) invert(1))
-**Status**: ✅ Vzájemné zavírání menu implementováno
-**Status**: ✅ Glassmorphism backdrop bluruje CELOU stránku (Layout.jsx)
-**Pending**: Přidat Help buttons na ProgramsList a ClientsList
+**Aktuální task**: Sprint 18c - BaseCard Feedback Modularity Fix - DOKONČENO ✅
+**Status**: ✅ BaseCard.jsx - feedback jako built-in feature (feedbackData, onFeedbackClick props)
+**Status**: ✅ ProgramCard.jsx - refactored na modular řešení (47 řádků odstraněno)
+**Status**: ✅ Dokumentace aktualizována (summary6.md, MASTER_TODO_V3.md, claude.md)
+**Discovery**: ⚠️ MaterialCard.jsx NEpoužívá BaseCard - tech debt (čeká na rozhodnutí)
+**Pending**: MaterialCard refactor na BaseCard (pending user decision)
 
 ---
 
@@ -155,5 +156,5 @@ grep -n "px:" src/modules/coach/components/coach/MaterialsLibrary.jsx | head -5
 
 ---
 
-**Poslední update**: 4.11.2025, 15:30
+**Poslední update**: 5.11.2025, večer
 **Autor**: Lenka + Claude Sonnet 4.5
