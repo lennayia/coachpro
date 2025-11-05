@@ -28,7 +28,7 @@ import { isTouchDevice, createSwipeHandlers, createLongPressHandler } from '@sha
 
 /**
  * ClientCard - Reusable komponenta pro zobrazení karty klientky
- * Refactorováno na BaseCard pattern (5.1.2025)
+ * Refactorováno na BaseCard pattern (5.11.2025)
  */
 const ClientCard = ({ client, program, onViewDetails }) => {
   const theme = useTheme();

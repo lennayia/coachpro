@@ -2,7 +2,7 @@
 
 > **Účel**: Rychlý přehled nejdůležitějších pravidel. Pro detaily viz CLAUDE.md
 
-**Poslední update**: 5. listopadu 2025 (večer)
+**Poslední update**: 5. ledna 2025 (večer)
 **Pro full dokumentaci**: Čti CLAUDE.md (ale JEN když potřebuješ detaily!)
 
 ---
@@ -345,33 +345,66 @@ sx={{
 }}
 ```
 
+### Autocomplete Duplicate Keys Fix:
+```javascript
+// ✅ Používat getOptionKey pro unique keys
+<Autocomplete
+  options={clients}
+  getOptionLabel={(option) => option.name || ''}
+  getOptionKey={(option) => option.id}  // ← Fix duplicate keys!
+  isOptionEqualToValue={(option, value) => option.id === value.id}
+/>
+```
+
+### DialogTitle Typography Nesting:
+```javascript
+// ✅ component="div" předchází HTML nesting warnings
+<DialogTitle>
+  <Typography component="div" variant="h6">Title</Typography>
+  <Typography component="div" variant="body2">Subtitle</Typography>
+</DialogTitle>
+```
+
+### Mailto Link Pattern:
+```javascript
+const handleEmail = () => {
+  const subject = encodeURIComponent('Subject');
+  const body = encodeURIComponent('Body\nWith newlines');
+  const mailtoLink = `mailto:?subject=${subject}&body=${body}`;
+  window.location.href = mailtoLink;  // Opens email client
+};
+```
+
 ---
 
-## 📊 AKTUÁLNÍ STAV (5.11.2025, odpoledne)
+## 📊 AKTUÁLNÍ STAV (5.1.2025, večer)
 
-**Session**: MaterialCard Layout Reorganization
-**Commit**: `d8eef24`
-**Branch**: `feature/sprint18c-basecard-modularity`
+**Session**: Koučovací karty - Coach Interface
+**Commit**: TBD
+**Branch**: `google-auth-implementation` (continuation)
 
-**Dokončeno**:
-- ✅ MaterialCard layout reorganized (Row 1: icon+chip+date | Row 2: actions)
-- ✅ Creation date s Calendar icon (numeric: 5. 11. 2025)
-- ✅ Metadata reordered: fileSize → duration → pageCount
-- ✅ Alignment fixes s negative margins (ml/mr)
-- ✅ Row 9 always present (minHeight pro konzistenci)
-- ✅ CARD_PADDING zvětšen na desktopu (20px)
-- ✅ Responsive touch targets (36px mobil, 44px desktop)
-- ✅ Icon gap optimization (4px xs, 6px sm+)
-- ✅ Overflow ikony koše vyřešen (500-572px range)
+**Dokončeno v této session**:
+- ✅ BrowseCardDeckModal (nový, 146 řádků) - Grid view karet
+- ✅ ShareCardDeckModal refactor - Autocomplete výběr klientky
+- ✅ Email sharing button (mailto: link)
+- ✅ Eye icon fix (lucide-react místo MUI)
+- ✅ DialogTitle HTML nesting fix (component="div")
+- ✅ Duplicate keys warning fix (getOptionKey)
+- ✅ DB migrace připravena (client_id nullable foreign key)
 
-**Předchozí (Sprint 18c)**:
-- ✅ BaseCard.jsx - feedback jako built-in feature
-- ✅ ProgramCard.jsx - refactored na modular
+**Předchozí sessions**:
+- ✅ Google OAuth integration (5.1.2025, ráno)
+- ✅ MaterialCard layout reorganization (5.11.2025)
+- ✅ BaseCard feedback modularity (5.11.2025)
 
 **Tech Debt**:
 - ⚠️ MaterialCard.jsx NEpoužívá BaseCard (zůstává standalone)
 
 **Pending**:
+- [ ] Spustit migraci `20250105_05_add_client_id_to_shared_decks.sql`
+- [ ] Vložit obrázky karet do `/public/images/karty/`
+- [ ] Client interface (ClientCardDeckEntry, ClientCardDeckView, CardViewer)
+- [ ] Modularizace sdílení (Universal ShareModal)
 - [ ] Help buttons na ProgramsList a ClientsList
 - [ ] Sprint 18b: Button Modularity System (6-8 hodin)
 
@@ -396,3 +429,38 @@ sx={{
 **Pro sprint history**: Čti `summary.md`
 **Pro aktuální kontext**: Čti `CONTEXT_QUICK.md`
 **Pro TODO**: Čti `MASTER_TODO_V3.md`
+
+---
+
+## 🔐 Google OAuth Integration (5.1.2025)
+
+**Status**: ✅ DOKONČENO
+
+### Critical Fixes Applied
+
+**Bug #1: SQL Migration Order**
+- Problem: Migration #2 referencovala sloupec z migration #3
+- Fix: Změněno pořadí 1→3→2 místo 1→2→3
+
+**Bug #2: UUID vs TEXT Casting**
+- Problem: `auth.uid()` (UUID) vs `coach_id` (TEXT) nešel porovnat
+- Fix: Explicit cast `auth.uid()::text` v obou migracích
+
+### OAuth + Fallback Architecture
+
+**OAuth Flow**:
+- ClientSignup → Google OAuth
+- ClientProfile → Data entry  
+- ClientEntry → 6-digit code → Linked via auth_user_id
+
+**Fallback Flow**:
+- ClientEntry → 6-digit code → Optional name → No auth_user_id
+
+**Key**: Nullable `auth_user_id` v `coachpro_clients` podporuje oba režimy.
+
+### Files Changed
+- `20250105_03_add_auth_to_clients.sql` - UUID cast
+- `20250105_02_create_client_profiles.sql` - UUID cast  
+- `ClientEntry.jsx` - OAuth check + linking (67 lines)
+
+**Next**: Production testing, UX improvements

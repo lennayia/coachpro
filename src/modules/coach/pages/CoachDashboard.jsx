@@ -7,6 +7,7 @@ import MaterialsLibrary from '../components/coach/MaterialsLibrary';
 import ProgramsList from '../components/coach/ProgramsList';
 import ClientsList from '../components/coach/ClientsList';
 import ProfilePage from './ProfilePage';
+import CardDecksLibrary from '../components/coach/CardDecksLibrary';
 
 const CoachDashboard = () => {
   return (
@@ -17,6 +18,7 @@ const CoachDashboard = () => {
         <Route path="/materials" element={<MaterialsLibrary />} />
         <Route path="/programs" element={<ProgramsList />} />
         <Route path="/clients" element={<ClientsList />} />
+        <Route path="/cards" element={<CardDecksLibrary />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </Layout>

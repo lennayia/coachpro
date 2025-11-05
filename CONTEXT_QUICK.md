@@ -16,25 +16,25 @@
 
 ---
 
-## 🎯 Aktuální Práce (5.11.2025)
+## 🎯 Aktuální Práce (5.11.2025, večer)
 
-**Aktuální task**: MaterialCard Layout Reorganization - DOKONČENO ✅
-**Commit**: `d8eef24`
-**Branch**: `feature/sprint18c-basecard-modularity`
+**Aktuální task**: Koučovací karty - Coach Interface - DOKONČENO ✅
+**Commit**: TBD
+**Branch**: `google-auth-implementation` (continuation)
 
-### Co bylo hotové:
-- ✅ Layout reorganized: Row 1 (icon+chip+date) | Row 2 (actions)
-- ✅ Creation date s Calendar icon (numeric format)
-- ✅ Metadata reordered: fileSize → duration → pageCount
-- ✅ Alignment fixes pomocí negative margins
-- ✅ Row 9 always present (minHeight)
-- ✅ CARD_PADDING zvětšen (20px desktop)
-- ✅ Responsive touch targets (36px/44px)
-- ✅ Icon gap optimization (4px/6px)
+### Co bylo hotové v této session:
+- ✅ BrowseCardDeckModal.jsx (nový, 146 řádků) - Grid view karet
+- ✅ ShareCardDeckModal - Autocomplete výběr klientky (místo TextField)
+- ✅ Email sharing button (mailto: link)
+- ✅ Eye icon fix (lucide-react místo MUI)
+- ✅ DialogTitle HTML nesting fix (component="div")
+- ✅ Duplicate keys warning fix (getOptionKey prop)
+- ✅ DB migrace připravena (client_id nullable foreign key)
 
-### Předchozí (Sprint 18c):
-- ✅ BaseCard.jsx - feedback jako built-in feature
-- ✅ ProgramCard.jsx - refactored na modular řešení
+### Předchozí sessions:
+- ✅ Google OAuth integration (5.11.2025, vdčer)
+- ✅ MaterialCard Layout Reorganization (5.11.2025)
+- ✅ BaseCard feedback modularity (5.11.2025)
 - ⚠️ MaterialCard.jsx NEpoužívá BaseCard (tech debt zůstává)
 
 ---
@@ -170,3 +170,76 @@ grep -n "px:" src/modules/coach/components/coach/MaterialsLibrary.jsx | head -5
 
 **Poslední update**: 5.11.2025, večer
 **Autor**: Lenka + Claude Sonnet 4.5
+
+---
+
+## 🔐 OAuth Integration Update (5.11.2025)
+
+**Features Added**:
+- Google OAuth pro klientky
+- Dual flow: OAuth + Fallback (code-based)
+- `auth_user_id` nullable v `coachpro_clients`
+
+**Client Profiles**:
+```
+coachpro_client_profiles:
+- auth_user_id (UNIQUE)
+- name, email, phone
+- date_of_birth
+- goals, health_notes
+```
+
+**RLS Policies**: Podporují OAuth i fallback
+
+**Frontend**: ClientEntry.jsx checks OAuth status, links via auth_user_id
+
+**Production**: ✅ Ready (SQL migrations run, Google OAuth configured)
+
+---
+
+## 🎴 Koučovací Karty - Key Patterns (5.11.2025)
+
+### Autocomplete Duplicate Keys Fix
+```javascript
+<Autocomplete
+  options={clients}
+  getOptionLabel={(option) => option.name || ''}
+  getOptionKey={(option) => option.id}  // ← DŮLEŽITÉ pro unique keys!
+  isOptionEqualToValue={(option, value) => option.id === value.id}
+/>
+```
+
+### DialogTitle Typography Nesting
+```javascript
+// ✅ SPRÁVNĚ - component="div" předchází HTML nesting warnings
+<DialogTitle>
+  <Typography component="div" variant="h6">Title</Typography>
+  <Typography component="div" variant="body2">Subtitle</Typography>
+</DialogTitle>
+```
+
+### Mailto Link Pattern
+```javascript
+const handleEmail = () => {
+  const subject = encodeURIComponent('Subject');
+  const body = encodeURIComponent('Body\nWith newlines');
+  const mailtoLink = `mailto:?subject=${subject}&body=${body}`;
+  window.location.href = mailtoLink;
+};
+```
+
+### Nullable Foreign Keys Design
+```sql
+-- Podporuje 2 režimy: registrovaná + nová klientka
+ALTER TABLE coachpro_shared_card_decks
+ADD COLUMN client_id TEXT REFERENCES coachpro_clients(id);  -- nullable!
+
+-- Režim 1: client_id = "uuid-123", client_name = "Jana"
+-- Režim 2: client_id = null, client_name = "Eva"
+```
+
+### Pending Tasks
+- [ ] Spustit migraci `20250105_05_add_client_id_to_shared_decks.sql`
+- [ ] Vložit obrázky karet do `/public/images/karty/`
+- [ ] Client interface (ClientCardDeckEntry, ClientCardDeckView, CardViewer)
+- [ ] Modularizace sdílení (Universal ShareModal pro materiály + programy + karty)

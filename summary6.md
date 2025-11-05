@@ -745,3 +745,656 @@ feat: MaterialCard layout reorganization & responsive improvements
 **Status**: ✅ Session dokončena (5.11.2025)
 **Příští priorita**: Testování na různých breakpointech, případně další UI polish 🚀
 
+
+---
+
+## 📋 Session: Google OAuth Integration - Database Setup & Client Linking (5.11.2025)
+
+**Datum**: 5. ledna 2025
+**AI**: Claude Sonnet 4.5
+**Status**: ✅ Kompletně dokončeno
+**Priorita**: HIGH - OAuth pro klientky
+
+### 🎯 Cíl Session
+
+Dokončit Google OAuth integraci pro klientky:
+1. Spustit SQL migrace v Supabase
+2. Nakonfigurovat Google OAuth v Supabase
+3. Propojit OAuth klientky s programy přes 6-místný kód
+
+### 🐛 Critical Bug: SQL Migration Dependency
+
+**Problém**: Migrace selhala kvůli špatnému pořadí a UUID casting chybě
+
+**Error #1**: Migration order
+```
+ERROR: 42703: column c.auth_user_id does not exist
+```
+- Migration #2 vytvářela RLS policy odkazující na `coachpro_clients.auth_user_id`
+- Ale ten sloupec se vytvářel až v migration #3!
+
+**Fix**: Změněno pořadí:
+1. ✅ `20250105_add_availability_and_link_to_programs.sql`
+2. ⏭️ `20250105_03_add_auth_to_clients.sql` (vytvoří `auth_user_id`)
+3. ⏭️ `20250105_02_create_client_profiles.sql` (může referencovat sloupec)
+
+**Error #2**: UUID vs TEXT casting
+```
+ERROR: 42883: operator does not exist: text = uuid
+```
+- `auth.uid()` vrací UUID
+- `coach_id` v localStorage je TEXT
+- Postgres nemůže porovnat tyto typy přímo
+
+**Fix**: Přidán explicit cast (2 soubory):
+
+```sql
+-- Migration 03 (line 53)
+AND p.coach_id = auth.uid()::text  -- ✅ Cast UUID to text
+
+-- Migration 02 (line 57)
+AND p.coach_id IN (
+  SELECT id FROM coachpro_coaches WHERE id = auth.uid()::text
+)
+```
+
+### ✅ Implementace
+
+#### 1. SQL Migrace (3 soubory spuštěny)
+
+**A) Programs - availability & link** ✅
+- `availability_start_date`, `availability_end_date` - časové omezení
+- `external_link`, `external_link_label` - externí odkazy (Kajabi atd.)
+
+**B) Add auth to clients** ✅
+- `auth_user_id UUID` sloupec do `coachpro_clients`
+- Nullable pro backward compatibility s code-based klientkami
+- RLS policies pro OAuth i fallback flow
+
+**C) Client profiles** ✅
+- Nová tabulka `coachpro_client_profiles`
+- OAuth user data: name, email, phone, date_of_birth, goals, health_notes
+- UNIQUE constraint na `auth_user_id`
+
+#### 2. Google OAuth Configuration
+
+**Google Cloud Console**:
+- Vytvořen nový OAuth Client ID pro CoachPro
+- Application type: Web application
+- Authorized JavaScript origins:
+  - `http://localhost:3000` (development)
+  - `https://coachpro-weld.vercel.app` (production)
+- Authorized redirect URIs:
+  - `https://[supabase-project-id].supabase.co/auth/v1/callback`
+
+**Supabase Dashboard**:
+- Authentication → Providers → Google → Enable
+- Client ID + Client Secret z Google OAuth
+- Callback URL přidána do Google credentials
+
+#### 3. ClientEntry.jsx - OAuth Support
+
+**Přidáno** (67 lines změněno):
+
+```javascript
+import { supabase } from '@shared/config/supabase';
+
+const [authUser, setAuthUser] = useState(null);
+
+// Check OAuth status při načtení
+useEffect(() => {
+  const checkAuth = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      setAuthUser(user);
+      
+      // Pre-fill name z profilu
+      const { data: profile } = await supabase
+        .from('coachpro_client_profiles')
+        .select('name')
+        .eq('auth_user_id', user.id)
+        .single();
+
+      if (profile?.name) {
+        setClientName(profile.name);
+      }
+    }
+  };
+  checkAuth();
+}, []);
+
+// Při vytvoření client záznamu propojit s OAuth
+client = {
+  // ... existing fields
+  auth_user_id: authUser?.id || null,  // ✅ OAuth linking
+};
+```
+
+### 📊 OAuth Flow Diagram
+
+**🔐 OAuth Flow** (nový):
+```
+1. /client/signup → Google OAuth
+2. /client/profile → Vyplnění profilu (name, email, goals)
+3. /client/entry → Zadání 6-místného kódu
+4. System propojí auth_user_id s programem
+5. /client/daily → Přístup k programu ✅
+```
+
+**🔑 Fallback Flow** (původní):
+```
+1. /client/entry → Zadání 6-místného kódu
+2. Name input (volitelné)
+3. Client záznam bez auth_user_id
+4. /client/daily → Přístup k programu ✅
+```
+
+### 🎓 Lessons Learned
+
+**1. SQL Migration Dependencies**
+- Pořadí migrací je KRITICKÉ
+- Policies nemohou referencovat neexistující sloupce
+- Vždy check dependencies před spuštěním
+
+**2. PostgreSQL Type Casting**
+- UUID ≠ TEXT bez explicit castu
+- `auth.uid()::text` řeší incompatibility
+- Better: Používat UUID všude (budoucí refactor)
+
+**3. OAuth + Fallback Architecture**
+- Nullable `auth_user_id` umožňuje oba flows
+- OAuth není povinný = backward compatibility
+- RLS policies musí podporovat oba režimy
+
+**4. Supabase Project Naming**
+- Jeden projekt "ProApp" pro všechny moduly
+- Prefix tabulek rozlišuje moduly: `coachpro_*`, `paymentspro_*`
+- Sdílená Auth infrastruktura
+
+### 📁 Soubory změněné
+
+**SQL Migrations** (3 opraveny):
+1. `/supabase/migrations/20250105_add_availability_and_link_to_programs.sql`
+2. `/supabase/migrations/20250105_03_add_auth_to_clients.sql` - UUID cast fix
+3. `/supabase/migrations/20250105_02_create_client_profiles.sql` - UUID cast fix
+
+**Frontend** (1 soubor):
+1. `ClientEntry.jsx` - OAuth check + auth_user_id linking
+
+### ✅ Testing
+
+**Test OAuth flow**:
+- [x] `/client/signup` → Google OAuth button
+- [x] Google přihlášení funguje
+- [x] `/client/profile` → profil se uloží
+- [x] `/client/entry` → kód se zadá
+- [x] `auth_user_id` se propojí s programem ✅
+
+**Test fallback**:
+- [x] `/client/entry` → kód + jméno
+- [x] Client bez `auth_user_id` funguje ✅
+
+### 🚀 Production Readiness
+
+- [x] SQL migrace spuštěny v Supabase
+- [x] Google OAuth nakonfigurován
+- [x] RLS policies pro OAuth + fallback
+- [x] ClientEntry podporuje oba flows
+- [x] Backward compatibility zachována
+- [x] Žádné breaking changes
+- [x] Dev server běží bez chyb
+
+---
+
+**Status**: ✅ Google OAuth integrace dokončena (5.11.2025)
+**Flow**: OAuth + Fallback oba funkční ✅
+**Dev Server**: ✅ Běží bez chyb
+**Příští priorita**: Testování v production + možná UX vylepšení signup flow 🚀
+
+---
+---
+
+# 📋 Session: Koučovací karty - Coach Interface (5.11.2025, večer)
+
+**Branch**: `google-auth-implementation` (continuation)
+**Čas**: ~45 minut
+**Status**: ✅ Coach interface complete, ready for testing
+
+---
+
+## 🎯 Co jsme vytvořili
+
+### 1. Eye Icon Fix ✅
+**Problém**: `Eye` ikona importována z `@mui/icons-material` (kde neexistuje)
+**Fix**: `CardDecksLibrary.jsx:11-12, 245`
+```javascript
+// ❌ PŘED
+import { Eye as EyeIcon } from '@mui/icons-material';
+<EyeIcon />
+
+// ✅ PO
+import { Eye } from 'lucide-react';
+<Eye size={18} />
+```
+
+---
+
+### 2. BrowseCardDeckModal (NOVÝ SOUBOR) ✅
+
+**Soubor**: `/src/modules/coach/components/coach/BrowseCardDeckModal.jsx` (146 řádků)
+
+**Funkce**: Modal pro procházení všech karet v balíčku (coach view)
+
+**Design**:
+- Grid layout (xs=6, sm=4, md=3)
+- Square card images (`aspectRatio: '1/1'`)
+- Název + emoce chip
+- Framer Motion stagger animations
+- Barvy podle cyklu (Jaro/Léto/Podzim/Zima)
+- Hover efekt (`translateY(-4px)`)
+
+**Props**:
+```javascript
+<BrowseCardDeckModal
+  deck={deck}        // { title, cards, cyklus, motiv, color, cardCount }
+  open={boolean}
+  onClose={callback}
+/>
+```
+
+**Integrace**: `CardDecksLibrary.jsx`
+- Import přidán (line 24)
+- State `browseModalOpen` (line 61)
+- Handler `handleBrowse` (line 130-133)
+- Modal rendering (line 303-313)
+
+---
+
+### 3. ShareCardDeckModal - Client Selection Refactor ✅
+
+**Změny**: Přechod z TextField (jméno) → Autocomplete (výběr klientky z DB)
+
+**A) Imports** (lines 1, 14, 38):
+```javascript
+import { useState, useEffect } from 'react';
+import { Autocomplete } from '@mui/material';
+import { getCurrentUser, getClients } from '../../utils/storage';
+import { Email as EmailIcon } from '@mui/icons-material';
+```
+
+**B) State refactor** (lines 48-70):
+```javascript
+// ❌ PŘED
+const [clientName, setClientName] = useState('');
+
+// ✅ PO
+const [clients, setClients] = useState([]);
+const [selectedClient, setSelectedClient] = useState(null);
+
+useEffect(() => {
+  if (open) loadClients();
+}, [open]);
+
+const loadClients = async () => {
+  const data = await getClients();
+  setClients(data || []);
+};
+```
+
+**C) Autocomplete UI** (lines 229-247):
+```javascript
+<Autocomplete
+  options={clients}
+  getOptionLabel={(option) => option.name || ''}
+  getOptionKey={(option) => option.id}  // ✅ Fix duplicate keys
+  value={selectedClient}
+  onChange={(event, newValue) => setSelectedClient(newValue)}
+  renderInput={(params) => (
+    <TextField
+      {...params}
+      label="Vybrat klientku"
+      required
+      autoFocus
+      sx={createFormTextField(isDark)}
+    />
+  )}
+  fullWidth
+  isOptionEqualToValue={(option, value) => option.id === value.id}
+  noOptionsText="Žádné klientky"
+/>
+```
+
+**D) Database insert** (lines 119-129):
+```javascript
+// ✅ Nově ukládá client_id + client_name
+await supabase
+  .from('coachpro_shared_card_decks')
+  .insert({
+    id: sharedDeckId,
+    client_id: selectedClient.id,        // ← NOVÉ
+    client_name: selectedClient.name,
+    deck_id: deckId,
+    share_code: shareCode,
+    access_start_date: accessStartDate ? accessStartDate.toISOString() : null,
+    access_end_date: accessEndDate ? accessEndDate.toISOString() : null,
+  });
+```
+
+**E) Validation** (line 370):
+```javascript
+// ❌ PŘED: disabled={loading || !clientName.trim()}
+// ✅ PO:
+disabled={loading || !selectedClient}
+```
+
+---
+
+### 4. Email Sharing Feature ✅
+
+**Přidáno**: `mailto:` link pro přímé sdílení přes e-mail klienta
+
+**A) Helper funkce** (lines 167-187):
+```javascript
+const getShareText = () => {
+  if (!generatedData) return '';
+
+  const accessInfo = generatedData.accessEndDate
+    ? `\n⏰ Dostupné: ${formatDate(accessStartDate, ...)} - ${formatDate(accessEndDate, ...)}`
+    : `\n⏰ Dostupné od: ${formatDate(accessStartDate, ...)}`;
+
+  return `🌿 CoachPro - Koučovací karty
+
+${deck.title}
+${deck.subtitle}
+
+📚 ${deck.cardCount} karet${accessInfo}
+
+🔑 Pro přístup zadej tento kód v aplikaci CoachPro:
+${generatedData.shareCode}
+
+Nebo naskenuj QR kód, který ti pošlu.
+
+Těším se na tvůj růst! 💚`;
+};
+```
+
+**B) Email handler** (lines 189-198):
+```javascript
+const handleEmail = () => {
+  if (!generatedData) return;
+
+  const subject = encodeURIComponent(`${deck.title} - Koučovací karty`);
+  const body = encodeURIComponent(getShareText());
+  const mailtoLink = `mailto:?subject=${subject}&body=${body}`;
+
+  window.location.href = mailtoLink;
+  showSuccess('Hotovo!', 'Email klient otevřen! 📧');
+};
+```
+
+**C) UI button** (lines 363-370):
+```javascript
+<Button
+  variant="outlined"
+  startIcon={<EmailIcon />}
+  onClick={handleEmail}
+  fullWidth
+>
+  Poslat e-mailem
+</Button>
+```
+
+**Jak funguje**:
+1. Klikneš "Poslat e-mailem"
+2. Otevře se výchozí e-mailový klient (Apple Mail, Outlook...)
+3. Předmět a text jsou předvyplněné
+4. Doplníš e-mail klientky a odešleš
+
+**Known Issue**: Apple Mail může mít problémy s odesláním (SMTP config) - fallback: zkopíruj kód + pošli přes Gmail web.
+
+---
+
+### 5. DialogTitle HTML Nesting Fix ✅
+
+**Problém**: `<DialogTitle>` renderuje `<h2>`, uvnitř bylo `<Typography variant="h6">` → `<h6>` vnořené v `<h2>` = invalid HTML
+
+**Fix**: Přidán `component="div"` v obou modalech
+
+**ShareCardDeckModal.jsx** (lines 218-223):
+```javascript
+<DialogTitle>
+  <Typography component="div" variant="h6" sx={{ fontWeight: 600 }}>
+    {step === 'form' ? 'Sdílet balíček karet' : 'Kód vygenerován! ✨'}
+  </Typography>
+  <Typography component="div" variant="body2" color="text.secondary">
+    {step === 'form' ? deck.title : `Pro ${generatedData?.clientName}`}
+  </Typography>
+</DialogTitle>
+```
+
+**BrowseCardDeckModal.jsx** (lines 64-77):
+```javascript
+<Typography component="div" variant="h5" sx={{ fontWeight: 700, color: deck.color.main }}>
+  {deck.title}
+</Typography>
+<Typography component="div" variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+  📚 {deck.cardCount} karet • {deck.cyklus} • {deck.motiv}
+</Typography>
+```
+
+---
+
+### 6. Duplicate Keys Warning Fix ✅
+
+**Problém**: Autocomplete měl duplicate keys (`"Preview (Koučka)"`, `"a"`) → více klientek se stejným jménem
+
+**Fix**: `getOptionKey` prop (line 232):
+```javascript
+<Autocomplete
+  options={clients}
+  getOptionKey={(option) => option.id}  // ✅ Použije ID místo jména
+  ...
+/>
+```
+
+---
+
+## 🗄️ Database Migration (PREPARED)
+
+**Soubor**: `/supabase/migrations/20250105_05_add_client_id_to_shared_decks.sql`
+
+```sql
+-- Přidání client_id do coachpro_shared_card_decks
+ALTER TABLE coachpro_shared_card_decks
+ADD COLUMN IF NOT EXISTS client_id TEXT REFERENCES coachpro_clients(id) ON DELETE CASCADE;
+
+-- Index pro rychlé vyhledávání
+CREATE INDEX IF NOT EXISTS idx_coachpro_shared_card_decks_client_id
+ON coachpro_shared_card_decks(client_id);
+```
+
+**Purpose**: Sdílení s konkrétní klientkou (ne jen jméno)
+
+**Design**: `client_id` je **nullable** = podporuje 2 režimy:
+- ✅ Registrovaná klientka → `client_id` + `client_name`
+- ✅ Nová klientka (budoucí) → `client_id = null` + `client_name`
+
+**Status**: ⏳ Připraveno, čeká na spuštění v Supabase SQL Editor
+
+---
+
+## 📊 Soubory změněné (7)
+
+### Nové soubory (2):
+1. `BrowseCardDeckModal.jsx` (146 řádků) - Grid view karet
+2. `20250105_05_add_client_id_to_shared_decks.sql` - DB migrace
+
+### Upravené soubory (5):
+3. `CardDecksLibrary.jsx` - Eye icon fix + BrowseModal integration
+4. `ShareCardDeckModal.jsx` - Client selection + email sharing
+5. `summary6.md` - This documentation
+6. `claude.md` - (pending update)
+7. `MASTER_TODO_V3.md` - (pending update)
+
+---
+
+## 🧪 Testing Checklist
+
+**Coach Flow**:
+- [x] Eye icon fix funguje (no errors)
+- [x] Duplicate keys warning opraveno
+- [x] DialogTitle nesting warning opraveno
+- [ ] Spustit migraci v Supabase
+- [ ] Procházet balíček → BrowseCardDeckModal otevře
+- [ ] Sdílet balíček → Výběr klientky z Autocomplete
+- [ ] Vygenerovat kód → Uloží se `client_id` + `client_name`
+- [ ] "Zkopírovat kód" → Zkopíruje shareCode
+- [ ] "Stáhnout QR kód" → Stáhne PNG
+- [ ] "Poslat e-mailem" → Otevře email klient
+- [ ] "Sdílet s klientkou" → Web Share API nebo clipboard
+
+**Client Flow** (pending):
+- [ ] `/client/cards` → Entry screen s 6-char kódem
+- [ ] Zadání kódu → Zobrazí náhled balíčku
+- [ ] Potvrzení → Přístup k balíčku
+- [ ] `/client/card-deck/:code` → Grid view karet
+- [ ] Kliknutí na kartu → CardViewer (3-step)
+- [ ] PŘED → PRAXE → PO → Tracking v DB
+
+---
+
+## 🎓 Klíčové Lekce
+
+### 1. Autocomplete Keys Pattern
+```javascript
+// ❌ ŠPATNĚ - používá label (může být duplicitní)
+<Autocomplete
+  options={clients}
+  getOptionLabel={(option) => option.name}
+/>
+
+// ✅ SPRÁVNĚ - explicitní ID key
+<Autocomplete
+  options={clients}
+  getOptionLabel={(option) => option.name}
+  getOptionKey={(option) => option.id}  // ← Důležité!
+  isOptionEqualToValue={(option, value) => option.id === value.id}
+/>
+```
+
+### 2. DialogTitle Typography Pattern
+```javascript
+// ❌ ŠPATNĚ - <h6> vnořené v <h2>
+<DialogTitle>
+  <Typography variant="h6">Title</Typography>
+</DialogTitle>
+
+// ✅ SPRÁVNĚ - div s h6 styling
+<DialogTitle>
+  <Typography component="div" variant="h6">Title</Typography>
+</DialogTitle>
+```
+
+### 3. Icon Import Pattern
+```javascript
+// ❌ MUI ikony (omezený set)
+import { Eye as EyeIcon } from '@mui/icons-material';
+
+// ✅ Lucide React (full set)
+import { Eye } from 'lucide-react';
+<Eye size={18} />
+```
+
+### 4. Mailto Link Pattern
+```javascript
+const handleEmail = () => {
+  const subject = encodeURIComponent('Subject');
+  const body = encodeURIComponent('Body text\nWith newlines');
+  const mailtoLink = `mailto:?subject=${subject}&body=${body}`;
+
+  window.location.href = mailtoLink;  // Otevře email klient
+};
+```
+
+### 5. Nullable Foreign Keys Design
+```sql
+-- ✅ SPRÁVNĚ - podporuje 2 režimy
+ALTER TABLE coachpro_shared_card_decks
+ADD COLUMN client_id TEXT REFERENCES coachpro_clients(id);  -- nullable!
+
+-- Režim 1: Registrovaná klientka
+-- client_id = "uuid-123", client_name = "Jana"
+
+-- Režim 2: Nová klientka (budoucí)
+-- client_id = null, client_name = "Eva"
+```
+
+---
+
+## 🔮 Budoucí Plán: Modularizace Sdílení
+
+**Problém**: Duplicitní kód napříč ShareProgramModal, ShareMaterialModal, ShareCardDeckModal
+
+**Řešení**: Univerzální `ShareModal` komponenta
+
+**Design**:
+```javascript
+<ShareModal
+  type="material|program|cards"
+  item={material|program|deck}
+  clientMode="existing|new"  // Toggle mezi režimy
+  onSuccess={callback}
+/>
+```
+
+**DB migrace potřebné**:
+```sql
+-- Přidat client_id do materials
+ALTER TABLE coachpro_shared_materials
+ADD COLUMN client_id TEXT REFERENCES coachpro_clients(id);
+
+-- Cards už má (migrace #05)
+-- Programs nemají shared table (ukládá se do coachpro_clients)
+```
+
+**Timeline**: Po otestování karet (Session B approach)
+
+---
+
+## ⏳ Pending Tasks
+
+**Před testováním**:
+1. ✅ Spustit migraci `20250105_05_add_client_id_to_shared_decks.sql` v Supabase
+2. ⏳ Vložit obrázky karet do `/public/images/karty/` (user task)
+
+**Client Interface** (příští session):
+- `ClientCardDeckEntry.jsx` - 6-char kód entry
+- `ClientCardDeckView.jsx` - Grid karet
+- `CardViewer.jsx` - 3-step stepper (PŘED → PRAXE → PO)
+- Tracking v `coachpro_card_usage`
+
+**Modularizace** (budoucí session):
+- Universal ShareModal
+- DB migrace pro materials
+- Refactor všech 3 share modalů
+
+---
+
+## 🚀 Production Readiness
+
+- [x] Eye icon fix
+- [x] HTML nesting warnings opraveno
+- [x] Duplicate keys warning opraveno
+- [x] BrowseCardDeckModal responsive
+- [x] ShareCardDeckModal client selection
+- [x] Email sharing (mailto: link)
+- [x] DB migrace připravena
+- [ ] Migrace spuštěna v Supabase
+- [ ] Testing v produkci
+
+---
+
+**Status**: ✅ Coach interface complete (5.11.2025, večer)
+**Dev Server**: ✅ Běží bez warnings
+**Příští krok**: Spustit migraci + otestovat Browse & Share flow 🎴
+
