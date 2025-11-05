@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import {
-  Card,
-  CardContent,
   Box,
   Typography,
-  LinearProgress,
-  Chip,
   IconButton,
   Dialog,
   DialogTitle,
@@ -13,8 +9,8 @@ import {
   DialogActions,
   Button,
   Divider,
+  LinearProgress,
   useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import {
   User,
@@ -23,25 +19,21 @@ import {
   CheckCircle2,
   Clock,
   Activity,
-  Eye,
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { cs } from 'date-fns/locale';
+import { formatDate } from '@shared/utils/helpers';
 import BORDER_RADIUS from '@styles/borderRadius';
-import { useGlassCard } from '@shared/hooks/useModernEffects';
-import { createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';
+import { createBackdrop, createGlassDialog } from '@shared/styles/modernEffects';
+import BaseCard from '@shared/components/cards/BaseCard';
+import { isTouchDevice, createSwipeHandlers, createLongPressHandler } from '@shared/utils/touchHandlers';
 
 /**
  * ClientCard - Reusable komponenta pro zobrazení karty klientky
- *
- * @param {Object} client - Client object z localStorage
- * @param {Object} program - Program object (pro zobrazení názvu programu)
- * @param {Function} onViewDetails - Callback při kliknutí na detail
+ * Refactorováno na BaseCard pattern (5.1.2025)
  */
 const ClientCard = ({ client, program, onViewDetails }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  const isMobile = useMediaQuery('(max-width:600px)');
+  const isTouch = isTouchDevice();
   const [detailOpen, setDetailOpen] = useState(false);
 
   // Calculate progress
@@ -50,149 +42,134 @@ const ClientCard = ({ client, program, onViewDetails }) => {
   const progressPercent = totalDays > 0 ? (completedDays / totalDays) * 100 : 0;
   const isCompleted = completedDays === totalDays && totalDays > 0;
 
-  // Calculate streak
-  const currentStreak = client?.completedDays?.length || 0;
-
   // Status
   const getStatus = () => {
-    if (isCompleted) return { label: 'Dokončeno', color: 'success' };
-    if (currentStreak === 0) return { label: 'Nová', color: 'info' };
-    if (currentStreak > 0) return { label: 'Aktivní', color: 'primary' };
-    return { label: 'Neaktivní', color: 'default' };
+    if (isCompleted) return { label: 'Dokončeno', color: 'success', active: true };
+    if (completedDays === 0) return { label: 'Nová', color: 'secondary', active: true };
+    if (completedDays > 0) return { label: 'Aktivní', color: 'primary', active: true };
+    return { label: 'Neaktivní', color: 'primary', active: false };
   };
 
   const status = getStatus();
 
-  // Format dates
-  const startedDate = client?.startedAt
-    ? format(new Date(client.startedAt), 'd. MMMM yyyy', { locale: cs })
-    : 'Neznámé';
+  // Touch gestures - Long press pro detail
+  const longPressHandlers = createLongPressHandler({
+    onLongPress: () => {
+      if (isTouch) {
+        setDetailOpen(true);
+      }
+    },
+    delay: 600,
+  });
 
-  const completedDate = client?.completedAt
-    ? format(new Date(client.completedAt), 'd. MMMM yyyy', { locale: cs })
-    : null;
+  // Row 1: User avatar (large icon)
+  const largeIcon = (
+    <IconButton
+      sx={{
+        p: 0,
+        ml: -0.5,
+        width: 40,
+        height: 40,
+        borderRadius: '50%',
+        backgroundColor: isDark
+          ? 'rgba(139, 188, 143, 0.15)'
+          : 'rgba(85, 107, 47, 0.1)',
+      }}
+    >
+      <User size={24} color={theme.palette.primary.main} />
+    </IconButton>
+  );
 
-  // Handle card click
-  const handleCardClick = () => {
-    setDetailOpen(true);
-    if (onViewDetails) {
-      onViewDetails(client);
-    }
+  // Row 2: Datum začátku s Calendar ikonou (vpravo)
+  const startDateChip = {
+    label: formatDate(client?.startedAt, { month: 'numeric', year: 'numeric' }) || 'Neznámé',
+    icon: <Calendar size={14} />,
+    color: 'secondary',
   };
+
+  // Row 3: Metadata
+  const metadataItems = [
+    {
+      label: `Den ${client?.currentDay || 1}`,
+    },
+    {
+      label: `${client?.completedDays?.length || 0}× série`,
+    },
+    {
+      label: `${completedDays}/${totalDays} dní`,
+    },
+  ];
+
+  // Row 5: Title = Jméno klientky
+  const title = client?.name || 'Nepojmenovaná klientka';
+
+  // Row 6: Description = Název programu
+  const description = program?.title || 'Neznámý program';
+
+  // Row 7: Progress bar jako taxonomy chips area
+  const progressBar = (
+    <Box>
+      <Box display="flex" justifyContent="space-between" mb={0.5}>
+        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+          Postup
+        </Typography>
+        <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.7rem' }}>
+          {Math.round(progressPercent)}%
+        </Typography>
+      </Box>
+      <LinearProgress
+        variant="determinate"
+        value={progressPercent}
+        sx={{
+          height: 6,
+          borderRadius: BORDER_RADIUS.minimal,
+          backgroundColor: isDark
+            ? 'rgba(255, 255, 255, 0.1)'
+            : 'rgba(0, 0, 0, 0.1)',
+          '& .MuiLinearProgress-bar': {
+            borderRadius: BORDER_RADIUS.minimal,
+            background: isCompleted
+              ? 'linear-gradient(90deg, #8FBC8F 0%, #6B8E23 100%)'
+              : 'linear-gradient(90deg, #8FBC8F 0%, #9ACD32 100%)',
+          },
+        }}
+      />
+    </Box>
+  );
 
   return (
     <>
-      <Card
-        onClick={handleCardClick}
-        sx={{
-          cursor: 'pointer',
-          borderRadius: BORDER_RADIUS.card,
-          transition: 'all 0.3s ease',
-          border: '1px solid',
-          borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: isDark
-              ? '0 8px 24px rgba(139, 188, 143, 0.25)'
-              : '0 8px 24px rgba(85, 107, 47, 0.2)',
-            borderColor: 'primary.main',
-          },
-        }}
-      >
-        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-          {/* Header: Name + Status */}
-          <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-            <Box display="flex" alignItems="center" gap={1.5}>
-              <Box
-                sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: '50%',
-                  backgroundColor: isDark
-                    ? 'rgba(139, 188, 143, 0.15)'
-                    : 'rgba(85, 107, 47, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <User size={24} color={theme.palette.primary.main} />
-              </Box>
-              <Box>
-                <Typography variant="h6" fontWeight={600}>
-                  {client?.name || 'Nepojmenovaná klientka'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {program?.title || 'Neznámý program'}
-                </Typography>
-              </Box>
-            </Box>
+      <BaseCard
+        // Row 1: User avatar (vlevo) + Status chip + Datum začátku (vpravo)
+        largeIcon={largeIcon}
+        chips={[status, startDateChip]}
 
-            <Chip
-              label={status.label}
-              color={status.color}
-              size="small"
-              sx={{ borderRadius: BORDER_RADIUS.button }}
-            />
-          </Box>
+        // Row 3: Metadata
+        metadata={metadataItems}
 
-          {/* Progress Bar */}
-          <Box mb={2}>
-            <Box display="flex" justifyContent="space-between" mb={0.5}>
-              <Typography variant="body2" color="text.secondary">
-                Postup
-              </Typography>
-              <Typography variant="body2" fontWeight={600}>
-                {completedDays}/{totalDays} dní
-              </Typography>
-            </Box>
-            <LinearProgress
-              variant="determinate"
-              value={progressPercent}
-              sx={{
-                height: 8,
-                borderRadius: BORDER_RADIUS.small,
-                backgroundColor: isDark
-                  ? 'rgba(255, 255, 255, 0.1)'
-                  : 'rgba(0, 0, 0, 0.1)',
-                '& .MuiLinearProgress-bar': {
-                  borderRadius: BORDER_RADIUS.small,
-                  background: isCompleted
-                    ? 'linear-gradient(90deg, #8FBC8F 0%, #6B8E23 100%)'
-                    : 'linear-gradient(90deg, #8FBC8F 0%, #9ACD32 100%)',
-                },
-              }}
-            />
-          </Box>
+        // Row 4: Link/File (prázdné)
+        linkOrFile={null}
 
-          {/* Stats Row */}
-          <Box display="flex" gap={2} flexWrap="wrap">
-            {/* Current Day */}
-            <Box display="flex" alignItems="center" gap={0.5}>
-              <Calendar size={16} color={theme.palette.text.secondary} />
-              <Typography variant="body2" color="text.secondary">
-                Den {client?.currentDay || 1}
-              </Typography>
-            </Box>
+        // Row 5: Title (jméno klientky)
+        title={title}
 
-            {/* Streak */}
-            <Box display="flex" alignItems="center" gap={0.5}>
-              <TrendingUp size={16} color={theme.palette.text.secondary} />
-              <Typography variant="body2" color="text.secondary">
-                {currentStreak}x série
-              </Typography>
-            </Box>
+        // Row 6: Description (název programu)
+        description={description}
 
-            {/* Started date */}
-            <Box display="flex" alignItems="center" gap={0.5}>
-              <Clock size={16} color={theme.palette.text.secondary} />
-              <Typography variant="body2" color="text.secondary">
-                {startedDate}
-              </Typography>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
+        // Row 7: Progress bar
+        taxonomyOrAvailability={progressBar}
+
+        // Row 8: Detail button
+        onClientPreview={() => setDetailOpen(true)}
+
+        // Row 9: Feedback (prázdné zatím)
+        feedbackData={null}
+
+        // Other props
+        longPressHandlers={longPressHandlers}
+        minHeight={280}
+        glassEffect="subtle"
+      />
 
       {/* Detail Dialog */}
       <Dialog
@@ -264,14 +241,14 @@ const ClientCard = ({ client, program, onViewDetails }) => {
               <Box display="flex" alignItems="center" gap={1}>
                 <Calendar size={16} color={theme.palette.text.secondary} />
                 <Typography variant="body2">
-                  Začátek: {startedDate}
+                  Začátek: {formatDate(client?.startedAt, { month: 'numeric', year: 'numeric' }) || 'Neznámé'}
                 </Typography>
               </Box>
-              {completedDate && (
+              {client?.completedAt && (
                 <Box display="flex" alignItems="center" gap={1}>
                   <CheckCircle2 size={16} color={theme.palette.success.main} />
                   <Typography variant="body2">
-                    Dokončení: {completedDate}
+                    Dokončení: {formatDate(client?.completedAt, { month: 'numeric', year: 'numeric' })}
                   </Typography>
                 </Box>
               )}
@@ -330,7 +307,11 @@ const ClientCard = ({ client, program, onViewDetails }) => {
         <Divider />
 
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDetailOpen(false)} variant="outlined">
+          <Button
+            onClick={() => setDetailOpen(false)}
+            variant="outlined"
+            sx={{ borderRadius: BORDER_RADIUS.compact }}
+          >
             Zavřít
           </Button>
         </DialogActions>

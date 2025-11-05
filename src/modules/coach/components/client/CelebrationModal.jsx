@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -7,6 +7,8 @@ import {
   Grid,
   Button,
   Stack,
+  TextField,
+  Alert,
 } from '@mui/material';
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
@@ -14,11 +16,16 @@ import { Share as ShareIcon, EmojiEvents as TrophyIcon } from '@mui/icons-materi
 import { useTheme } from '@mui/material';
 import { createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';
 import BORDER_RADIUS from '@styles/borderRadius';
+import { addProgramFeedback } from '../../utils/storage';
+import { useNotification } from '@shared/context/NotificationContext';
 
 const CelebrationModal = ({ open, onClose, program, client }) => {
   const { width, height } = useWindowSize();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  const { showSuccess, showError } = useNotification();
+  const [reflection, setReflection] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   // Přehrát zvuk při otevření (jen při dokončení celého programu)
 useEffect(() => {
   if (open && client?.completedDays?.length === program?.duration) {
@@ -29,6 +36,44 @@ useEffect(() => {
 }, [open, client, program]);
 
   if (!program || !client) return null;
+
+  const handleComplete = async () => {
+    console.log('🔍 handleComplete called');
+    console.log('  reflection:', reflection);
+    console.log('  client.isAdmin:', client.isAdmin);
+    console.log('  program.id:', program.id);
+
+    // Uložit reflexi (pokud je zadána a NENÍ to admin preview)
+    if (reflection.trim() && !client.isAdmin) {
+      console.log('✅ Ukládám reflexi...');
+      setIsSaving(true);
+      try {
+        const feedback = {
+          clientId: client.id,
+          clientName: client.name,
+          reflection: reflection.trim(),
+          timestamp: new Date().toISOString(),
+        };
+
+        console.log('📝 Feedback objekt:', feedback);
+        const updatedProgram = await addProgramFeedback(program.id, feedback);
+        console.log('✅ Program po uložení:', updatedProgram);
+        console.log('✅ programFeedback pole:', updatedProgram.programFeedback);
+        showSuccess('Uloženo!', 'Tvoje reflexe byla uložena 💚');
+      } catch (error) {
+        console.error('❌ Error saving reflection:', error);
+        showError('Chyba', 'Nepodařilo se uložit reflexi. Zkus to prosím znovu.');
+        setIsSaving(false);
+        return;
+      }
+      setIsSaving(false);
+    } else {
+      console.log('⏭️ Reflexe se neukládá (prázdná nebo admin preview)');
+    }
+
+    // Zavřít modal
+    onClose();
+  };
 
   const handleShare = () => {
     const text = `🎉 Dokončila jsem program "${program.title}" v aplikaci CoachPro!
@@ -127,15 +172,35 @@ Jsem na sebe pyšná! 💚`;
           Jsi úžasná! 💚 Tvá koučka je na tebe pyšná.
         </Typography>
 
+        {/* Reflexe input */}
+        <TextField
+          fullWidth
+          multiline
+          rows={4}
+          placeholder="Napiš nám, jak ses během programu cítila a co sis z něj odnesla... (volitelné)"
+          value={reflection}
+          onChange={(e) => setReflection(e.target.value)}
+          sx={{ mb: client.isAdmin ? 1 : 3 }}
+          disabled={client.isAdmin}
+        />
+
+        {/* Admin preview info */}
+        {client.isAdmin && (
+          <Alert severity="info" sx={{ mb: 3, borderRadius: BORDER_RADIUS.compact }}>
+            Jsi v admin preview režimu. Reflexe se neuloží.
+          </Alert>
+        )}
+
         {/* Actions */}
         <Stack spacing={2}>
           <Button
             variant="contained"
             size="large"
             startIcon={<TrophyIcon />}
-            onClick={onClose}
+            onClick={handleComplete}
+            disabled={isSaving}
           >
-            Dokončit
+            {isSaving ? 'Ukládám...' : 'Dokončit'}
           </Button>
 
           <Button

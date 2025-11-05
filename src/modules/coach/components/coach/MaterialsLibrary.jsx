@@ -27,6 +27,7 @@ import BORDER_RADIUS from '@styles/borderRadius';
 import { SECTION_PADDING } from '@shared/styles/responsive';
 import HelpDialog from '@shared/components/HelpDialog';
 import QuickTooltip from '@shared/components/AppTooltip';
+import { useNotification } from '@shared/context/NotificationContext';
 import {
   COACHING_AREAS,
   TOPICS,
@@ -38,10 +39,12 @@ const MaterialsLibrary = () => {
   const currentUser = getCurrentUser();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  const { showSuccess } = useNotification();
   const [materials, setMaterials] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [duplicatingMaterial, setDuplicatingMaterial] = useState(null);
   const [loading, setLoading] = useState(true);
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
 
@@ -80,6 +83,22 @@ const MaterialsLibrary = () => {
     setFilterTopics([]);
     setFilterCoachingStyle('all');
     setFilterCoachingAuthority('all');
+  };
+
+  const handleDuplicate = (material) => {
+    // Vytvoř kopii materiálu s novým názvem a ID
+    const duplicatedMaterial = {
+      ...material,
+      id: null, // AddMaterialModal vygeneruje nové ID
+      title: `${material.title} (kopie)`,
+      clientFeedback: [], // Nekopírujeme reflexe od klientek
+      createdAt: null, // Nastaví se current date
+      updatedAt: null,
+    };
+
+    showSuccess('Duplikováno!', `Materiál "${material.title}" byl zkopírován`);
+    setDuplicatingMaterial(duplicatedMaterial);
+    setAddModalOpen(true);
   };
 
   // Filtrované a prohledané materiály
@@ -381,6 +400,7 @@ const MaterialsLibrary = () => {
                 <MaterialCard
                   material={material}
                   onUpdate={refreshMaterials}
+                  onDuplicate={handleDuplicate}
                 />
               </motion.div>
             </Grid>
@@ -392,8 +412,12 @@ const MaterialsLibrary = () => {
     {/* Add Material Modal */}
     <AddMaterialModal
       open={addModalOpen}
-      onClose={() => setAddModalOpen(false)}
+      onClose={() => {
+        setAddModalOpen(false);
+        setDuplicatingMaterial(null);
+      }}
       onSuccess={refreshMaterials}
+      editMaterial={duplicatingMaterial}
     />
 
     {/* Help Dialog */}

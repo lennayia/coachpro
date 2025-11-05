@@ -22,11 +22,15 @@ import {
   Activity,
   Clock,
   TrendingUp,
+  HelpCircle,
 } from 'lucide-react';
 import { getCurrentUser } from '../../utils/storage';
 import { getClientsByCoachId, getPrograms, getProgramById } from '../../utils/storage';
 import ClientCard from './ClientCard';
 import BORDER_RADIUS from '@styles/borderRadius';
+import HelpDialog from '@shared/components/HelpDialog';
+import QuickTooltip from '@shared/components/AppTooltip';
+import { IconButton } from '@mui/material';
 
 /**
  * ClientsList - Stránka se seznamem klientek kouče
@@ -49,6 +53,7 @@ const ClientsList = () => {
   const [filterProgram, setFilterProgram] = useState('all');
   const [clients, setClients] = useState([]);
   const [programs, setPrograms] = useState([]);
+  const [helpDialogOpen, setHelpDialogOpen] = useState(false);
 
   // Load data from Supabase
   useEffect(() => {
@@ -197,13 +202,41 @@ const ClientsList = () => {
   return (
     <Box sx={{ px: { xs: 1.5, sm: 2, md: 3 }, py: 3 }}>
       {/* Header */}
-      <Box mb={4}>
-        <Typography variant="h4" gutterBottom fontWeight={600}>
-          Moje klientky
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Přehled všech tvých klientek a jejich postupu v programech
-        </Typography>
+      <Box mb={4} display="flex" justifyContent="space-between" alignItems="flex-start">
+        <Box>
+          <Typography variant="h4" gutterBottom fontWeight={600}>
+            Moje klientky
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Přehled všech tvých klientek a jejich postupu v programech
+          </Typography>
+        </Box>
+
+        {/* Help Button */}
+        <QuickTooltip title="Nápověda ke klientkám">
+          <IconButton
+            onClick={() => setHelpDialogOpen(true)}
+            sx={{
+              width: 48,
+              height: 48,
+              backgroundColor: isDark
+                ? 'rgba(120, 188, 143, 0.15)'
+                : 'rgba(65, 117, 47, 0.15)',
+              color: isDark
+                ? 'rgba(120, 188, 143, 0.9)'
+                : 'rgba(65, 117, 47, 0.9)',
+              transition: 'all 0.3s',
+              '&:hover': {
+                backgroundColor: isDark
+                  ? 'rgba(120, 188, 143, 0.25)'
+                  : 'rgba(65, 117, 47, 0.25)',
+                transform: 'scale(1.05)',
+              },
+            }}
+          >
+            <HelpCircle size={24} />
+          </IconButton>
+        </QuickTooltip>
       </Box>
 
       {/* Statistics Cards */}
@@ -458,6 +491,13 @@ const ClientsList = () => {
           ))}
         </Grid>
       )}
+
+      {/* Help Dialog */}
+      <HelpDialog
+        open={helpDialogOpen}
+        onClose={() => setHelpDialogOpen(false)}
+        initialPage="clients"
+      />
     </Box>
   );
 };

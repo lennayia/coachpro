@@ -34,24 +34,30 @@ import {
   Cancel as InactiveIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
-import { User as UserIcon } from 'lucide-react';
+import { User as UserIcon, HelpCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import ProgramEditor from './ProgramEditor';
 import ProgramCardSkeleton from './ProgramCardSkeleton';
 import ShareProgramModal from './ShareProgramModal';
-import { getCurrentUser, getPrograms, deleteProgram, getClients, setCurrentClient } from '../../utils/storage';
+import { getCurrentUser, getPrograms, deleteProgram, getClients, setCurrentClient, getMaterials } from '../../utils/storage';
 import { generateUUID } from '../../utils/generateCode';
 import { staggerContainer, staggerItem } from '@shared/styles/animations';
 import { formatDate, pluralize } from '@shared/utils/helpers';
 import BORDER_RADIUS from '@styles/borderRadius';
-import { createPreviewButton, createActionButton, createIconButton, createBackdrop, createGlassDialog } from '../../../../shared/styles/modernEffects';
+import { createPreviewButton, createActionButton, createIconButton, createBackdrop, createGlassDialog } from '@shared/styles/modernEffects';
+import { SECTION_PADDING } from '@shared/styles/responsive';
+import HelpDialog from '@shared/components/HelpDialog';
+import QuickTooltip from '@shared/components/AppTooltip';
+import { useNotification } from '@shared/context/NotificationContext';
+import ProgramCard from './ProgramCard';
 
 const ProgramsList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const currentUser = getCurrentUser();
+  const { showSuccess, showError } = useNotification();
   const [programs, setPrograms] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -66,17 +72,24 @@ const ProgramsList = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [clientsByProgramCode, setClientsByProgramCode] = useState({});
+  const [helpDialogOpen, setHelpDialogOpen] = useState(false);
+  const [materials, setMaterials] = useState([]);
 
-  // Load programs on mount
+  // Load programs and materials on mount
   useEffect(() => {
-    const loadPrograms = async () => {
+    const loadData = async () => {
       setLoading(true);
       await new Promise(resolve => setTimeout(resolve, 300));
-      setPrograms(await getPrograms(currentUser?.id));
+      const [programsData, materialsData] = await Promise.all([
+        getPrograms(currentUser?.id),
+        getMaterials(currentUser?.id)
+      ]);
+      setPrograms(programsData);
+      setMaterials(materialsData);
       setLoading(false);
     };
 
-    loadPrograms();
+    loadData();
   }, [currentUser?.id]);
 
   // Load clients for all programs
@@ -194,27 +207,73 @@ const ProgramsList = () => {
       setIsDeleting(true);
       try {
         await deleteProgram(programToDelete.id);
-        refreshPrograms();
+        showSuccess('Smazáno!', `Program "${programToDelete.title}" byl úspěšně smazán`);
+        await refreshPrograms();
         setDeleteDialogOpen(false);
         setProgramToDelete(null);
       } catch (error) {
         console.error('Failed to delete program:', error);
+        showError('Chyba', 'Nepodařilo se smazat program. Zkus to prosím znovu.');
       } finally {
         setIsDeleting(false);
       }
     }
   };
 
+  const handleDuplicate = (program) => {
+    // Vytvoř kopii programu s novým názvem a ID
+    const duplicatedProgram = {
+      ...program,
+      id: null, // ProgramEditor vygeneruje nové ID
+      title: `${program.title} (kopie)`,
+      shareCode: null, // Vygeneruje se nový
+      qrCode: null, // Vygeneruje se nový
+      createdAt: null, // Nastaví se current date
+    };
+
+    showSuccess('Duplikováno!', `Program "${program.title}" byl zkopírován`);
+    setEditingProgram(duplicatedProgram);
+    setEditorOpen(true);
+  };
+
   return (
-    <Box>
+    <Box sx={{ ...SECTION_PADDING }}>
       {/* Header */}
-      <Box mb={4}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
-          Moje programy
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Vytvářejte a spravujte programy pro své klientky
-        </Typography>
+      <Box mb={4} display="flex" justifyContent="space-between" alignItems="flex-start">
+        <Box>
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
+            Moje programy
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Vytvářejte a spravujte programy pro své klientky
+          </Typography>
+        </Box>
+
+        {/* Help Button */}
+        <QuickTooltip title="Nápověda k programům">
+          <IconButton
+            onClick={() => setHelpDialogOpen(true)}
+            sx={{
+              width: 48,
+              height: 48,
+              backgroundColor: isDark
+                ? 'rgba(120, 188, 143, 0.15)'
+                : 'rgba(65, 117, 47, 0.15)',
+              color: isDark
+                ? 'rgba(120, 188, 143, 0.9)'
+                : 'rgba(65, 117, 47, 0.9)',
+              transition: 'all 0.3s',
+              '&:hover': {
+                backgroundColor: isDark
+                  ? 'rgba(120, 188, 143, 0.25)'
+                  : 'rgba(65, 117, 47, 0.25)',
+                transform: 'scale(1.05)',
+              },
+            }}
+          >
+            <HelpCircle size={24} />
+          </IconButton>
+        </QuickTooltip>
       </Box>
 
       {/* Top bar - Search, Filter, Add */}
@@ -250,8 +309,8 @@ const ProgramsList = () => {
               onChange={(e) => setFilterStatus(e.target.value)}
             >
               <MenuItem value="all">Všechny programy</MenuItem>
-              <MenuItem value="active">✅ Aktivní</MenuItem>
-              <MenuItem value="inactive">⏸️ Neaktivní</MenuItem>
+              <MenuItem value="active">Aktivní</MenuItem>
+              <MenuItem value="inactive">Neaktivní</MenuItem>
             </Select>
           </FormControl>
 
@@ -259,7 +318,13 @@ const ProgramsList = () => {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleCreateNew}
-            sx={{ whiteSpace: 'nowrap' }}
+            sx={{
+              whiteSpace: 'nowrap',
+              alignSelf: 'flex-start',
+              minWidth: 'fit-content',
+              px: { xs: 2, sm: 3 },
+              py: { xs: 0.75, sm: 1 }
+            }}
           >
             Vytvořit program
           </Button>
@@ -270,7 +335,7 @@ const ProgramsList = () => {
       {loading ? (
         <Grid container spacing={3}>
           {[...Array(4)].map((_, index) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
+            <Grid item xs={12} xsm={6} sm={6} md={4} lg={3} key={index} sx={{ minWidth: 0 }}>
               <ProgramCardSkeleton />
             </Grid>
           ))}
@@ -311,182 +376,19 @@ const ProgramsList = () => {
               const activeClients = clients.filter(c => !c.completedAt).length;
 
               return (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={program.id}>
+                <Grid item xs={12} xsm={6} sm={6} md={4} lg={3} key={program.id} sx={{ minWidth: 0 }}>
                   <motion.div variants={staggerItem}>
-                    <Card
-                      sx={{
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        transition: 'transform 0.2s, box-shadow 0.2s',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: (theme) => theme.shadows[4],
-                        },
-                      }}
-                    >
-                      <CardContent sx={{ flexGrow: 1 }}>
-                        {/* Header */}
-                        <Box display="flex" justifyContent="space-between" alignItems="start" mb={2}>
-                          <Chip
-                            icon={program.isActive ? <ActiveIcon /> : <InactiveIcon />}
-                            label={program.isActive ? 'Aktivní' : 'Neaktivní'}
-                            size="small"
-                            color={program.isActive ? 'success' : 'default'}
-                          />
-                          <IconButton
-                            size="small"
-                            onClick={(e) => handleMenuOpen(e, program)}
-                            sx={{
-                              ...createIconButton('error', isDark, 'small'),
-                              color: 'error.main',
-                            }}
-                          >
-                            <MoreVertIcon />
-                          </IconButton>
-                        </Box>
-
-                        {/* Title */}
-                        <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                          {program.title}
-                        </Typography>
-
-                        {/* Description */}
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{
-                            mb: 2,
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          {program.description}
-                        </Typography>
-
-                        {/* Meta info */}
-                        <Box display="flex" flexDirection="column" gap={1}>
-                          <Typography variant="caption" color="text.secondary">
-                            ⏱️ {pluralize(program.duration, 'den', 'dny', 'dní')}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            📚 {pluralize(
-                              program.days.reduce((acc, day) => acc + (day.materialIds?.length || 0), 0),
-                              'materiál',
-                              'materiály',
-                              'materiálů'
-                            )}
-                          </Typography>
-                          {clients.length > 0 && (
-                            <Typography variant="caption" color="primary.main" sx={{ fontWeight: 600 }}>
-                              👥 {pluralize(activeClients, 'aktivní klientka', 'aktivní klientky', 'aktivních klientek')}
-                            </Typography>
-                          )}
-                          {program.createdAt && (
-                            <Typography variant="caption" color="text.secondary">
-                              📅 {formatDate(program.createdAt, { day: 'numeric', month: 'numeric', year: 'numeric' })}
-                            </Typography>
-                          )}
-                        </Box>
-
-                        {/* Program Feedback */}
-                        {program.programFeedback && program.programFeedback.length > 0 && (
-                          <Box
-                            mt={2}
-                            p={1.5}
-                            sx={{
-                              backgroundColor: (theme) =>
-                                theme.palette.mode === 'dark'
-                                  ? 'rgba(188, 143, 143, 0.1)'
-                                  : 'rgba(188, 143, 143, 0.05)',
-                              borderRadius: BORDER_RADIUS.small,
-                              border: '1px solid',
-                              borderColor: (theme) =>
-                                theme.palette.mode === 'dark'
-                                  ? 'rgba(188, 143, 143, 0.2)'
-                                  : 'rgba(188, 143, 143, 0.15)',
-                            }}
-                          >
-                            <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
-                              💬 Reflexe od klientek
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                              {pluralize(program.programFeedback.length, 'reflexe', 'reflexe', 'reflexí')}
-                            </Typography>
-                            {/* Preview nejnovější reflexe */}
-                            {program.programFeedback.length > 0 && (
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                sx={{
-                                  fontStyle: 'italic',
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: 2,
-                                  WebkitBoxOrient: 'vertical',
-                                  overflow: 'hidden',
-                                }}
-                              >
-                                "{program.programFeedback[program.programFeedback.length - 1].reflection}"
-                              </Typography>
-                            )}
-                          </Box>
-                        )}
-
-                        {/* Share code */}
-                        <Box
-                          mt={2}
-                          p={1.5}
-                          sx={{
-                            backgroundColor: (theme) =>
-                              theme.palette.mode === 'dark'
-                                ? 'rgba(143, 188, 143, 0.1)'
-                                : 'rgba(85, 107, 47, 0.05)',
-                            borderRadius: BORDER_RADIUS.small,
-                            textAlign: 'center',
-                          }}
-                        >
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            Kód programu
-                          </Typography>
-                          <Typography
-                            variant="h6"
-                            sx={{ fontWeight: 700, letterSpacing: 2 }}
-                          >
-                            {program.shareCode}
-                          </Typography>
-                        </Box>
-                      </CardContent>
-
-                      <CardActions sx={{ flexWrap: 'wrap', gap: 1 }}>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<UserIcon size={16} />}
-                          onClick={() => handlePreview(program)}
-                          sx={createPreviewButton(isDark, BORDER_RADIUS.button)}
-                        >
-                          Náhled jako klientka
-                        </Button>
-                        <Button
-                          size="small"
-                          startIcon={<ShareIcon />}
-                          onClick={() => handleShare(program)}
-                          sx={createActionButton('text', BORDER_RADIUS.button)}
-                        >
-                          Sdílet
-                        </Button>
-                        <Button
-                          size="small"
-                          startIcon={<EditIcon />}
-                          onClick={() => handleEdit(program)}
-                          sx={createActionButton('text', BORDER_RADIUS.button)}
-                        >
-                          Upravit
-                        </Button>
-                      </CardActions>
-                    </Card>
+                    <ProgramCard
+                      program={program}
+                      clients={clients}
+                      materials={materials}
+                      onPreview={handlePreview}
+                      onDuplicate={() => handleDuplicate(program)}
+                      onShare={handleShare}
+                      onEdit={handleEdit}
+                      onDelete={handleDeleteClick}
+                      onMenuOpen={handleMenuOpen}
+                    />
                   </motion.div>
                 </Grid>
               );
@@ -565,14 +467,16 @@ const ProgramsList = () => {
           setEditingProgram(null);
         }}
         onSuccess={(program) => {
+          if (!editingProgram) {
+            showSuccess('Hotovo!', `Program "${program.title}" byl úspěšně vytvořen 🎉`);
+            setSelectedProgram(program);
+            setShareModalOpen(true);
+          } else {
+            showSuccess('Uloženo!', `Program "${program.title}" byl úspěšně upraven`);
+          }
           refreshPrograms();
           setEditorOpen(false);
           setEditingProgram(null);
-          // Otevři share modal pro nový program
-          if (!editingProgram) {
-            setSelectedProgram(program);
-            setShareModalOpen(true);
-          }
         }}
         program={editingProgram}
       />
@@ -585,6 +489,13 @@ const ProgramsList = () => {
           setSelectedProgram(null);
         }}
         program={selectedProgram}
+      />
+
+      {/* Help Dialog */}
+      <HelpDialog
+        open={helpDialogOpen}
+        onClose={() => setHelpDialogOpen(false)}
+        initialPage="programs"
       />
     </Box>
   );

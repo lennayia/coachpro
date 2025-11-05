@@ -2,7 +2,7 @@
 
 > **Účel**: Rychlý přehled nejdůležitějších pravidel. Pro detaily viz CLAUDE.md
 
-**Poslední update**: 4. listopadu 2025 (večer)
+**Poslední update**: 5. listopadu 2025 (večer)
 **Pro full dokumentaci**: Čti CLAUDE.md (ale JEN když potřebuješ detaily!)
 
 ---
@@ -218,6 +218,45 @@ AI: Header.jsx:
 
 **Pattern:** Respektuj user autonomii - někdy chce opravit sama!
 
+### 14. 🎯 BASECARD MODULARITY - KRITICKÉ!
+
+**⚠️ NOVÉ PRAVIDLO (5.11.2025)**
+
+**User feedback**: "k čemu ale máme baseCard.jsx, když to pak napíšeš natvrdo do ProgramCard?"
+
+**PRAVIDLO:**
+- ❌ NIKDY hardcodovat UI do specific cards (ProgramCard, MaterialCard, ClientCard)
+- ✅ VŽDY implementovat features v BaseCard.jsx
+- ✅ Specific cards JEN předávají data (props), ne UI
+
+**Příklad - Feedback Button:**
+
+```javascript
+// ❌ ŠPATNĚ - hardcoded v ProgramCard (47 řádků)
+const footer = program.programFeedback && program.programFeedback.length > 0 ? (
+  <Box onClick={...} sx={{ ... 40 řádků styling }}>
+    <MessageSquare />
+    <Typography>{program.programFeedback.length}× reflexe</Typography>
+  </Box>
+) : null;
+
+// ✅ SPRÁVNĚ - modular v BaseCard
+<BaseCard
+  feedbackData={program.programFeedback}
+  onFeedbackClick={() => setFeedbackModalOpen(true)}
+/>
+```
+
+**Benefit:**
+- Změny UI na JEDNOM místě (BaseCard)
+- Automatické propagování všude
+- Consistency napříč kartami
+- DRY princip dodržen
+
+**Tech Debt Discovery:**
+- MaterialCard.jsx NEpoužívá BaseCard → identifikováno jako tech debt
+- Čeká na user rozhodnutí: quick fix vs. proper refactor
+
 ---
 
 ## 📁 DŮLEŽITÉ SOUBORY
@@ -226,6 +265,7 @@ AI: Header.jsx:
 - `/src/styles/borderRadius.js` - Border-radius systém
 - `/src/shared/styles/modernEffects.js` - Glassmorphism funkce
 - `/src/shared/styles/responsive.js` - Responsive utilities (createTextEllipsis)
+- `/src/shared/components/cards/BaseCard.jsx` - ⚠️ FOUNDATION pro všechny karty (Program, Material, Client)
 - `/src/shared/components/FloatingMenu.jsx` - Settings menu
 - `/src/shared/components/NavigationFloatingMenu.jsx` - Navigace
 - `/src/shared/context/NotificationContext.jsx` - Toast systém
@@ -307,15 +347,29 @@ sx={{
 
 ---
 
-## 📊 AKTUÁLNÍ STAV (4.11.2025, večer)
+## 📊 AKTUÁLNÍ STAV (5.11.2025, odpoledne)
 
-**Session**: UI Polish & Modularity Cleanup (continuation)
+**Session**: MaterialCard Layout Reorganization
+**Commit**: `d8eef24`
+**Branch**: `feature/sprint18c-basecard-modularity`
+
 **Dokončeno**:
-- ✅ MaterialCardSkeleton refactor (8-row single-column)
-- ✅ Button responsive fix (inline solution)
-- ✅ Sprint 18b Button Modularity dokumentován (future task)
-- ✅ summary6.md updated
-- ✅ CLAUDE_QUICK.md updated
+- ✅ MaterialCard layout reorganized (Row 1: icon+chip+date | Row 2: actions)
+- ✅ Creation date s Calendar icon (numeric: 5. 11. 2025)
+- ✅ Metadata reordered: fileSize → duration → pageCount
+- ✅ Alignment fixes s negative margins (ml/mr)
+- ✅ Row 9 always present (minHeight pro konzistenci)
+- ✅ CARD_PADDING zvětšen na desktopu (20px)
+- ✅ Responsive touch targets (36px mobil, 44px desktop)
+- ✅ Icon gap optimization (4px xs, 6px sm+)
+- ✅ Overflow ikony koše vyřešen (500-572px range)
+
+**Předchozí (Sprint 18c)**:
+- ✅ BaseCard.jsx - feedback jako built-in feature
+- ✅ ProgramCard.jsx - refactored na modular
+
+**Tech Debt**:
+- ⚠️ MaterialCard.jsx NEpoužívá BaseCard (zůstává standalone)
 
 **Pending**:
 - [ ] Help buttons na ProgramsList a ClientsList

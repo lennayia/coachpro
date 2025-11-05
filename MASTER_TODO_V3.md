@@ -49,7 +49,116 @@
 
 ---
 
-## 📝 CHANGELOG - Completed Sessions (1.-4. listopadu 2025)
+## 📝 CHANGELOG - Completed Sessions (1.-5. listopadu 2025)
+
+### MaterialCard Layout Reorganization (5.11.2025, večer)
+
+**Kontext:** Icon overflow v rozmezí 500-572px - ikona koše nebyla viditelná. User odmítla intermediate breakpoint, zvolila kompletní reorganizaci layoutu.
+
+**Implementováno:**
+- ✅ **MaterialCard.jsx** - kompletní layout reorganization
+  - **Row 1**: Velká ikona (vlevo) + Chip kategorie + Datum "Přidáno 📅 5. 11. 2025" (vpravo)
+  - **Row 2**: Všechny akční ikony (Eye, Pencil, Copy, Share2, Trash2) - NOVÝ řádek
+  - **Row 3**: Metadata (velikost souboru, délka, počet stran) - horizontálně, ODSTRANĚNO datum
+  - **Rows 4-8**: URL/fileName, Název, Popis, Taxonomy chips, Preview button
+  - **Row 9**: Reflexe wrapper - ALWAYS present s minHeight: '2em'
+
+- ✅ **responsive.js** - nový CARD_PADDING modul
+  - `p: { xs: 1.5, sm: 2.5 }` - zvětšen z 2 na 2.5 (20px) na desktopu
+  - `pr: { xs: 1.25, sm: 2 }` - zvětšen z 1.75 na 2 (16px)
+  - Export pro centralizované použití
+
+- ✅ **modernEffects.js** - createIconButton responsive touch targets
+  - `minWidth: { xs: 36, sm: 44 }` - 36px mobil (prevence overflow)
+  - `minHeight: { xs: 36, sm: 44 }` - 44px desktop (Apple HIG standard)
+
+- ✅ **Alignment fixes s negative margins**
+  - Row 1 velká ikona: `ml: -0.5` (push k levému okraji)
+  - Row 2 akční ikony: `mr: -1` (push k pravému okraji)
+  - Row 3 metadata: `mr: -1` (konzistentní s row 2)
+  - Datum přidání: ŽÁDNÝ negative margin (user chtěla více prostoru)
+
+- ✅ **Visual consistency - minHeight pro všechny rows**
+  - Rows 3-9: minHeight zajišťuje konzistentní vertikální pozice
+  - Row 3 metadata: `minHeight: '1.5em'`
+  - Row 9 reflexe wrapper: `minHeight: '2em'` - vždy přítomný i když prázdný
+
+- ✅ **Icon gap optimization**
+  - `gap={{ xs: 0.5, sm: 0.75 }}` - 4px mobil (5 ikon × 36px + 4 × 4px = 196px)
+  - 6px desktop pro více breathability
+
+**Creation Date Changes:**
+- Přidáno: Calendar ikona, "Přidáno" label, datum
+- Format změněn: "5. listopadu 2025" → "5. 11. 2025" (numeric month)
+- Position: Row 1, `ml="auto"` (right-aligned)
+
+**Metadata Reordering:**
+- Nové pořadí: fileSize → duration → pageCount
+- Změněno z conditional (duration OR pageCount) na separate conditions
+- Horizontální layout s gap: 1.5 (12px)
+
+**Padding Journey:**
+1. Initial: User chtěla menší padding → testováno
+2. Result: Příliš cramped, user vrátila změny
+3. Final: VĚTŠÍ padding na desktopu (sm: 2.5) pro více breathability
+
+**Soubory upraveny:** 3
+- `MaterialCard.jsx` - layout reorganization (~200 lines changed)
+- `responsive.js` - CARD_PADDING export (lines 19-22)
+- `modernEffects.js` - responsive touch targets (lines 270-299)
+
+**Benefit:**
+- ✅ Icon overflow vyřešen (500-572px range)
+- ✅ Všech 5 action ikon má dostatek prostoru
+- ✅ Konzistentní vertical alignment napříč kartami
+- ✅ Touch targets optimalizované (36px/44px)
+- ✅ Row 9 vždy přítomný → eliminuje height mismatch
+
+**Git:**
+- Commit: `d8eef24`
+- Branch: `feature/sprint18c-basecard-modularity`
+- Push: ✅ Completed
+
+**Status**: ✅ MaterialCard production-ready, layout optimalizován
+
+---
+
+### Sprint 18c: BaseCard Feedback Modularity Fix (5.11.2025)
+
+**Kontext:** User identifikoval kritickou modularity violation: "k čemu ale máme baseCard.jsx, když to pak napíšeš natvrdo do ProgramCard?"
+
+**Implementováno:**
+- ✅ **BaseCard.jsx** - přidán feedback jako built-in feature
+  - Nové props: `feedbackData` (array), `onFeedbackClick` (handler)
+  - Automatické zobrazení feedback buttonu když data existují
+  - MessageSquare ikona, kompaktní design, primary barva
+  - Footer condition rozšířena: `(onClientPreview || feedbackData || footer)`
+
+- ✅ **ProgramCard.jsx** - refactored na modular řešení
+  - ODSTRANĚNO: 47 řádků hardcoded footer (lines 193-240)
+  - NAHRAZENO: 2 props (`feedbackData`, `onFeedbackClick`)
+  - Odebrán unused MessageSquare import
+  - Plně modular, žádné duplicity
+
+**Discovery:**
+- ⚠️ **MaterialCard.jsx** - nepoužívá BaseCard
+  - Má vlastní Card implementaci z MUI
+  - Obsahuje hardcoded feedback button (lines 677-724)
+  - Vyžaduje major refactor na BaseCard (pending user decision)
+
+**Soubory:**
+- `BaseCard.jsx` - feedback feature (50+ lines added)
+- `ProgramCard.jsx` - modular refactor (47 lines deleted)
+- `MaterialCard.jsx` - technical debt identified
+
+**Benefit:**
+- Feedback UI změny na jednom místě (BaseCard)
+- ProgramCard o 47 řádků kratší
+- Consistency napříč kartami (když MaterialCard bude refactored)
+
+**Status**: ✅ ProgramCard modular, MaterialCard pending refactor
+
+---
 
 ### UI Polish & Modularity Cleanup (4.11.2025, večer)
 
