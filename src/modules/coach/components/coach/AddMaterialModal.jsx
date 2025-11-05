@@ -354,7 +354,7 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
       }
 
       const materialData = {
-        id: isEditMode ? editMaterial.id : generateUUID(),
+        id: (isEditMode && editMaterial.id) ? editMaterial.id : generateUUID(),
         coachId: currentUser.id,
         type: selectedType,
         title,
@@ -376,8 +376,8 @@ const AddMaterialModal = ({ open, onClose, onSuccess, editMaterial = null }) => 
         // Client Feedback (Sprint 21.1):
         clientFeedback: isEditMode ? (editMaterial.clientFeedback || []) : [],
 
-        createdAt: isEditMode ? editMaterial.createdAt : new Date().toISOString(),
-        updatedAt: isEditMode ? new Date().toISOString() : undefined,
+        createdAt: (isEditMode && editMaterial.createdAt) ? editMaterial.createdAt : new Date().toISOString(),
+        updatedAt: (isEditMode && editMaterial.id) ? new Date().toISOString() : undefined,
       };
 
       // Přidej link-specific fields pokud je to link

@@ -10,12 +10,12 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { Eye, Copy, Edit, Share2, Trash2, User, MessageSquare } from 'lucide-react';
+import { Eye, Copy, Pencil, Share2, Trash2, User, MessageSquare, Calendar } from 'lucide-react';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
 import { createTextEllipsis } from '@shared/styles/responsive';
 import { createIconButton, createClientPreviewButton } from '@shared/styles/modernEffects';
-import { isTouchDevice } from '@shared/utils/touchHandlers';
+import { isTouchDevice, createSwipeHandlers, createLongPressHandler } from '@shared/utils/touchHandlers';
 import { QuickTooltip } from '@shared/components/AppTooltip';
 
 /**
@@ -84,10 +84,6 @@ const BaseCard = ({
   minHeight = 280,
   glassEffect = 'subtle', // 'subtle' | 'normal' | 'strong'
 
-  // Touch handlers
-  swipeHandlers = {},
-  longPressHandlers = {},
-
   // Other
   onClick,
 }) => {
@@ -96,6 +92,34 @@ const BaseCard = ({
   const glassCardStyles = useGlassCard(glassEffect);
   const isVeryNarrow = useMediaQuery('(max-width:420px)');
   const isTouch = isTouchDevice();
+
+  // Touch gestures - Swipe handlers
+  const swipeHandlers = createSwipeHandlers({
+    onSwipeLeft: () => {
+      // Swipe left = smazat (destructive action)
+      if (isTouch && onDelete) {
+        onDelete();
+      }
+    },
+    onSwipeRight: () => {
+      // Swipe right = sdílet (positive action)
+      if (isTouch && onShare) {
+        onShare();
+      }
+    },
+    threshold: 80, // Větší threshold pro prevenci nechtěného triggeru
+  });
+
+  // Touch gestures - Long press handler
+  const longPressHandlers = createLongPressHandler({
+    onLongPress: () => {
+      // Long press = preview (explorační akce)
+      if (isTouch && onPreview) {
+        onPreview();
+      }
+    },
+    delay: 600, // 600ms pro long press
+  });
 
   // Generování action ikon z handlerů
   const actionIcons = [
@@ -106,7 +130,7 @@ const BaseCard = ({
           onClick={onPreview}
           sx={createIconButton('secondary', isDark, 'small')}
         >
-          <Eye size={isVeryNarrow ? 16 : 18} />
+          <Eye size={isVeryNarrow ? 20 : 22} />
         </IconButton>
       </QuickTooltip>
     ),
@@ -117,7 +141,7 @@ const BaseCard = ({
           onClick={onEdit}
           sx={createIconButton('secondary', isDark, 'small')}
         >
-          <Edit size={isVeryNarrow ? 16 : 18} />
+          <Pencil size={isVeryNarrow ? 20 : 22} />
         </IconButton>
       </QuickTooltip>
     ),
@@ -127,7 +151,7 @@ const BaseCard = ({
         onClick={onDuplicate}
         sx={createIconButton('secondary', isDark, 'small')}
       >
-        <Copy size={isVeryNarrow ? 16 : 18} />
+        <Copy size={isVeryNarrow ? 20 : 22} />
       </IconButton>
     </QuickTooltip>,
     // 4. Sdílet (volitelné)
@@ -137,7 +161,7 @@ const BaseCard = ({
           onClick={onShare}
           sx={createIconButton('secondary', isDark, 'small')}
         >
-          <Share2 size={isVeryNarrow ? 16 : 18} />
+          <Share2 size={isVeryNarrow ? 20 : 22} />
         </IconButton>
       </QuickTooltip>
     ),
@@ -148,7 +172,7 @@ const BaseCard = ({
           onClick={onDelete}
           sx={createIconButton('error', isDark, 'small')}
         >
-          <Trash2 size={isVeryNarrow ? 16 : 18} />
+          <Trash2 size={isVeryNarrow ? 20 : 22} />
         </IconButton>
       </QuickTooltip>
     ),
@@ -242,7 +266,7 @@ const BaseCard = ({
           </Box>
         )}
 
-        {/* Řádek 2: Chipy (aktivní, meditace...) */}
+        {/* Řádek 2: Chipy (aktivní, meditace...) + datum přidání */}
         {chips && chips.length > 0 && (
           <Box display="flex" alignItems="center" gap={0.75} mb={1} flexWrap="wrap">
             {chips.map((chip, index) => (
@@ -255,7 +279,6 @@ const BaseCard = ({
                   height: isVeryNarrow ? 14 : 16,
                   fontSize: isVeryNarrow ? '0.55rem' : '0.6rem',
                   fontWeight: 500,
-                  textTransform: 'uppercase',
                   letterSpacing: '0.5px',
                   ...getChipStyles(chip),
                   border: 'none',
@@ -272,10 +295,38 @@ const BaseCard = ({
                 }}
               />
             ))}
+
+            {/* Datum přidání */}
+            {creationDate && (
+              <Box display="flex" alignItems="center" gap={0.5} ml="auto">
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'text.secondary',
+                    fontSize: '0.65rem',
+                  }}
+                >
+                  Přidáno
+                </Typography>
+                <Calendar
+                  size={11}
+                  style={{ color: 'rgba(0, 0, 0, 0.6)' }}
+                />
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'text.secondary',
+                    fontSize: '0.65rem',
+                  }}
+                >
+                  {creationDate}
+                </Typography>
+              </Box>
+            )}
           </Box>
         )}
 
-        {/* Řádek 3: Datum vytvoření + přístupnost (VŽDY přítomen!) */}
+        {/* Řádek 3: Přístupnost (Od/Do) (VŽDY přítomen!) */}
         <Box
           display="flex"
           alignItems="center"
@@ -284,17 +335,6 @@ const BaseCard = ({
           flexWrap="wrap"
           sx={{ minHeight: '1.2em' }} // Zajistí výšku i když prázdný
         >
-          {creationDate && (
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'text.secondary',
-                fontSize: '0.7rem',
-              }}
-            >
-              Vytvořeno: {creationDate}
-            </Typography>
-          )}
           {accessFromDate && (
             <Typography
               variant="caption"
@@ -318,7 +358,7 @@ const BaseCard = ({
             </Typography>
           )}
           {/* Prázdný prostor když žádné datum není */}
-          {!creationDate && !accessFromDate && !accessToDate && (
+          {!accessFromDate && !accessToDate && (
             <Typography
               variant="caption"
               sx={{
@@ -410,7 +450,7 @@ const BaseCard = ({
         {materialTypeChips && (
           <Box
             display="flex"
-            gap={0.75}
+            gap={0.5}
             mb={1.5}
             flexWrap="wrap"
           >
@@ -421,7 +461,7 @@ const BaseCard = ({
         {/* Řádek 8: Taxonomy chipy (fixně 4 pozice pro stejnou výšku karet) */}
         <Box
           display="flex"
-          gap={0.75}
+          gap={0.5}
           mb={1.5}
           flexWrap={{ xs: 'wrap', sm: 'nowrap' }}
           sx={{ minHeight: isVeryNarrow ? '14px' : '16px' }} // Zajistí výšku i když prázdný

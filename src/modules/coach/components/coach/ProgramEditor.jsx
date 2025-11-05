@@ -262,8 +262,8 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
       let shareCode = program?.shareCode;
       let qrCode = program?.qrCode;
 
-      // Generuj share code a QR jen pro nové programy
-      if (!isEditing) {
+      // Generuj share code a QR jen pro nové programy nebo duplikáty (shareCode === null)
+      if (!isEditing || !shareCode) {
         shareCode = generateShareCode();
         qrCode = await generateQRCode(shareCode);
       }

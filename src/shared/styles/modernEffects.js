@@ -288,6 +288,8 @@ export const createIconButton = (color = 'primary', isDark = false, size = 'smal
 
   return {
     p: padding,
+    minWidth: { xs: 36, sm: 44 },  // Touch target: 36px na mobilu, 44px na desktopu
+    minHeight: { xs: 36, sm: 44 },
     color: colors[color]?.color || colors.primary.color,
     transition: 'all 0.2s',
     '&:hover': {

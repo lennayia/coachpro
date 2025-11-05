@@ -16,6 +16,11 @@ export const SECTION_PADDING = {
   px: { xs: 0.5, sm: 1, md: 2 },  // 4px, 8px, 16px (navíc k PAGE_PADDING)
 };
 
+export const CARD_PADDING = {
+       p: { xs: 1.5, sm: 2.5 },    // 12px na mobilu, 20px na desktopu
+       pr: { xs: 1.25, sm: 2 },    // 10px na mobilu, 16px na desktopu (right redukováno kvůli ikonám)
+};
+
 /**
  * Line clamping s ellipsis (...) - používá WebKit line-clamp
  *
@@ -48,5 +53,6 @@ export const createTextEllipsis = (lines = 1) => ({
 export default {
   PAGE_PADDING,
   SECTION_PADDING,
+  CARD_PADDING,
   createTextEllipsis,
 };
