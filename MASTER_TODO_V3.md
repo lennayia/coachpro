@@ -51,6 +51,59 @@
 
 ## 📝 CHANGELOG - Completed Sessions (1.-5. listopadu 2025)
 
+### Koučovací Karty - Coach Interface (5.1.2025, večer)
+
+**Kontext:** Implementace coach rozhraní pro koučovací karty (Browse + Share). Refactor ShareCardDeckModal na výběr konkrétní klientky místo jen jména.
+
+**Implementováno:**
+- ✅ **BrowseCardDeckModal.jsx** (nový soubor, 146 řádků)
+  - Grid layout karet v balíčku (xs=6, sm=4, md=3)
+  - Square images (aspectRatio: 1/1)
+  - Framer Motion stagger animations
+  - Barvy podle cyklu (Jaro/Léto/Podzim/Zima)
+
+- ✅ **ShareCardDeckModal.jsx** - refactor client selection
+  - Autocomplete výběr z `coachpro_clients` (místo TextField)
+  - Ukládání `client_id` + `client_name` do DB (nullable foreign key)
+  - Email sharing přes `mailto:` link
+  - Fix duplicate keys warning (`getOptionKey`)
+
+- ✅ **CardDecksLibrary.jsx**
+  - Eye icon fix (lucide-react místo MUI)
+  - BrowseModal integration (import + state + handler)
+
+- ✅ **DialogTitle HTML nesting fix**
+  - Typography `component="div"` v obou modalech
+  - Oprava invalid HTML nesting warnings
+
+- ✅ **Database migrace** `20250105_05_add_client_id_to_shared_decks.sql`
+  - `client_id TEXT REFERENCES coachpro_clients(id)` - nullable
+  - Index pro rychlé vyhledávání
+  - Podporuje 2 režimy: registrovaná klientka + nová klientka (budoucí)
+
+**Key Patterns:**
+```javascript
+// Autocomplete duplicate keys fix
+<Autocomplete
+  getOptionKey={(option) => option.id}
+  isOptionEqualToValue={(option, value) => option.id === value.id}
+/>
+
+// DialogTitle Typography nesting
+<Typography component="div" variant="h6">Title</Typography>
+
+// Mailto link pattern
+const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+window.location.href = mailtoLink;
+```
+
+**Soubory změněné:** 5 (2 nové, 3 upravené)
+
+**Status:** ✅ Coach interface complete, ready for testing
+**Pending:** Spustit migraci v Supabase, vložit obrázky karet, implementovat client interface
+
+---
+
 ### MaterialCard Layout Reorganization (5.11.2025, večer)
 
 **Kontext:** Icon overflow v rozmezí 500-572px - ikona koše nebyla viditelná. User odmítla intermediate breakpoint, zvolila kompletní reorganizaci layoutu.
@@ -4429,3 +4482,26 @@ npm install @stripe/stripe-js @stripe/react-stripe-js stripe
 **Verze**: 3.0 FINAL
 **AI asistent**: Claude Sonnet 4.5
 **Zpracováno**: 8,926 / 8,926 řádků (100%)
+
+---
+
+## ✅ Session Update: 5.1.2025 - Google OAuth Integration Complete
+
+**Dokončeno**:
+- [x] SQL migrace (3) spuštěny v Supabase (opraveno pořadí + UUID casting)
+- [x] Google OAuth nakonfigurován v Supabase
+- [x] ClientEntry.jsx aktualizován pro OAuth + fallback flow
+- [x] OAuth klientky propojeny s programy přes auth_user_id
+- [x] Backward compatibility s code-based flow zachována
+
+**OAuth Flow**: ✅ Funkční
+```
+Signup → Profile → Entry (6-digit code) → Program access
+```
+
+**Fallback Flow**: ✅ Funkční
+```
+Entry (6-digit code) → Optional name → Program access
+```
+
+**Příští priorita**: Testování v production, UX vylepšení

@@ -109,14 +109,21 @@ const ProgramEditor = ({ open, onClose, onSuccess, program }) => {
     localStorage.removeItem(draftKey);
   }, [draftKey]);
 
+  // Helper: Convert ISO timestamp to YYYY-MM-DD format for date input
+  const formatDateForInput = (isoString) => {
+    if (!isoString) return '';
+    // "2025-01-15T00:00:00Z" → "2025-01-15"
+    return isoString.split('T')[0];
+  };
+
   // Initialize form when editing
   useEffect(() => {
     if (program) {
       setTitle(program.title || '');
       setDescription(program.description || '');
       setDuration(program.duration || 7);
-      setAvailabilityStartDate(program.availabilityStartDate || '');
-      setAvailabilityEndDate(program.availabilityEndDate || '');
+      setAvailabilityStartDate(formatDateForInput(program.availabilityStartDate));
+      setAvailabilityEndDate(formatDateForInput(program.availabilityEndDate));
       setExternalLink(program.externalLink || '');
       setExternalLinkLabel(program.externalLinkLabel || '');
       setDays(program.days || []);

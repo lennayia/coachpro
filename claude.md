@@ -452,3 +452,133 @@ Session Updates (4.11.2025 večer 21:40)
 **Poslední update**: 5. listopadu 2025
 **Status**: MaterialCard layout production-ready ✅
 
+
+---
+
+## 🔐 GOOGLE OAUTH IMPLEMENTATION (5.1.2025)
+
+**Status**: ✅ Plně funkční
+
+### SQL Migrations - CRITICAL LESSONS
+
+**Pořadí záleží!** 
+Migration #2 referencovala sloupec z #3 → ERROR. Správně: 1→3→2.
+
+**UUID vs TEXT casting**:
+```sql
+-- ❌ ŠPATNĚ
+AND p.coach_id = auth.uid()
+
+-- ✅ SPRÁVNĚ  
+AND p.coach_id = auth.uid()::text
+```
+
+### OAuth Architecture
+
+**Dual Flow System**:
+- **OAuth**: Signup → Profile → Entry (code) → auth_user_id linking
+- **Fallback**: Entry (code) → Name → No auth linkage
+
+**Key Design**: `auth_user_id` je **nullable** v `coachpro_clients` = podporuje oba režimy.
+
+### Testing OAuth
+
+```bash
+# OAuth flow
+1. /client/signup → Google button
+2. /client/profile → Fill data
+3. /client/entry → Enter 6-digit code
+4. Check: auth_user_id je propojený ✅
+
+# Fallback flow  
+1. /client/entry → Enter code + name
+2. Check: auth_user_id je NULL ✅
+```
+
+### Files Modified
+- `ClientEntry.jsx` - OAuth check + auth_user_id linking
+- 2 SQL migrace - UUID casting opraveno
+
+**Production Ready**: ✅ Ano (5.1.2025)
+
+
+---
+
+## 🎴 KOUČOVACÍ KARTY - COACH INTERFACE (5.1.2025, večer)
+
+**Status**: ✅ Coach Browse & Share features complete
+
+### Komponenty vytvořené
+
+**1. BrowseCardDeckModal.jsx** - Procházení karet v balíčku
+- Grid layout (responsive: xs=6, sm=4, md=3)
+- Square images (aspectRatio: 1/1)
+- Framer Motion stagger animations
+- Barvy podle cyklu (Jaro/Léto/Podzim/Zima)
+
+**2. ShareCardDeckModal.jsx** - Sdílení s klientkou
+- **Autocomplete** výběr z `coachpro_clients` (místo TextField)
+- Ukládání `client_id` + `client_name` do DB
+- Mailto: link pro e-mail sharing
+- QR kód + copy/download buttons
+
+### Key Patterns
+
+**Autocomplete Duplicate Keys Fix**:
+```javascript
+<Autocomplete
+  options={clients}
+  getOptionKey={(option) => option.id}  // ✅ Fix duplicate keys
+  isOptionEqualToValue={(option, value) => option.id === value.id}
+/>
+```
+
+**DialogTitle Typography Nesting**:
+```javascript
+// ✅ Používat component="div" pro vnořené Typography v DialogTitle
+<DialogTitle>
+  <Typography component="div" variant="h6">Title</Typography>
+</DialogTitle>
+```
+
+**Icon Import (Lucide React)**:
+```javascript
+// ✅ Eye ikona z lucide-react (ne MUI)
+import { Eye } from 'lucide-react';
+<Eye size={18} />
+```
+
+**Mailto Link Pattern**:
+```javascript
+const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+window.location.href = mailtoLink;
+```
+
+### Database Design - Nullable client_id
+
+**Migrace**: `20250105_05_add_client_id_to_shared_decks.sql`
+
+```sql
+ALTER TABLE coachpro_shared_card_decks
+ADD COLUMN client_id TEXT REFERENCES coachpro_clients(id);  -- nullable!
+```
+
+**Podporuje 2 režimy**:
+- Registrovaná klientka → `client_id` + `client_name`
+- Nová klientka (budoucí) → `client_id = null` + `client_name`
+
+### Soubory změněné (5)
+1. `CardDecksLibrary.jsx` - Eye icon fix + BrowseModal integration
+2. `BrowseCardDeckModal.jsx` - NOVÝ (146 řádků)
+3. `ShareCardDeckModal.jsx` - Autocomplete + email sharing
+4. `20250105_05_add_client_id_to_shared_decks.sql` - NOVÝ
+5. Dokumentace (summary6.md, claude.md, MASTER_TODO_V3.md)
+
+### Pending
+- [ ] Spustit migraci v Supabase
+- [ ] Vložit obrázky karet do `/public/images/karty/`
+- [ ] Client interface (ClientCardDeckEntry, ClientCardDeckView, CardViewer)
+- [ ] Modularizace sdílení (Universal ShareModal pro materiály + programy + karty)
+
+**Poslední update**: 5. ledna 2025, večer
+**Status**: Coach interface ready for testing ✅

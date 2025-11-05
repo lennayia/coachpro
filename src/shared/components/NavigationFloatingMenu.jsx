@@ -6,6 +6,7 @@ import {
   LibraryBig,
   Users,
   FolderOpen,
+  Layers,
   Menu,
   X,
 } from 'lucide-react';
@@ -54,6 +55,12 @@ const NavigationFloatingMenu = ({ isOpen = false, onToggle }) => {
       label: 'Programy',
       onClick: () => handleNavigate('/coach/programs'),
       gradient: `linear-gradient(150deg, ${theme.palette.primary.light} 0%, ${theme.palette.secondary.dark} 100%)`,
+    },
+    {
+      icon: Layers,
+      label: 'Koučovací karty',
+      onClick: () => handleNavigate('/coach/cards'),
+      gradient: `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.secondary.light} 100%)`,
     },
     {
       icon: Users,
