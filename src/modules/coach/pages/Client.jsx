@@ -16,7 +16,7 @@ import { fadeIn, fadeInUp } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
 import {
   getProgramByCode,
-  getMaterialByCode,
+  getSharedMaterialByCode,
   getCardDeckByCode,
   getClientByProgramCode,
   saveClient,
@@ -77,7 +77,7 @@ const Client = () => {
         }
 
         // Try material
-        const material = await getMaterialByCode(code);
+        const material = await getSharedMaterialByCode(code);
         if (material) {
           setPreviewData({ title: material.title, type: 'Materiál' });
           setDetectedType('material');

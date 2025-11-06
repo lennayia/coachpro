@@ -1004,6 +1004,17 @@ export const initializeDemoData = async () => {
   await saveCoach(demoCoach);
 };
 
+// ===== CARD DECKS (PLACEHOLDER) =====
+
+// Placeholder function for card deck feature (not yet implemented)
+// Returns null until card deck functionality is fully built
+export const getCardDeckByCode = async (code) => {
+  console.log('getCardDeckByCode called with:', code);
+  // TODO: Implement card deck retrieval from coachpro_shared_card_decks table
+  // This is a placeholder to prevent build errors
+  return null;
+};
+
 export default {
   // Keys
   STORAGE_KEYS,
@@ -1044,6 +1055,9 @@ export default {
   createSharedMaterial,
   getSharedMaterialByCode,
   deleteSharedMaterial,
+
+  // Card Decks
+  getCardDeckByCode,
 
   // Current user/client
   getCurrentUser,

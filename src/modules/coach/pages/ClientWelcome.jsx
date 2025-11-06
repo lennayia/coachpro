@@ -24,7 +24,7 @@ import ClientAuthGuard from '@shared/components/ClientAuthGuard';
 import { getVocative } from '@shared/utils/czechGrammar';
 import {
   getProgramByCode,
-  getMaterialByCode,
+  getSharedMaterialByCode,
   getCardDeckByCode,
 } from '../utils/storage';
 import { isValidShareCode } from '../utils/generateCode';
@@ -61,7 +61,7 @@ const ClientWelcome = () => {
         }
 
         // Try material
-        const material = await getMaterialByCode(code);
+        const material = await getSharedMaterialByCode(code);
         if (material) {
           setPreviewData({ title: material.title, type: 'Materiál' });
           setDetectedType('material');
