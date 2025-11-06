@@ -3,55 +3,24 @@ import {
   Box,
   Card,
   Typography,
-  Button,
   Alert,
-  CircularProgress,
   Link as MuiLink,
   Divider,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Google as GoogleIcon } from '@mui/icons-material';
 import { fadeIn, fadeInUp } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
-import { useNotification } from '@shared/context/NotificationContext';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
 import { useTheme } from '@mui/material';
-import { supabase } from '@shared/config/supabase';
+import GoogleSignInButton from '@shared/components/GoogleSignInButton';
 
 const ClientSignup = () => {
   const navigate = useNavigate();
-  const { showError, showSuccess } = useNotification();
   const theme = useTheme();
   const glassCardStyles = useGlassCard('subtle');
 
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const handleGoogleSignIn = async () => {
-    setError('');
-    setLoading(true);
-
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/client/profile`,
-        },
-      });
-
-      if (error) throw error;
-
-      showSuccess('Přesměrování', 'Přesměrovávám vás na Google přihlášení...');
-    } catch (err) {
-      console.error('Google sign-in error:', err);
-      const errorMsg = 'Nepodařilo se přihlásit přes Google. Zkuste to prosím znovu.';
-      setError(errorMsg);
-      showError('Chyba přihlášení', errorMsg);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <Box
@@ -171,34 +140,16 @@ const ClientSignup = () => {
               animate="visible"
               transition={{ delay: 0.2 }}
             >
-              <Button
-                variant="contained"
-                size="large"
-                fullWidth
-                onClick={handleGoogleSignIn}
-                disabled={loading}
-                startIcon={loading ? <CircularProgress size={20} /> : <GoogleIcon />}
-                sx={{
-                  py: 1.5,
-                  mb: 2,
-                  backgroundColor: '#4285F4',
-                  color: '#ffffff',
-                  textTransform: 'none',
-                  fontSize: '1rem',
-                  fontWeight: 500,
-                  borderRadius: BORDER_RADIUS.compact,
-                  '&:hover': {
-                    backgroundColor: '#357ae8',
-                    boxShadow: '0 8px 24px rgba(66, 133, 244, 0.4)',
-                  },
-                  '&:disabled': {
-                    backgroundColor: 'rgba(66, 133, 244, 0.6)',
-                    color: 'rgba(255, 255, 255, 0.7)',
-                  },
-                }}
-              >
-                {loading ? 'Přihlašuji...' : 'Pokračovat s Google'}
-              </Button>
+              <Box mb={2}>
+                <GoogleSignInButton
+                  variant="contained"
+                  redirectTo="/client/welcome"
+                  showDivider={false}
+                  buttonText="Pokračovat s Google"
+                  showSuccessToast={true}
+                  onError={(err, errorMsg) => setError(errorMsg)}
+                />
+              </Box>
 
               <Alert severity="info" sx={{ mb: 3, borderRadius: BORDER_RADIUS.compact }}>
                 Po přihlášení budete moci vyplnit svůj profil a získat přístup k programům.
@@ -218,7 +169,7 @@ const ClientSignup = () => {
                 Máte již kód od své koučky?
               </Typography>
               <MuiLink
-                onClick={() => navigate('/client/entry')}
+                onClick={() => navigate('/client')}
                 sx={{
                   cursor: 'pointer',
                   fontWeight: 600,
