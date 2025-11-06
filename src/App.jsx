@@ -10,6 +10,7 @@ import TesterSignup from '@modules/coach/pages/TesterSignup';
 import TesterLogin from '@modules/coach/pages/TesterLogin';
 import AdminLogin from '@modules/coach/pages/AdminLogin';
 import PrivacyPolicy from '@modules/coach/pages/PrivacyPolicy';
+import RootRedirect from '@shared/components/RootRedirect';
 
 // Context pro theme mode
 import { createContext, useContext } from 'react';
@@ -43,7 +44,7 @@ function App() {
           <BrowserRouter>
             <ErrorBoundary>
               <Routes>
-                <Route path="/" element={<Navigate to="/tester/signup" replace />} />
+                <Route path="/" element={<RootRedirect />} />
                 <Route path="/lenna" element={<AdminLogin />} />
                 <Route path="/tester/signup" element={<TesterSignup />} />
                 <Route path="/tester/login" element={<TesterLogin />} />

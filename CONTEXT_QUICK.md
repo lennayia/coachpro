@@ -6,24 +6,25 @@
 
 ## 📚 DŮLEŽITÉ: Nová dokumentační struktura
 
-**Pro rychlou práci**: Čti `CLAUDE_QUICK.md` (200 řádků) místo CLAUDE.md (9000+ řádků)!
+**Pro rychlou práci**: Čti `CLAUDE_QUICK.md` (400+ řádků) místo CLAUDE.md (9000+ řádků)!
 
 **Dokumentace:**
 - `CLAUDE_QUICK.md` - Kritická pravidla, quick patterns (ZAČNI TADY!)
 - `CLAUDE.md` - Kompletní historie (JEN když potřebuješ detaily)
-- `summary6.md` - Changelog (6.11.2025) ⭐
+- `summary7.md` - Changelog (6.11.2025 večer) ⭐ NOVÝ!
+- `summary6.md` - Changelog (6.11.2025 ráno)
 - `MASTER_TODO_V3.md` - TODO list (archived)
 - `MASTER_TODO_V4.md` - TODO list (AKTUÁLNÍ) ⭐
 
 ---
 
-## 🎯 Aktuální Práce (6.11.2025, večer)
+## 🎯 Aktuální Práce (6.11.2025, večer - pokračování)
 
-**Aktuální task**: Client Auth Modularity Refactor - DOKONČENO ✅
-**Commits**: 4 (0838433, 0a83633, f95abbf, c033ef1)
-**Branch**: `client-flow-refactor` (4 commits ahead, not pushed)
+**Aktuální task**: Smart OAuth Redirect & Production Fix - DOKONČENO ✅
+**Status**: Ready for commit & production deployment
+**Branch**: `main` (pending commit)
 
-### Co bylo hotové v této session:
+### Co bylo hotové v předchozí session (ráno):
 
 **1. ClientAuthContext.jsx (131 řádků)** - Centralized auth state
 - Single source of truth (user + profile + loading)
@@ -31,6 +32,37 @@
 - Auto-refresh při auth state change
 - displayName property (Google name > DB name)
 - Provides: user, profile, loading, logout(), refreshProfile()
+
+### Co bylo hotové v TÉTO session (večer):
+
+**1. RootRedirect.jsx (115 řádků) - NOVÝ** - Universal OAuth entry point
+- Auto-detects user role (client, coach, tester)
+- Handles profile completion status
+- Prepared for subscription checks
+- Loading spinner + console logging
+
+**2. Build Fix** - Import errors
+- `getMaterialByCode` → `getSharedMaterialByCode` (fix)
+- `getCardDeckByCode()` placeholder added (returns null)
+- Files: Client.jsx, ClientWelcome.jsx, storage.js
+
+**3. OAuth Improvements**
+- Google account picker: `prompt: 'select_account'`
+- Universal redirect: All OAuth → `/` (jen 2 URLs v Supabase!)
+- Files: GoogleSignInButton.jsx, Client.jsx, ClientSignup.jsx
+
+**4. RLS Fix (Nuclear)**
+- Disabled RLS on client_profiles (temporary)
+- SQL: `20250106_03_nuclear_fix_rls.sql`
+
+**5. Subscriptions Table (Future)**
+- Schema created for payment checks
+- Helper functions ready
+- SQL: `20250106_01_create_subscriptions_table.sql`
+
+**6. Logout Icon**
+- ArrowLeft (←) → Power (⏻) icon
+- File: ClientWelcome.jsx
 
 **2. ClientAuthGuard.jsx (76 řádků)** - Component-based route protection
 - Props: requireProfile, redirectOnNoAuth, redirectOnNoProfile, showError
@@ -357,3 +389,9 @@ ADD COLUMN client_id TEXT REFERENCES coachpro_clients(id);  -- nullable!
 - [ ] Vložit obrázky karet do `/public/images/karty/`
 - [ ] Client interface (ClientCardDeckEntry, ClientCardDeckView, CardViewer)
 - [ ] Modularizace sdílení (Universal ShareModal pro materiály + programy + karty)
+
+
+---
+
+**Poslední update**: 6.11.2025, večer (Smart OAuth Redirect session)
+**Autor**: Lenka + Claude Sonnet 4.5

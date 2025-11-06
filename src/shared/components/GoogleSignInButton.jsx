@@ -18,7 +18,7 @@ import BORDER_RADIUS from '@styles/borderRadius';
  */
 const GoogleSignInButton = ({
   variant = 'outlined',
-  redirectTo = '/client/welcome',
+  redirectTo = '/',  // Changed: Always redirect to root, RootRedirect handles routing
   showDivider = false,
   buttonText = 'Přihlásit se přes Google',
   showSuccessToast = false,
@@ -35,6 +35,9 @@ const GoogleSignInButton = ({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}${redirectTo}`,
+          queryParams: {
+            prompt: 'select_account',  // Force account picker (allow logout/switch accounts)
+          },
         },
       });
 

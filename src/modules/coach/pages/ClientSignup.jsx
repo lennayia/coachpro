@@ -143,7 +143,6 @@ const ClientSignup = () => {
               <Box mb={2}>
                 <GoogleSignInButton
                   variant="contained"
-                  redirectTo="/client/welcome"
                   showDivider={false}
                   buttonText="Pokračovat s Google"
                   showSuccessToast={true}
