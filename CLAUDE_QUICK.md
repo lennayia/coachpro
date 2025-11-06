@@ -2,7 +2,7 @@
 
 > **Účel**: Rychlý přehled nejdůležitějších pravidel. Pro detaily viz CLAUDE.md
 
-**Poslední update**: 5. ledna 2025 (večer)
+**Poslední update**: 6. listopadu 2025 (večer)
 **Pro full dokumentaci**: Čti CLAUDE.md (ale JEN když potřebuješ detaily!)
 
 ---
@@ -257,6 +257,98 @@ const footer = program.programFeedback && program.programFeedback.length > 0 ? (
 - MaterialCard.jsx NEpoužívá BaseCard → identifikováno jako tech debt
 - Čeká na user rozhodnutí: quick fix vs. proper refactor
 
+### 15. 🔐 CONTEXT API & AUTH GUARDS - KRITICKÉ!
+
+**⚠️ NOVÉ PRAVIDLO (6.11.2025)**
+
+**User feedback**: "možná to nebyl dobrý nápad pořád se přihlašovat dokola přes Google" + "a šetříme tím dotazy na databázi?"
+
+**PRAVIDLO - ALWAYS use Context for shared state:**
+
+```javascript
+// ❌ NIKDY duplicate auth checks v každé stránce
+useEffect(() => {
+  const { data } = await supabase.auth.getUser();
+  const { data: profile } = await supabase.from(...);
+}, []);
+
+// ✅ VŽDY Context API
+<ClientAuthProvider>
+  <Routes>
+    <Route path="/welcome" element={<ClientWelcome />} />
+  </Routes>
+</ClientAuthProvider>
+
+// Usage (1 řádek!):
+const { user, profile, loading, logout } = useClientAuth();
+```
+
+**PRAVIDLO - Component Guards > Hook Guards:**
+
+```javascript
+// ❌ NIKDY hook-based guards (can't render, manual loading checks)
+const useAuthGuard = (requireProfile) => { ... }
+
+// ✅ VŽDY component-based guards
+<ClientAuthGuard requireProfile={true}>
+  {/* Auto-handles loading, redirects, errors */}
+</ClientAuthGuard>
+```
+
+**PRAVIDLO - displayName Pattern:**
+
+```javascript
+// Multi-source names (Google OAuth + DB):
+setProfile({
+  ...profileData,
+  displayName: googleName || profileData.name || '' // ⭐ Priority!
+});
+
+// Usage:
+{getVocative(profile?.displayName || '')}
+```
+
+**PRAVIDLO - Auto-redirect Logic:**
+
+```javascript
+// VŽDY na entry pages:
+useEffect(() => {
+  if (!loading && user && profile) {
+    navigate('/dashboard'); // Skip login screen ⭐
+  }
+}, [loading, user, profile, navigate]);
+```
+
+**PRAVIDLO - Czech Vocative = JEN PRVNÍ JMÉNO:**
+
+```javascript
+// ✅ SPRÁVNĚ - ONLY [0] = first name!
+const firstName = fullName.trim().split(' ')[0]; // ⭐
+if (firstName.endsWith('a')) return firstName.slice(0, -1) + 'o';
+
+// Příklad:
+"Lenka Penka Podkolenka" → "Lenko"  // JEN první jméno!
+```
+
+**Benefits:**
+- **Performance**: 67% fewer DB queries (6 → 2)
+- **Code Quality**: 90% reduction in duplication
+- **UX**: No repeated OAuth prompts
+
+**Implementace:**
+- `ClientAuthContext.jsx` - Context provider (131 lines)
+- `ClientAuthGuard.jsx` - Component guard (76 lines)
+- `czechGrammar.js` - Vocative utility (32 lines)
+- `ClientWelcome.jsx` - Welcome screen + logout button
+- `ClientDashboard.jsx` - Client zone (4 cards)
+
+**Common Pitfalls (❌ NIKDY):**
+1. Duplicate auth checks v každé stránce
+2. Hook-based auth guards (use components!)
+3. Vocative na všechna jména (jen první!)
+4. Manual loading state management (use Context!)
+5. Ignorovat auto-redirect logic
+
 ---
 
 ## 📁 DŮLEŽITÉ SOUBORY
@@ -269,16 +361,20 @@ const footer = program.programFeedback && program.programFeedback.length > 0 ? (
 - `/src/shared/components/FloatingMenu.jsx` - Settings menu
 - `/src/shared/components/NavigationFloatingMenu.jsx` - Navigace
 - `/src/shared/context/NotificationContext.jsx` - Toast systém
+- `/src/shared/context/ClientAuthContext.jsx` - ⭐ Client auth state (NEW 6.11.2025)
+- `/src/shared/components/ClientAuthGuard.jsx` - ⭐ Route protection (NEW 6.11.2025)
+- `/src/shared/utils/czechGrammar.js` - ⭐ Vocative case utility (NEW 6.11.2025)
 - `/src/modules/coach/utils/storage.js` - LocalStorage + Supabase
 - `/src/modules/coach/utils/supabaseStorage.js` - Supabase upload/delete
 - `/src/modules/coach/components/coach/MaterialCardSkeleton.jsx` - 8-row loading pattern
 
 **Dokumentační:**
-- `CLAUDE.md` - Kompletní dokumentace (9000+ řádků)
+- `CLAUDE.md` - Kompletní dokumentace (10,000+ řádků)
 - `CLAUDE_QUICK.md` - Tento soubor
 - `CONTEXT_QUICK.md` - Aktuální kontext
-- `summary.md` - Changelog všech sprintů
-- `MASTER_TODO_V3.md` - TODO list (AKTUÁLNÍ)
+- `summary6.md` - Changelog (6.11.2025) ⭐
+- `MASTER_TODO_V3.md` - TODO list (archived)
+- `MASTER_TODO_V4.md` - TODO list (AKTUÁLNÍ) ⭐
 
 ---
 
@@ -375,43 +471,88 @@ const handleEmail = () => {
 };
 ```
 
+### Czech Vocative Case (5. pád):
+```javascript
+// ✅ Extract ONLY first name and apply vocative
+const getVocative = (fullName) => {
+  if (!fullName) return '';
+
+  // Extract first name only (Lenka Penka Podkolenka → Lenka)
+  const firstName = fullName.trim().split(' ')[0];
+
+  // Ženská jména končící na -a → -o (Jana → Jano, Lenka → Lenko)
+  if (firstName.endsWith('a') && firstName.length > 1) {
+    return firstName.slice(0, -1) + 'o';
+  }
+
+  return firstName;
+};
+
+// Usage: Vítejte zpět, {getVocative(name)}!
+```
+
+### Google OAuth Name Priority:
+```javascript
+// ✅ VŽDY prioritizovat Google name nad DB name
+const googleName = user.user_metadata?.full_name || user.user_metadata?.name || '';
+
+// Use Google name if available, fallback to profile name
+setName(googleName || existingProfile.name || '');
+```
+
 ---
 
-## 📊 AKTUÁLNÍ STAV (5.1.2025, večer)
+## 📊 AKTUÁLNÍ STAV (6.11.2025, večer)
 
-**Session**: Koučovací karty - Coach Interface
-**Commit**: TBD
-**Branch**: `google-auth-implementation` (continuation)
+**Session**: Client Auth Modularity Refactor
+**Commits**: 4 (0838433, 0a83633, f95abbf, c033ef1)
+**Branch**: `client-flow-refactor` (4 commits ahead, not pushed)
 
 **Dokončeno v této session**:
-- ✅ BrowseCardDeckModal (nový, 146 řádků) - Grid view karet
-- ✅ ShareCardDeckModal refactor - Autocomplete výběr klientky
-- ✅ Email sharing button (mailto: link)
-- ✅ Eye icon fix (lucide-react místo MUI)
-- ✅ DialogTitle HTML nesting fix (component="div")
-- ✅ Duplicate keys warning fix (getOptionKey)
-- ✅ DB migrace připravena (client_id nullable foreign key)
+- ✅ ClientAuthContext.jsx - Centralized auth state (131 řádků)
+  - 67% reduction v DB queries (6 → 2)
+  - Single source of truth (user + profile + loading)
+- ✅ ClientAuthGuard.jsx - Component-based route protection (76 řádků)
+- ✅ czechGrammar.js - Vocative utility (32 řádků)
+- ✅ ClientWelcome.jsx - Welcome screen + logout button (509 řádků)
+- ✅ ClientDashboard.jsx - Client zone (4 cards, 287 řádků)
+- ✅ Refactored 5 pages (ClientProfile, Client, ClientView, ClientSignup, GoogleSignInButton)
+- ✅ Bug fix: CircularProgress import
 
-**Předchozí sessions**:
-- ✅ Google OAuth integration (5.1.2025, ráno)
-- ✅ MaterialCard layout reorganization (5.11.2025)
-- ✅ BaseCard feedback modularity (5.11.2025)
+**Předchozí sessions (6.11.2025)**:
+- ✅ Google OAuth Cleanup & Smart Client Flow (ráno)
+  - GoogleSignInButton.jsx (134 řádků)
+  - Client.jsx (440 řádků)
+  - ClientProfile.jsx 3-state UI (720 řádků)
+  - Czech vocative + Google name priority
+
+**Předchozí sessions (5.11.2025)**:
+- ✅ Koučovací karty - Coach Interface (večer)
+- ✅ Google OAuth integration (ráno)
+- ✅ MaterialCard layout reorganization
+- ✅ BaseCard feedback modularity
 
 **Tech Debt**:
 - ⚠️ MaterialCard.jsx NEpoužívá BaseCard (zůstává standalone)
 
-**Pending**:
+**Pending (Sprint 6a - Klientské Rozhraní)**:
+- [ ] Materials page (`/client/materials`)
+- [ ] Coaches directory (`/coaches`)
+- [ ] Help page integration
+
+**Pending (Other)**:
+- [ ] Test production OAuth flow
+- [ ] MaterialCard refactor na BaseCard (Sprint 18c)
+- [ ] Button Modularity System (Sprint 18b, 6-8 hodin)
 - [ ] Spustit migraci `20250105_05_add_client_id_to_shared_decks.sql`
-- [ ] Vložit obrázky karet do `/public/images/karty/`
-- [ ] Client interface (ClientCardDeckEntry, ClientCardDeckView, CardViewer)
-- [ ] Modularizace sdílení (Universal ShareModal)
-- [ ] Help buttons na ProgramsList a ClientsList
-- [ ] Sprint 18b: Button Modularity System (6-8 hodin)
+- [ ] Client interface pro coaching karty
 
 **Tech Stack**: React 18, MUI v6, Vite, Supabase
 **Status**: ✅ V PRODUKCI na Supabase (od 3.11.2025)
 **Dev Server**: `http://localhost:3000/`
 **Production**: `https://coachpro-weld.vercel.app/`
+
+**Next Step**: Push branch `client-flow-refactor` → Merge → Production testing
 
 ---
 

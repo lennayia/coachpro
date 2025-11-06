@@ -6,12 +6,13 @@ import {
   TextField,
   Button,
   Alert,
-  CircularProgress,
   Grid,
+  IconButton,
+  CircularProgress,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { User as UserIcon } from 'lucide-react';
+import { User as UserIcon, ArrowLeft, Save as SaveIcon } from 'lucide-react';
 import { fadeIn, fadeInUp } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { useNotification } from '@shared/context/NotificationContext';
@@ -22,19 +23,20 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import cs from 'date-fns/locale/cs';
+import { useClientAuth } from '@shared/context/ClientAuthContext';
+import ClientAuthGuard from '@shared/components/ClientAuthGuard';
 
 const ClientProfile = () => {
   const navigate = useNavigate();
   const { showError, showSuccess } = useNotification();
   const theme = useTheme();
   const glassCardStyles = useGlassCard('subtle');
+  const { user, profile, loading: authLoading, refreshProfile } = useClientAuth();
 
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   // Form state
-  const [user, setUser] = useState(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -42,79 +44,54 @@ const ClientProfile = () => {
   const [goals, setGoals] = useState('');
   const [healthNotes, setHealthNotes] = useState('');
 
-  // Check auth status
+  // Load profile from context
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
+    if (!authLoading && user) {
+      // Get name from Google OAuth (PRIORITY!)
+      const googleName = user.user_metadata?.full_name || user.user_metadata?.name || '';
 
-        if (!user) {
-          showError('Nepřihlášen', 'Nejste přihlášen. Přesměrovávám na registraci...');
-          navigate('/client/signup');
-          return;
+      // Pre-fill email from OAuth
+      setEmail(user.email || '');
+
+      if (profile) {
+        // Load existing profile
+        setName(googleName || profile.name || '');
+        setEmail(profile.email || '');
+        setPhone(profile.phone || '');
+        setDateOfBirth(profile.date_of_birth ? new Date(profile.date_of_birth) : null);
+        setGoals(profile.goals || '');
+        setHealthNotes(profile.health_notes || '');
+      } else {
+        // New user - pre-fill name from Google
+        if (googleName) {
+          setName(googleName);
         }
-
-        setUser(user);
-
-        // Pre-fill email from OAuth
-        setEmail(user.email || '');
-
-        // Check if profile already exists
-        const { data: existingProfile, error: profileError } = await supabase
-          .from('coachpro_client_profiles')
-          .select('*')
-          .eq('auth_user_id', user.id)
-          .single();
-
-        if (existingProfile) {
-          // Profile already exists - load it
-          setName(existingProfile.name || '');
-          setEmail(existingProfile.email || '');
-          setPhone(existingProfile.phone || '');
-          setDateOfBirth(existingProfile.date_of_birth ? new Date(existingProfile.date_of_birth) : null);
-          setGoals(existingProfile.goals || '');
-          setHealthNotes(existingProfile.health_notes || '');
-        }
-
-        setLoading(false);
-      } catch (err) {
-        console.error('Auth check error:', err);
-        setError('Chyba při načítání profilu.');
-        setLoading(false);
       }
-    };
-
-    checkAuth();
-  }, [navigate, showError]);
+    }
+  }, [authLoading, user, profile]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+
+    if (!name.trim()) {
+      setError('Jméno je povinné');
+      return;
+    }
+
     setSaving(true);
+    setError('');
 
     try {
-      // Validation
-      if (!name.trim()) {
-        throw new Error('Vyplňte prosím své jméno');
-      }
-
-      if (!email.trim()) {
-        throw new Error('Vyplňte prosím svůj email');
-      }
-
-      // Prepare data
       const profileData = {
         auth_user_id: user.id,
         name: name.trim(),
         email: email.trim(),
-        phone: phone.trim() || null,
+        phone: phone.trim(),
         date_of_birth: dateOfBirth ? dateOfBirth.toISOString().split('T')[0] : null,
-        goals: goals.trim() || null,
-        health_notes: healthNotes.trim() || null,
-        updated_at: new Date().toISOString(),
+        goals: goals.trim(),
+        health_notes: healthNotes.trim(),
       };
 
-      // Upsert profile
       const { error: upsertError } = await supabase
         .from('coachpro_client_profiles')
         .upsert(profileData, {
@@ -123,12 +100,18 @@ const ClientProfile = () => {
 
       if (upsertError) throw upsertError;
 
-      showSuccess('Hotovo!', 'Profil byl úspěšně uložen');
+      // Refresh profile in context
+      await refreshProfile();
 
-      // Redirect to program entry
+      showSuccess(
+        'Profil uložen',
+        'Váš profil byl úspěšně aktualizován.'
+      );
+
+      // Navigate back to welcome
       setTimeout(() => {
-        navigate('/client/entry');
-      }, 1000);
+        navigate('/client/welcome');
+      }, 1500);
 
     } catch (err) {
       console.error('Profile save error:', err);
@@ -140,22 +123,8 @@ const ClientProfile = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
+    <ClientAuthGuard requireProfile={false}>
     <Box
       sx={{
         minHeight: '100vh',
@@ -204,7 +173,31 @@ const ClientProfile = () => {
             borderRadius: '32px',
           }}
         >
-          <Box p={4}>
+          <Box p={4} position="relative">
+            {/* Back arrow - top left */}
+            <IconButton
+              onClick={() => navigate('/client/welcome')}
+              sx={{
+                position: 'absolute',
+                top: 16,
+                left: 16,
+                color: 'text.secondary',
+                '&:hover': {
+                  color: 'primary.main',
+                  backgroundColor: 'rgba(139, 188, 143, 0.08)',
+                },
+              }}
+            >
+              <ArrowLeft size={20} />
+            </IconButton>
+
+            {/* Error */}
+            {error && (
+              <Alert severity="error" sx={{ mb: 3, mt: 5 }} onClose={() => setError('')}>
+                {error}
+              </Alert>
+            )}
+
             {/* Header */}
             <motion.div
               variants={fadeInUp}
@@ -212,7 +205,7 @@ const ClientProfile = () => {
               animate="visible"
               transition={{ delay: 0.1 }}
             >
-              <Box textAlign="center" mb={4}>
+              <Box textAlign="center" mb={4} mt={5}>
                 <Box
                   sx={{
                     display: 'inline-flex',
@@ -221,10 +214,15 @@ const ClientProfile = () => {
                     width: 80,
                     height: 80,
                     borderRadius: '50%',
-                    backgroundColor: (theme) =>
+                    background: (theme) =>
                       theme.palette.mode === 'dark'
-                        ? 'rgba(139, 188, 143, 0.15)'
-                        : 'rgba(85, 107, 47, 0.1)',
+                        ? 'linear-gradient(135deg, rgba(139, 188, 143, 0.2) 0%, rgba(85, 107, 47, 0.15) 100%)'
+                        : 'linear-gradient(135deg, rgba(139, 188, 143, 0.2) 0%, rgba(85, 107, 47, 0.1) 100%)',
+                    border: '2px solid',
+                    borderColor: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(139, 188, 143, 0.3)'
+                        : 'rgba(85, 107, 47, 0.2)',
                     mb: 2,
                   }}
                 >
@@ -234,17 +232,10 @@ const ClientProfile = () => {
                   Váš profil
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                  Vyplňte prosím své údaje pro personalizaci programu
+                  Upravte své osobní údaje
                 </Typography>
               </Box>
             </motion.div>
-
-            {/* Error */}
-            {error && (
-              <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
-                {error}
-              </Alert>
-            )}
 
             {/* Form */}
             <motion.div
@@ -274,9 +265,8 @@ const ClientProfile = () => {
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      required
-                      type="email"
                       label="Email"
+                      type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       disabled={saving}
@@ -290,8 +280,7 @@ const ClientProfile = () => {
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      type="tel"
-                      label="Telefon (volitelné)"
+                      label="Telefon"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       disabled={saving}
@@ -301,11 +290,11 @@ const ClientProfile = () => {
                     />
                   </Grid>
 
-                  {/* Date of birth */}
+                  {/* Date of Birth */}
                   <Grid item xs={12} sm={6}>
                     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={cs}>
                       <DatePicker
-                        label="Datum narození (volitelné)"
+                        label="Datum narození"
                         value={dateOfBirth}
                         onChange={(newValue) => setDateOfBirth(newValue)}
                         disabled={saving}
@@ -327,80 +316,61 @@ const ClientProfile = () => {
                       fullWidth
                       multiline
                       rows={3}
-                      label="Vaše cíle (volitelné)"
+                      label="Vaše cíle"
                       value={goals}
                       onChange={(e) => setGoals(e.target.value)}
                       disabled={saving}
-                      helperText="Co chcete v programu dosáhnout?"
+                      placeholder="Co chcete dosáhnout? Jaké jsou vaše osobní cíle?"
                       InputProps={{
                         sx: { borderRadius: BORDER_RADIUS.compact },
                       }}
                     />
                   </Grid>
 
-                  {/* Health notes */}
+                  {/* Health Notes */}
                   <Grid item xs={12}>
                     <TextField
                       fullWidth
                       multiline
                       rows={3}
-                      label="Zdravotní poznámky (volitelné)"
+                      label="Zdravotní poznámky"
                       value={healthNotes}
                       onChange={(e) => setHealthNotes(e.target.value)}
                       disabled={saving}
-                      helperText="Máte nějaká zdravotní omezení, o kterých by měla koučka vědět?"
+                      placeholder="Informace, které by měla vaše koučka vědět (volitelné)"
                       InputProps={{
                         sx: { borderRadius: BORDER_RADIUS.compact },
                       }}
                     />
                   </Grid>
-                </Grid>
 
-                {/* Submit button */}
-                <Box display="flex" justifyContent="center" mt={4}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    size="large"
-                    disabled={saving}
-                    startIcon={saving && <CircularProgress size={20} sx={{ color: '#ffffff' }} />}
-                    sx={{
-                      px: 6,
-                      py: 1.5,
-                      color: '#ffffff !important',
-                      background: (theme) =>
-                        `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                      borderRadius: BORDER_RADIUS.compact,
-                      '&:hover': {
-                        background: (theme) =>
-                          `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.primary.main} 100%)`,
-                        boxShadow: (theme) =>
-                          theme.palette.mode === 'dark'
-                            ? '0 12px 32px rgba(143, 188, 143, 0.3)'
-                            : '0 12px 32px rgba(85, 107, 47, 0.3)',
-                      },
-                    }}
-                  >
-                    {saving ? 'Ukládám...' : 'Pokračovat'}
-                  </Button>
-                </Box>
+                  {/* Submit Button */}
+                  <Grid item xs={12}>
+                    <Box display="flex" justifyContent="center" mt={2}>
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        size="large"
+                        disabled={saving}
+                        startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon size={20} />}
+                        sx={{
+                          px: 4,
+                          py: 1.5,
+                          borderRadius: BORDER_RADIUS.compact,
+                        }}
+                      >
+                        {saving ? 'Ukládám...' : 'Uložit profil'}
+                      </Button>
+                    </Box>
+                  </Grid>
+                </Grid>
               </form>
             </motion.div>
-
-            {/* Info */}
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              textAlign="center"
-              display="block"
-              mt={3}
-            >
-              Po uložení profilu budete přesměrováni na vstup do programu.
-            </Typography>
           </Box>
         </Card>
       </motion.div>
     </Box>
+    </ClientAuthGuard>
   );
 };
 
