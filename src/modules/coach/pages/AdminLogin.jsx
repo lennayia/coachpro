@@ -69,6 +69,10 @@ const AdminLogin = () => {
         throw new Error('Přihlášení selhalo - žádný uživatel');
       }
 
+      // Debug: Check if session exists
+      console.log('🔵 Auth successful, session:', authData.session);
+      console.log('🔵 User:', authData.user.email);
+
       // Create admin user object for localStorage (compatibility with current system)
       const adminUser = {
         id: authData.user.id,
