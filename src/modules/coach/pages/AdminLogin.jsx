@@ -10,79 +10,89 @@ import {
   Alert,
   InputAdornment,
   IconButton,
+  CircularProgress,
 } from '@mui/material';
 import { Shield, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { setCurrentUser, getCoaches, saveCoach } from '../utils/storage';
+import { supabase } from '@shared/config/supabase';
+import { setCurrentUser, saveCoach } from '../utils/storage';
 import { useNotification } from '@shared/context/NotificationContext';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
 
-const ADMIN_PASSWORD = 'lenna2025'; // TODO: Move to env variable in production
+const ADMIN_EMAIL = 'lenna@online-byznys.cz';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
   const { showSuccess, showError } = useNotification();
   const glassCardStyles = useGlassCard('subtle');
 
+  const [email, setEmail] = useState(ADMIN_EMAIL);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (!password.trim()) {
-      setError('Vyplň prosím heslo');
-      showError('Chyba', 'Heslo je povinné');
+    if (!email.trim() || !password.trim()) {
+      setError('Vyplň email a heslo');
+      showError('Chyba', 'Email a heslo jsou povinné');
       return;
     }
 
-    if (password !== ADMIN_PASSWORD) {
-      setError('Nesprávné heslo');
-      showError('Chyba', 'Nesprávné heslo');
+    if (email.trim() !== ADMIN_EMAIL) {
+      setError('Nesprávný email. Admin = lenna@online-byznys.cz');
+      showError('Chyba', 'Nesprávný email');
       return;
     }
 
-    // ADMIN = vždy Lenka s emailem lenna@online-byznys.cz
-    const ADMIN_EMAIL = 'lenna@online-byznys.cz';
-    const coaches = await getCoaches();
+    setLoading(true);
 
-    // Find admin by email
-    let adminCoach = coaches?.find(c => c.email === ADMIN_EMAIL);
+    try {
+      // Sign in with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password.trim(),
+      });
 
-    if (!adminCoach) {
-      // Admin account doesn't exist - create it
-      adminCoach = {
-        id: 'admin-lenna',
+      if (authError) {
+        if (authError.message.includes('Invalid login credentials')) {
+          throw new Error('Nesprávné heslo');
+        }
+        throw authError;
+      }
+
+      if (!authData.user) {
+        throw new Error('Přihlášení selhalo - žádný uživatel');
+      }
+
+      // Create admin user object for localStorage (compatibility with current system)
+      const adminUser = {
+        id: authData.user.id,
         name: 'Lenka Roubalová',
         email: ADMIN_EMAIL,
         isAdmin: true,
         createdAt: new Date().toISOString(),
       };
 
-      // Ulož coach do Supabase
-      await saveCoach(adminCoach);
+      // Save to localStorage (for getCurrentUser())
+      setCurrentUser(adminUser);
 
-      setCurrentUser(adminCoach);
-      showSuccess('Vítej! 🎉', 'Nový admin účet vytvořen');
+      // Save to Supabase coaches table (optional, for backwards compatibility)
+      await saveCoach(adminUser);
+
+      showSuccess('Vítej zpět! 🎉', 'Přihlášena jako admin');
       navigate('/coach/dashboard');
-      return;
+    } catch (err) {
+      console.error('Admin login error:', err);
+      setError(err.message || 'Přihlášení selhalo');
+      showError('Chyba', err.message || 'Přihlášení selhalo');
+    } finally {
+      setLoading(false);
     }
-
-    // Admin exists - log in as admin
-    const adminUser = {
-      ...adminCoach,
-      isAdmin: true, // Always mark as admin
-    };
-
-    // Ulož/update coach v Supabase (pro případ že byl jen v localStorage)
-    await saveCoach(adminUser);
-
-    setCurrentUser(adminUser);
-    showSuccess('Vítej zpět! 🎉', `Přihlášena jako ${adminUser.name}`);
-    navigate('/coach/dashboard');
   };
 
   return (
@@ -133,12 +143,28 @@ const AdminLogin = () => {
           {/* Form */}
           <form onSubmit={handleSubmit}>
             <TextField
+              label="Email"
+              type="email"
+              fullWidth
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoFocus
+              disabled={loading}
+              sx={{
+                mb: 2,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: BORDER_RADIUS.compact,
+                }
+              }}
+            />
+
+            <TextField
               label="Heslo"
               type={showPassword ? 'text' : 'password'}
               fullWidth
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoFocus
+              disabled={loading}
               sx={{
                 mb: 3,
                 '& .MuiOutlinedInput-root': {
@@ -151,6 +177,7 @@ const AdminLogin = () => {
                     <IconButton
                       onClick={() => setShowPassword(!showPassword)}
                       edge="end"
+                      disabled={loading}
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </IconButton>
@@ -164,14 +191,14 @@ const AdminLogin = () => {
               variant="contained"
               size="large"
               fullWidth
-              disabled={!password.trim()}
-              endIcon={<ArrowRight size={20} />}
+              disabled={loading || !email.trim() || !password.trim()}
+              endIcon={loading ? <CircularProgress size={20} color="inherit" /> : <ArrowRight size={20} />}
               sx={{
                 borderRadius: BORDER_RADIUS.button,
                 py: 1.5,
               }}
             >
-              Přihlásit se
+              {loading ? 'Přihlašuji...' : 'Přihlásit se'}
             </Button>
           </form>
 
