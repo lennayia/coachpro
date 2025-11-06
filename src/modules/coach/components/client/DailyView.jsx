@@ -91,14 +91,14 @@ const DailyView = () => {
     const loadData = async () => {
       const loadedClient = getCurrentClient();
       if (!loadedClient) {
-        navigate('/client/entry');
+        navigate('/client');
         return;
       }
 
       // Check if this is a preview with embedded program data
       const loadedProgram = loadedClient._previewProgram || await getProgramById(loadedClient.programId);
       if (!loadedProgram) {
-        navigate('/client/entry');
+        navigate('/client');
         return;
       }
 
@@ -111,7 +111,7 @@ const DailyView = () => {
 
       if (!dayData) {
         console.error('Day data not found for day', dayToShow);
-        navigate('/client/entry');
+        navigate('/client');
         return;
       }
 
@@ -241,7 +241,7 @@ const DailyView = () => {
   };
 
   const handleBack = () => {
-    navigate('/client/entry');
+    navigate('/client');
   };
 
   // Open material in new tab (same as PreviewModal)

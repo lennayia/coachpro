@@ -585,6 +585,38 @@ export const getProgramByCode = async (code) => {
   }
 };
 
+export const getMaterialByCode = async (code) => {
+  try {
+    const { data, error } = await supabase
+      .from('coachpro_shared_materials')
+      .select('*')
+      .eq('share_code', code.toUpperCase())
+      .single();
+
+    if (error) throw error;
+    return convertMaterialFromDB(data);
+  } catch (error) {
+    console.error('Error fetching material by code from Supabase:', error);
+    return null;
+  }
+};
+
+export const getCardDeckByCode = async (code) => {
+  try {
+    const { data, error } = await supabase
+      .from('coachpro_shared_card_decks')
+      .select('*')
+      .eq('share_code', code.toUpperCase())
+      .single();
+
+    if (error) throw error;
+    return data; // Card decks don't have a converter yet
+  } catch (error) {
+    console.error('Error fetching card deck by code from Supabase:', error);
+    return null;
+  }
+};
+
 export const deleteProgram = async (id) => {
   try {
     const { error } = await supabase

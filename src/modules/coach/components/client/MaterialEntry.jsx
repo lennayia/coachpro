@@ -306,7 +306,7 @@ const MaterialEntry = () => {
                   Potřebujete přístup do programu?
                 </Typography>
                 <MuiLink
-                  onClick={() => navigate('/client/entry')}
+                  onClick={() => navigate('/client')}
                   sx={{
                     cursor: 'pointer',
                     fontWeight: 600, 

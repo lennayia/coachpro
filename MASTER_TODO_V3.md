@@ -4504,4 +4504,68 @@ Signup → Profile → Entry (6-digit code) → Program access
 Entry (6-digit code) → Optional name → Program access
 ```
 
+---
+
+## ✅ Session Update: 6.11.2025 - Google OAuth Cleanup & Smart Client Flow
+
+**Dokončeno**:
+- [x] GoogleSignInButton.jsx - Modulární komponenta (134 řádků)
+  - Google brand colors (#4285F4, #357ae8)
+  - Props: variant, redirectTo, showDivider, buttonText, showSuccessToast, onError
+  - Reusable across multiple entry points
+- [x] Client.jsx - Nová vstupní stránka (440 řádků)
+  - Unified entry point: Google OAuth + 6-digit code
+  - Auto-detection code typu (program/material/card-deck)
+  - Clean UX bez auto-login detection
+- [x] ClientProfile.jsx - 3-state smart UI (720 řádků)
+  - State A: No profile → Registration form
+  - State B: Has profile, NO program → Welcome screen + code input
+  - State C: Has profile, HAS program → Auto-redirect to /client/daily
+- [x] Czech Vocative Case (5. pád) implementace
+  - Pouze první jméno (Lenka Penka Podkolenka → Lenko)
+  - getVocative() helper funkce
+- [x] Google OAuth name priority
+  - user.user_metadata.full_name má prioritu nad DB name
+  - Auto-synchronizace jména z Google účtu
+- [x] URL restructuring
+  - /client (nová hlavní entry point)
+  - /tester (coach entry)
+  - Odstraněny: /client/signup, /client/entry
+- [x] Storage functions rozšířeny
+  - getMaterialByCode()
+  - getCardDeckByCode()
+- [x] Route references fixes (8 souborů)
+  - ClientSignup.jsx, DailyView.jsx, MaterialView.jsx, MaterialEntry.jsx
+  - Login.jsx, ClientProfile.jsx, ClientView.jsx, App.jsx
+
+**Client Flow**: ✅ Plně funkční
+```
+1. User navigates to /client
+2. Either:
+   a) Click "Pokračovat s Google" → /client/profile (3-state UI)
+   b) Enter 6-digit code → Auto-detect type → Redirect to content
+
+3. ClientProfile 3-state logic:
+   - No profile? → Show registration form
+   - Has profile but NO program? → Welcome screen "Vítejte zpět, [Vocative]!"
+   - Has profile AND program? → Auto-redirect to /client/daily
+```
+
+**Technical Highlights**:
+- Vocative: "Lenka" → "Lenko" (jen první jméno!)
+- Google name sync: user.user_metadata.full_name priorita
+- Efficient Supabase queries (2-3 per page load, indexed)
+- Auto-detection: program vs material vs card-deck
+
+**Files Modified**: 12 souborů
+- New: GoogleSignInButton.jsx (134), Client.jsx (440)
+- Refactored: ClientProfile.jsx (720)
+- Updated: storage.js (2 new functions)
+- Fixed routes: 8 files
+
+**Pending**:
+- [ ] Test production OAuth flow
+- [ ] Choose coach from list feature (State B enhancement)
+- [ ] Card deck client interface
+
 **Příští priorita**: Testování v production, UX vylepšení

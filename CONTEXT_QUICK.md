@@ -16,30 +16,37 @@
 
 ---
 
-## 🎯 Aktuální Práce (5.11.2025, večer)
+## 🎯 Aktuální Práce (6.11.2025, večer)
 
-**Aktuální task**: Koučovací karty - Coach Interface - DOKONČENO ✅
+**Aktuální task**: Google OAuth Cleanup & Smart Client Flow - DOKONČENO ✅
 **Commit**: TBD
 **Branch**: `google-auth-implementation` (continuation)
 
 ### Co bylo hotové v této session:
-- ✅ BrowseCardDeckModal.jsx (nový, 146 řádků) - Grid view karet
-- ✅ ShareCardDeckModal - Autocomplete výběr klientky (místo TextField)
-- ✅ Email sharing button (mailto: link)
-- ✅ Eye icon fix (lucide-react místo MUI)
-- ✅ DialogTitle HTML nesting fix (component="div")
-- ✅ Duplicate keys warning fix (getOptionKey prop)
-- ✅ DB migrace připravena (client_id nullable foreign key)
+- ✅ GoogleSignInButton.jsx (modulární komponenta, 134 řádků)
+- ✅ Client.jsx (nová čistá vstupní stránka, 440 řádků)
+- ✅ ClientProfile.jsx - 3-state UI (welcome screen, 720 řádků)
+- ✅ Vokativ (5. pád) - jen první jméno (Lenka → Lenko)
+- ✅ Google jméno má prioritu nad DB jménem
+- ✅ URL cleanup - /client (ne /client/entry)
+- ✅ getMaterialByCode() + getCardDeckByCode() v storage.js
+- ✅ 8 souborů opraveno (odkazy na staré routes)
 
 ### Předchozí sessions:
-- ✅ Google OAuth integration (5.11.2025, vdčer)
+- ✅ Koučovací karty - Coach Interface (5.11.2025, večer)
+- ✅ Google OAuth integration (5.11.2025, ráno)
 - ✅ MaterialCard Layout Reorganization (5.11.2025)
-- ✅ BaseCard feedback modularity (5.11.2025)
 - ⚠️ MaterialCard.jsx NEpoužívá BaseCard (tech debt zůstává)
 
 ---
 
 ## 📁 Klíčové Soubory
+
+### Client Flow (OAuth + Kód)
+- ✅ `/src/modules/coach/pages/Client.jsx` - Čistá vstupní stránka (440 řádků)
+- ✅ `/src/modules/coach/pages/ClientProfile.jsx` - 3-state UI (720 řádků)
+- ✅ `/src/shared/components/GoogleSignInButton.jsx` - Modulární OAuth button (134 řádků)
+- ✅ `/src/modules/coach/utils/storage.js` - getMaterialByCode, getCardDeckByCode
 
 ### Komponenty s Help Systémem
 - ✅ `/src/shared/constants/helpContent.js` - VYTVOŘENO (417 lines)

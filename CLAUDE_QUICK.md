@@ -375,24 +375,55 @@ const handleEmail = () => {
 };
 ```
 
+### Czech Vocative Case (5. pád):
+```javascript
+// ✅ Extract ONLY first name and apply vocative
+const getVocative = (fullName) => {
+  if (!fullName) return '';
+
+  // Extract first name only (Lenka Penka Podkolenka → Lenka)
+  const firstName = fullName.trim().split(' ')[0];
+
+  // Ženská jména končící na -a → -o (Jana → Jano, Lenka → Lenko)
+  if (firstName.endsWith('a') && firstName.length > 1) {
+    return firstName.slice(0, -1) + 'o';
+  }
+
+  return firstName;
+};
+
+// Usage: Vítejte zpět, {getVocative(name)}!
+```
+
+### Google OAuth Name Priority:
+```javascript
+// ✅ VŽDY prioritizovat Google name nad DB name
+const googleName = user.user_metadata?.full_name || user.user_metadata?.name || '';
+
+// Use Google name if available, fallback to profile name
+setName(googleName || existingProfile.name || '');
+```
+
 ---
 
-## 📊 AKTUÁLNÍ STAV (5.1.2025, večer)
+## 📊 AKTUÁLNÍ STAV (6.11.2025, večer)
 
-**Session**: Koučovací karty - Coach Interface
+**Session**: Google OAuth Cleanup & Smart Client Flow
 **Commit**: TBD
 **Branch**: `google-auth-implementation` (continuation)
 
 **Dokončeno v této session**:
-- ✅ BrowseCardDeckModal (nový, 146 řádků) - Grid view karet
-- ✅ ShareCardDeckModal refactor - Autocomplete výběr klientky
-- ✅ Email sharing button (mailto: link)
-- ✅ Eye icon fix (lucide-react místo MUI)
-- ✅ DialogTitle HTML nesting fix (component="div")
-- ✅ Duplicate keys warning fix (getOptionKey)
-- ✅ DB migrace připravena (client_id nullable foreign key)
+- ✅ GoogleSignInButton.jsx (modulární komponenta, 134 řádků)
+- ✅ Client.jsx (nová čistá vstupní stránka, 440 řádků)
+- ✅ ClientProfile.jsx - 3-state UI (welcome screen, 720 řádků)
+- ✅ Vokativ (5. pád) - jen první jméno (Lenka → Lenko)
+- ✅ Google jméno má prioritu nad DB jménem
+- ✅ URL cleanup - /client (ne /client/entry)
+- ✅ getMaterialByCode() + getCardDeckByCode() v storage.js
+- ✅ 8 souborů opraveno (odkazy na staré routes)
 
 **Předchozí sessions**:
+- ✅ Koučovací karty - Coach Interface (5.1.2025, večer)
 - ✅ Google OAuth integration (5.1.2025, ráno)
 - ✅ MaterialCard layout reorganization (5.11.2025)
 - ✅ BaseCard feedback modularity (5.11.2025)

@@ -43,10 +43,10 @@ function App() {
           <BrowserRouter>
             <ErrorBoundary>
               <Routes>
-                <Route path="/" element={<Navigate to="/tester/signup" replace />} />
+                <Route path="/" element={<Navigate to="/tester" replace />} />
                 <Route path="/lenna" element={<AdminLogin />} />
+                <Route path="/tester" element={<TesterLogin />} />
                 <Route path="/tester/signup" element={<TesterSignup />} />
-                <Route path="/tester/login" element={<TesterLogin />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/coach/*" element={<ErrorBoundary><CoachDashboard /></ErrorBoundary>} />
                 <Route path="/client/*" element={<ErrorBoundary><ClientView /></ErrorBoundary>} />

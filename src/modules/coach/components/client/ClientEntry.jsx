@@ -16,6 +16,7 @@ import {
   Chip,
   InputAdornment,
   Link as MuiLink,
+  Divider,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -35,6 +36,7 @@ import { useNotification } from '@shared/context/NotificationContext';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
 import { useTheme } from '@mui/material';
 import { supabase } from '@shared/config/supabase';
+import GoogleSignInButton from '@shared/components/GoogleSignInButton';
 
 const ClientEntry = () => {
   const navigate = useNavigate();
@@ -436,6 +438,14 @@ const ClientEntry = () => {
                   helperText="Zadejte kód, který jste dostala od své koučky"
                 />
 
+                {/* Google Sign In Button */}
+                <GoogleSignInButton
+                  variant="outlined"
+                  redirectTo="/client/profile"
+                  showDivider={true}
+                  onError={(err, errorMsg) => setError(errorMsg)}
+                />
+
                 {/* Live Preview - Název programu + Kouč */}
                 {previewProgram && (
                   <Alert
@@ -622,26 +632,6 @@ const ClientEntry = () => {
                 }}
               >
                 Vstup k materiálu →
-              </MuiLink>
-            </Box>
-
-            <Box mt={2} textAlign="center">
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Chcete si vytvořit profil pro lepší přístup?
-              </Typography>
-              <MuiLink
-                onClick={() => navigate('/client/signup')}
-                sx={{
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  color: 'primary.main',
-                  textDecoration: 'none',
-                  '&:hover': {
-                    textDecoration: 'underline',
-                  },
-                }}
-              >
-                Registrace přes Google →
               </MuiLink>
             </Box>
 

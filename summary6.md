@@ -1394,7 +1394,250 @@ ADD COLUMN client_id TEXT REFERENCES coachpro_clients(id);
 
 ---
 
-**Status**: ✅ Coach interface complete (5.11.2025, večer)
-**Dev Server**: ✅ Běží bez warnings
-**Příští krok**: Spustit migraci + otestovat Browse & Share flow 🎴
+## 📋 Session: Google OAuth Cleanup & Smart Client Flow (6.11.2025, večer)
+
+**Branch**: `google-auth-implementation` (continuation)
+**Commit**: TBD
+**Čas**: ~2 hodiny
+
+---
+
+### 🎯 Hlavní úkol: Zjednodušit client flow
+
+**User požadavek**:
+> "Klient by měl VŽDYCKY kliknout přes Google, a pak až přesměrovat. A když už má profil ale nemá program, ať ho aplikace vyzve, aby se spojil se svojí koučkou nebo si vybral koučku ze seznamu."
+
+---
+
+### ✅ Co bylo implementováno:
+
+#### 1. **Modulární GoogleSignInButton** (nový soubor)
+**Soubor**: `/src/shared/components/GoogleSignInButton.jsx` (134 řádků)
+
+**Props**:
+- `variant` - 'contained' (filled) nebo 'outlined' (border)
+- `redirectTo` - kam přesměrovat po OAuth (default: `/client/profile`)
+- `showDivider` - zobrazit "nebo" divider
+- `buttonText` - vlastní text tlačítka
+- `showSuccessToast` - zobrazit success notifikaci
+- `onError` - custom error handler
+
+**Styling**:
+- Oficiální Google barvy: `#4285F4` (primary), `#357ae8` (hover)
+- Kompaktní, centrovaný layout (ne fullWidth)
+- BORDER_RADIUS.compact
+
+**Použití**:
+- ✅ ClientEntry.jsx → ClientSignup.jsx (refactored)
+- ✅ Client.jsx (nový)
+
+---
+
+#### 2. **Čistá URL struktura**
+
+**Klientky**:
+- `/client` - univerzální vstup (Google + kód)
+
+**Kouči**:
+- `/tester` - hlavní vstup pro testery
+- `/kouc` - produkce (připraveno na později)
+
+**Odstraněno**:
+- ❌ `/client/entry` (nahrazeno `/client`)
+- ❌ `/client/signup` (nahrazeno `/client`)
+
+**Opraveno 8 souborů** s odkazy na staré routes:
+- ClientSignup.jsx
+- DailyView.jsx (3×)
+- MaterialView.jsx (2×)
+- MaterialEntry.jsx
+- Login.jsx
+- ClientProfile.jsx (2×)
+
+---
+
+#### 3. **Client.jsx - Čistá vstupní stránka** (nový, 440 řádků)
+
+**Features**:
+- Google OAuth button (VŽDY viditelný, i když je session)
+- 6-místný kód input s auto-detection (program/materiál/karty)
+- Live preview s checkmarkem
+- Žádná auto-detection OAuth session → čistý start při každém vstupu
+
+**Auto-detection kódu**:
+- Detekuje typ z DB (program/material/card-deck)
+- Zobrazí preview s názvem a koučem
+- Automatický redirect po zadání platného kódu
+
+---
+
+#### 4. **ClientProfile.jsx - Smart 3-state UI** (refactored, 720 řádků)
+
+**State A: Nemá profil** → Formulář
+- Pre-fill jméno z Google (`user.user_metadata.full_name`)
+- Pre-fill email z Google
+- Po uložení: Toast "Vítejte, [vokativ]!" → redirect `/client` (2s)
+
+**State B: Má profil + NEMÁ program** → **Welcome Screen** ⭐ NOVÝ!
+```
+Vítejte zpět, Lenko!
+Jak se dneska máte?
+
+Máte kód od své koučky?
+[ABC123] [✓]
+
+[Vstoupit]
+
+────────────────────
+Nebo se spojte se svojí koučkou
+pro přístup k programům
+```
+
+**Features**:
+- Vykání 5. pádem
+- Code input s auto-detection
+- Logout button (top-right)
+- Instrukce pro kontakt s koučkou
+
+**State C: Má profil + MÁ program** → Auto-redirect
+- Toast "Vítejte zpět! Dobrý den, [jméno]!"
+- Redirect `/client/daily`
+
+---
+
+#### 5. **Vokativ (5. pád) - Správné oslovení**
+
+**Funkce** `getVocative()`:
+```javascript
+// Extrahuje JEN první jméno
+"Lenka Penka Podkolenka" → "Lenka" → "Lenko"
+"Lenka Roubalová" → "Lenka" → "Lenko"
+"Jana Nováková" → "Jana" → "Jano"
+"Petra Svobodová" → "Petra" → "Petro"
+```
+
+**Pravidlo**:
+- Ženská jména končící na `-a` → `-o`
+- Ostatní jména zůstávají stejně
+
+**Opraveno**:
+- ❌ Původně: aplikovalo vokativ na celé jméno ("Lenka Penka Podkolenko")
+- ✅ Nyní: jen na první jméno ("Lenko")
+
+---
+
+#### 6. **Google jméno má PRIORITU**
+
+**Logika**:
+```javascript
+// 1. PRIORITA: Google OAuth name
+const googleName = user.user_metadata?.full_name;
+
+// 2. FALLBACK: Jméno z databáze
+const dbName = existingProfile.name;
+
+// Použije se Google name, pokud existuje
+setName(googleName || dbName);
+```
+
+**Benefit**:
+- Uživatel vidí svoje aktuální jméno z Google účtu
+- Ne staré jméno zadané při registraci
+- Automatická synchronizace s Google profilem
+
+---
+
+#### 7. **Storage funkce pro code detection**
+
+**Přidáno** do `storage.js`:
+```javascript
+export const getMaterialByCode = async (code) => {
+  // Načte z coachpro_shared_materials
+}
+
+export const getCardDeckByCode = async (code) => {
+  // Načte z coachpro_shared_card_decks
+}
+```
+
+**Použití**:
+- Auto-detection v Client.jsx
+- Auto-detection v ClientProfile.jsx (welcome screen)
+
+---
+
+### 📊 Soubory změněny (12):
+
+**Nové**:
+1. `/src/shared/components/GoogleSignInButton.jsx` (134 lines) ⭐
+
+**Refactored**:
+2. `/src/modules/coach/pages/Client.jsx` (440 lines) - nová vstupní stránka ⭐
+3. `/src/modules/coach/pages/ClientProfile.jsx` (720 lines) - 3-state UI ⭐
+4. `/src/modules/coach/pages/ClientView.jsx` - routing cleanup
+5. `/src/modules/coach/pages/ClientSignup.jsx` - modulární button
+6. `/src/App.jsx` - `/tester` route
+
+**Odkazy opraveny**:
+7. `/src/modules/coach/components/client/DailyView.jsx` (3×)
+8. `/src/modules/coach/pages/MaterialView.jsx` (2×)
+9. `/src/modules/coach/components/client/MaterialEntry.jsx`
+10. `/src/modules/coach/pages/Login.jsx`
+
+**Storage**:
+11. `/src/modules/coach/utils/storage.js` - přidány 2 funkce
+
+---
+
+### 🎓 Klíčové lekce:
+
+1. **Vždy znovu kliknout na Google** ✅
+   - Žádný auto-login při session
+   - Čistý, konzistentní UX
+
+2. **Google jméno = PRIORITA** ✅
+   - user.user_metadata.full_name > DB name
+   - Automatická synchronizace
+
+3. **Vokativ jen na první jméno** ✅
+   - "Lenka Penka Podkolenka" → "Lenko" (ne "Lenka Penka Podkolenko")
+
+4. **"Spojte se se svojí koučkou"** ✅
+   - Jasná instrukce pro uživatele bez programu
+   - Code input přímo ve welcome screen
+
+5. **Čisté URLs** ✅
+   - `/client` místo `/client/entry`
+   - `/tester` místo `/tester/login`
+
+---
+
+### 🔧 Technické detaily:
+
+**Supabase load**:
+- 2-3 dotazy při načtení `/client/profile`
+- Indexed queries (`auth_user_id`)
+- Minimal data (1-2 řádky)
+- ✅ Efektivní, žádné performance problémy
+
+**Vite cache**:
+- Vymazána cache po přidání nových exportů
+- `rm -rf node_modules/.vite`
+- Dev server restartován
+
+---
+
+### ⏳ Pending:
+
+- [ ] Testování OAuth flow v produkci
+- [ ] "Vyberte si koučku ze seznamu" feature (budoucnost)
+- [ ] Spustit DB migraci pro card decks
+- [ ] Client interface pro coaching karty
+
+---
+
+**Status**: ✅ Smart client flow implementován (6.11.2025, večer)
+**Dev Server**: ✅ Běží bez chyb
+**Build**: ✅ Successful
+**Příští krok**: Production testing + kouč selection feature 🎯
 
