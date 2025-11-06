@@ -591,6 +591,288 @@ Vercel: ✅ Ready to deploy
 
 ---
 
+## 📋 Mini-Session: TesterSignup UI & Admin Management (6.11.2025, pozdě večer)
+
+**Branch**: `smart-oauth-redirect` (continuation)
+**Duration**: ~1.5 hodiny
+**Status**: ✅ Complete
+
+### 🎯 Kontext
+
+Po dokončení Smart OAuth Redirect potřebujeme:
+1. Vylepšit TesterSignup form (split name for proper Czech addressing)
+2. Vytvořit admin view pro správu registrací testerů
+3. **KRITICKÉ**: Obnovit RLS policies v produkci (byly vypnuté pro testing!)
+
+---
+
+### ✅ Implementované Změny
+
+#### 1. TesterSignup.jsx - Form Improvements
+
+**Problém**: Jméno bylo jako jedno pole → nemohli jsme správně oslovovat v 5. pádu (Lenko, Jano)
+
+**Řešení** (src/modules/coach/pages/TesterSignup.jsx):
+```javascript
+// State rozdělený
+const [firstName, setFirstName] = useState('');
+const [lastName, setLastName] = useState('');
+
+// Formulář - 2 pole místo 1
+<TextField label="Křestní jméno *" value={firstName} ... />
+<TextField label="Příjmení *" value={lastName} ... />
+
+// Databáze - spojeno jako fullName
+const fullName = `${firstName.trim()} ${lastName.trim()}`;
+
+// Email - jen křestní jméno pro oslovení
+name: firstName.trim()
+```
+
+**UI Vylepšení**:
+- ✅ Logo CoachPro nahoře (64px height)
+- ✅ Centrované nadpisy
+- ✅ Rozdělený popisek na 2 řádky (končí slovem "testování")
+- ✅ InputLabelProps shrink:true na volitelných polích
+- ✅ Modulární tlačítko "Zaregistrovat se" (ne fullWidth)
+- ✅ Secondary button "Přihlas se" (outlined)
+
+**Soubory**: 1 upravený (TesterSignup.jsx)
+
+---
+
+#### 2. TesterManagement.jsx - Admin View (NEW)
+
+**Účel**: Zobrazení všech registrací do beta testování (pouze pro admin)
+
+**Features** (src/modules/coach/components/coach/TesterManagement.jsx - 310 řádků):
+- 📊 **Stats Cards**: Celkem registrací + Marketing consent count
+- 🔍 **Search**: Hledání podle jména, emailu, access code
+- 📋 **Table** s kolonkami:
+  - **Jméno** (+ reason jako tooltip)
+  - **Email** (s Mail ikonou)
+  - **Telefon** (volitelné, Phone ikona)
+  - **Access Code** (Chip s monospace fontem)
+  - **GDPR consent** (✓/✗ + tooltip s datem)
+  - **Marketing consent** (✓/✗ + tooltip s datem)
+  - **Registrace** (formát: "6. 1. 2025, 14:30")
+
+**Security** (2-level protection):
+1. NavigationFloatingMenu: Položka viditelná pouze když `isAdmin === true`
+2. Route guard: Redirect non-admin s error message
+
+**Admin Detection**:
+```javascript
+const currentUser = getCurrentUser();
+const isAdmin = currentUser?.isAdmin === true;
+// isAdmin se nastaví v AdminLogin.jsx při přihlášení
+```
+
+**Route**: `/coach/testers`
+
+**Soubory**: 1 nový (TesterManagement.jsx), 2 upravené (CoachDashboard.jsx, NavigationFloatingMenu.jsx)
+
+---
+
+#### 3. RLS Policies - Security Restore ⚠️
+
+**KRITICKÁ LEKCE**: Málem jsme nasadili production bez zapnutého RLS!
+
+**Problém**:
+- RLS byl DISABLED nuclear fixem (`20250106_03_nuclear_fix_rls.sql`)
+- Vytvořili jsme granulární policies (`20250106_04_restore_proper_rls.sql`)
+- **ALE ZAPOMNĚLI ZAPNOUT RLS!** 🔓❌
+
+**Odhalení**: Uživatelka požádala o kontrolu → `CHECK_current_policies.sql` odhalil:
+```
+coachpro_client_profiles | rls_enabled: false ❌
+```
+
+**Fix** (supabase/migrations/20250106_05_enable_rls.sql):
+```sql
+ALTER TABLE coachpro_client_profiles ENABLE ROW LEVEL SECURITY;
+```
+
+**Výsledné RLS Policies**:
+
+**Client Profiles**:
+- `Clients can read own profile` - SELECT only own data
+- `Clients can insert own profile` - INSERT during signup
+- `Clients can update own profile` - UPDATE own data
+- `Clients can delete own profile` - DELETE own data
+
+**Testers Table**:
+- `Public can insert testers` - Signup form works (anon + authenticated)
+- `Admin can read all testers` - Only `lenkaroubalka@gmail.com` can SELECT
+- `Admin can update testers` - Admin-only UPDATE
+- `Admin can delete testers` - Admin-only DELETE
+
+**Soubory**:
+- ✅ `20250106_04_restore_proper_rls.sql` - granular policies
+- ✅ `20250106_05_enable_rls.sql` - enable RLS (critical!)
+- ✅ `CHECK_current_policies.sql` - verification query
+- ❌ Smazáno: `DEBUG_check_policies.sql`, `20250106_02_*.sql`, `20250106_03_nuclear_fix_rls.sql`
+
+---
+
+### 📊 Statistiky
+
+**Soubory vytvořené**: 4
+- `TesterManagement.jsx` (310 lines)
+- `20250106_04_restore_proper_rls.sql`
+- `20250106_05_enable_rls.sql`
+- `CHECK_current_policies.sql`
+
+**Soubory upravené**: 4
+- `TesterSignup.jsx` - form split + UI polish
+- `CoachDashboard.jsx` - route added
+- `NavigationFloatingMenu.jsx` - admin-only menu item
+- `CoachDashboard.jsx` - import TesterManagement
+
+**Soubory smazané**: 3
+- `DEBUG_check_policies.sql`
+- `20250106_02_fix_client_profiles_rls.sql`
+- `20250106_03_nuclear_fix_rls.sql`
+
+**Net impact**: +1 komponenta, +3 SQL migrace, čistší migrations folder
+
+---
+
+### ⚠️ PENDING TASKS (NA POZDĚJI)
+
+#### 1. Coach RLS Policies (HIGH PRIORITY) 🔒
+
+**Problém**: Teď máme RLS jen pro klientky a testery, ale **KOUČI NEMAJÍ RLS!**
+
+**Co chybí**:
+```sql
+-- TODO: Create RLS policies for coaches
+ALTER TABLE coachpro_coaches ENABLE ROW LEVEL SECURITY;
+
+-- Coaches can read own data
+CREATE POLICY "Coaches can read own data"
+ON coachpro_coaches
+FOR SELECT
+USING (auth.uid() = auth_user_id);
+
+-- Coaches can update own profile
+CREATE POLICY "Coaches can update own profile"
+ON coachpro_coaches
+FOR UPDATE
+USING (auth.uid() = auth_user_id);
+
+-- Similar policies for:
+-- - coachpro_programs (WHERE coach_id = current coach)
+-- - coachpro_materials (WHERE coach_id = current coach)
+-- - coachpro_clients (WHERE coach_id = current coach)
+-- - coachpro_shared_* tables
+```
+
+**Důležité**: Až budeme implementovat Coach OAuth (budoucí session), MUSÍME přidat RLS!
+
+#### 2. Coach OAuth Flow (PLANNED)
+
+Odloženo kvůli token optimalizaci - bude separate session.
+
+**Potřebné**:
+- CoachSignup.jsx (Google OAuth)
+- CoachProfile.jsx (profile creation)
+- RLS policies pro coaches (viz bod 1)
+- Update RootRedirect.jsx (check coach role)
+
+#### 3. Subscription Checks
+
+Tabulka `coachpro_subscriptions` existuje, ale není použitá.
+
+**TODO**:
+- Implementovat payment gate v RootRedirect
+- Kontrola `active` + `expires_at`
+- Redirect na paywall pokud expired
+
+---
+
+### 🎓 Klíčové Lekce
+
+#### 1. RLS ENABLE vs Policies - DIFFERENT THINGS! ⚠️
+
+**Chyba**:
+```sql
+-- NESTAČÍ jen vytvořit policies!
+CREATE POLICY "xyz" ON table USING (...);
+
+-- MUSÍŠ ZAPNOUT RLS!!!
+ALTER TABLE table ENABLE ROW LEVEL SECURITY;
+```
+
+**Důsledek**: Policies bez enabled RLS = žádná ochrana!
+
+**Pattern pro budoucnost**:
+1. DROP staré policies
+2. CREATE nové policies
+3. **ENABLE RLS** (nikdy nezapomenout!)
+4. Verify pomocí CHECK query
+
+#### 2. Admin-Only Features - 2-Level Security
+
+**Pattern**:
+```javascript
+// Level 1: UI (NavigationFloatingMenu)
+const isAdmin = currentUser?.isAdmin === true;
+const menuItems = isAdmin ? [...base, ...admin] : base;
+
+// Level 2: Route Guard (Component)
+useEffect(() => {
+  if (!isAdmin) {
+    showError('Přístup odepřen');
+    navigate('/coach/dashboard', { replace: true });
+  }
+}, [isAdmin]);
+```
+
+**Nikdy nespoléhat jen na UI hiding!** Vždy guard i route.
+
+#### 3. Verification is Critical
+
+**Před nasazením VŽDY zkontroluj**:
+- ✅ RLS enabled? (`SELECT rowsecurity FROM pg_tables`)
+- ✅ Policies existují? (`SELECT * FROM pg_policies`)
+- ✅ Test query funguje? (zkus SELECT as client)
+
+**Uživatelka odhalila bug**: "ještě že mě máš, viď?" - bez kontroly bychom nasadili nezabezpečenou DB!
+
+---
+
+### 📝 Notes for Future AI Sessions
+
+**KRITICKÁ PRAVIDLA**:
+
+1. ✅ **RLS ENABLE je povinný** - policies samy o sobě NIC NEOCHRÁNÍ
+2. ✅ **Admin features = 2-level security** (UI + route guard)
+3. ✅ **Verification před production** - kontrolovat pg_tables + pg_policies
+4. ✅ **Coach RLS je PENDING** - až bude Coach OAuth, přidat policies!
+5. ✅ **firstName/lastName split** - pro správné české oslovení (5. pád)
+
+**PATTERNS**:
+- Admin detection: `currentUser?.isAdmin === true`
+- Testers RLS: Admin = `email = 'lenkaroubalka@gmail.com'`
+- Verification: `CHECK_current_policies.sql` query
+- Name split: `firstName` + `lastName` → `fullName` (DB), `firstName` (email)
+
+**AVOID**:
+- ❌ Creating policies without ENABLE RLS
+- ❌ Trusting UI hiding for security (always guard routes)
+- ❌ Deploying without verification queries
+- ❌ Single-field name (needs split for Czech grammar)
+
+---
+
+**Poslední update**: 6. listopadu 2025, pozdě večer
+**Autor**: Lenka + Claude Sonnet 4.5
+**Session duration**: ~1.5 hodiny
+**Status**: ✅ Ready for commit (after security restore)
+
+---
+
 ## 🔗 Related Documents
 
 - `CONTEXT_QUICK.md` - Current session context

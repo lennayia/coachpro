@@ -24,7 +24,8 @@ const TesterSignup = () => {
   const { showSuccess, showError } = useNotification();
 
   // Form state
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [reason, setReason] = useState('');
@@ -49,8 +50,13 @@ const TesterSignup = () => {
 
   // Validate form
   const validateForm = () => {
-    if (!name.trim()) {
-      setError('Vyplň prosím své jméno');
+    if (!firstName.trim()) {
+      setError('Vyplň prosím své křestní jméno');
+      return false;
+    }
+
+    if (!lastName.trim()) {
+      setError('Vyplň prosím své příjmení');
       return false;
     }
 
@@ -93,11 +99,12 @@ const TesterSignup = () => {
       }
 
       // 3. Insert into Supabase
+      const fullName = `${firstName.trim()} ${lastName.trim()}`;
       const { data: tester, error: supabaseError } = await supabase
         .from('testers')
         .insert([
           {
-            name: name.trim(),
+            name: fullName,
             email: email.trim().toLowerCase(),
             phone: phone.trim() || null,
             reason: reason.trim() || null,
@@ -128,7 +135,7 @@ const TesterSignup = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: email.trim().toLowerCase(),
-            name: name.trim(),
+            name: firstName.trim(),
             accessCode: code,
           }),
         });
@@ -259,12 +266,35 @@ const TesterSignup = () => {
         }}
       >
         <CardContent sx={{ p: 4 }}>
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
-            Beta test CoachPro 🌿
+          {/* Logo */}
+          <Box textAlign="center" mb={3}>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                mb: 2,
+              }}
+            >
+              <img
+                src="/coachPro.png"
+                alt="CoachPro"
+                style={{
+                  height: '64px',
+                  width: 'auto',
+                }}
+              />
+            </Box>
+          </Box>
+
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, textAlign: 'center' }}>
+            Beta test CoachPro
           </Typography>
 
-          <Typography variant="body1" color="text.secondary" mb={4}>
-            Staň se součástí beta testování a pomoz nám vytvořit nejlepší aplikaci pro kouče!
+          <Typography variant="body1" color="text.secondary" mb={4} sx={{ textAlign: 'center' }}>
+            Staňte se součástí beta testování
+            <br />
+            a pomozte nám vytvořit tu nejlepší aplikaci pro kouče!
           </Typography>
 
           {error && (
@@ -275,10 +305,19 @@ const TesterSignup = () => {
 
           <form onSubmit={handleSubmit}>
             <TextField
-              label="Jméno a příjmení *"
+              label="Křestní jméno *"
               fullWidth
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              sx={{ mb: 2 }}
+              disabled={loading}
+            />
+
+            <TextField
+              label="Příjmení *"
+              fullWidth
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
               sx={{ mb: 2 }}
               disabled={loading}
             />
@@ -300,7 +339,7 @@ const TesterSignup = () => {
               onChange={(e) => setPhone(e.target.value)}
               sx={{ mb: 2 }}
               disabled={loading}
-              helperText="Pro případné dotazy nebo novinky"
+              InputLabelProps={{ shrink: true }}
             />
 
             <TextField
@@ -312,6 +351,7 @@ const TesterSignup = () => {
               onChange={(e) => setReason(e.target.value)}
               sx={{ mb: 3 }}
               disabled={loading}
+              InputLabelProps={{ shrink: true }}
             />
 
             {/* GDPR Consent checkboxes */}
@@ -354,23 +394,40 @@ const TesterSignup = () => {
               />
             </Box>
 
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              fullWidth
-              disabled={loading}
-              sx={{ borderRadius: BORDER_RADIUS.button }}
-            >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Zaregistrovat se'}
-            </Button>
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+              <Button
+                type="submit"
+                variant="contained"
+                size="large"
+                disabled={loading}
+                sx={{
+                  borderRadius: BORDER_RADIUS.button,
+                  px: { xs: 3, sm: 4 },
+                  py: { xs: 1, sm: 1.25 },
+                  minWidth: 200,
+                }}
+              >
+                {loading ? <CircularProgress size={24} color="inherit" /> : 'Zaregistrovat se'}
+              </Button>
+            </Box>
 
-            <Typography variant="body2" color="text.secondary" align="center" mt={2}>
-              Již máš access code?{' '}
-              <Link href="/tester/login" underline="hover">
+            <Box sx={{ textAlign: 'center', mt: 3 }}>
+              <Typography variant="body1" color="text.primary" mb={1.5}>
+                Již máš access code?
+              </Typography>
+              <Button
+                variant="outlined"
+                size="medium"
+                onClick={() => navigate('/tester/login')}
+                sx={{
+                  borderRadius: BORDER_RADIUS.button,
+                  px: { xs: 2.5, sm: 3 },
+                  py: { xs: 0.75, sm: 1 },
+                }}
+              >
                 Přihlas se
-              </Link>
-            </Typography>
+              </Button>
+            </Box>
           </form>
         </CardContent>
       </Card>

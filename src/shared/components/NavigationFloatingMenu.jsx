@@ -9,9 +9,11 @@ import {
   Layers,
   Menu,
   X,
+  UserCheck,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import QuickTooltip from './AppTooltip';
+import { getCurrentUser } from '../../modules/coach/utils/storage';
 
 /**
  * NavigationFloatingMenu - Plovoucí navigační menu v levém horním rohu
@@ -25,6 +27,8 @@ const NavigationFloatingMenu = ({ isOpen = false, onToggle }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  const currentUser = getCurrentUser();
+  const isAdmin = currentUser?.isAdmin === true;
 
   const handleToggle = () => {
     const newState = !isOpen;
@@ -37,7 +41,7 @@ const NavigationFloatingMenu = ({ isOpen = false, onToggle }) => {
   };
 
   // Navigation items - Mix primary & secondary jako u hlavní FAB!
-  const menuItems = [
+  const baseMenuItems = [
     {
       icon: Home,
       label: 'Dashboard',
@@ -69,6 +73,19 @@ const NavigationFloatingMenu = ({ isOpen = false, onToggle }) => {
       gradient: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.primary.main} 100%)`,
     },
   ];
+
+  // Admin-only menu items
+  const adminMenuItems = [
+    {
+      icon: UserCheck,
+      label: 'Správa testerů',
+      onClick: () => handleNavigate('/coach/testers'),
+      gradient: `linear-gradient(135deg, ${theme.palette.secondary.dark} 0%, ${theme.palette.primary.light} 100%)`,
+    },
+  ];
+
+  // Combine menu items based on admin status
+  const menuItems = isAdmin ? [...baseMenuItems, ...adminMenuItems] : baseMenuItems;
 
   return (
     <>

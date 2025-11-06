@@ -18,13 +18,42 @@
 
 ---
 
-## 🎯 Aktuální Práce (6.11.2025, večer - pokračování)
+## 🎯 Aktuální Práce (6.11.2025, pozdě večer - mini-session)
 
-**Aktuální task**: Smart OAuth Redirect & Production Fix - DOKONČENO ✅
+**Aktuální task**: TesterSignup UI & Admin Management + RLS Security Restore - DOKONČENO ✅
 **Status**: Ready for commit & production deployment
-**Branch**: `main` (pending commit)
+**Branch**: `smart-oauth-redirect` (pending commit)
 
-### Co bylo hotové v předchozí session (ráno):
+### Co bylo hotové v TÉTO mini-session (pozdě večer):
+
+**1. TesterSignup.jsx - Form Improvements**
+- Split name: firstName/lastName (pro české oslovení)
+- UI polish: Logo, centrované texty, modular button
+- Files: TesterSignup.jsx
+
+**2. TesterManagement.jsx (NEW 310 řádků)** - Admin view
+- Stats cards (registrations + marketing consent)
+- Search (name, email, access code)
+- Table: Name, Email, Phone, Code, GDPR, Marketing, Date
+- 2-level security (UI + route guard)
+- Files: TesterManagement.jsx, CoachDashboard.jsx, NavigationFloatingMenu.jsx
+
+**3. RLS Security Restore** ⚠️ CRITICAL
+- **BUG FOUND**: RLS disabled, policies ignored!
+- Fix: Created policies + **ENABLE RLS** (málem nasazeno bez!)
+- User caught it: "ještě že mě máš, viď?"
+- Files: 20250106_04_restore_proper_rls.sql, 20250106_05_enable_rls.sql, CHECK_current_policies.sql
+
+**4. Cleanup**
+- Smazáno: DEBUG_check_policies.sql, 20250106_02_*.sql, 20250106_03_nuclear_fix_rls.sql
+
+**Impact**:
+- Security: RLS zapnuté na client_profiles + testers ✅
+- Admin: TesterManagement pouze pro admin ✅
+- UX: Lepší signup form ✅
+- Tech Debt: Coach tables STÁLE NEMAJÍ RLS ⚠️ (pending)
+
+### Co bylo hotové v předchozí session (večer):
 
 **1. ClientAuthContext.jsx (131 řádků)** - Centralized auth state
 - Single source of truth (user + profile + loading)
@@ -255,7 +284,7 @@ grep -n "px:" src/modules/coach/components/coach/MaterialsLibrary.jsx | head -5
 
 ---
 
-**Poslední update**: 6.11.2025, večer
+**Poslední update**: 6. ledna 2025, pozdě večer
 **Autor**: Lenka + Claude Sonnet 4.5
 
 ---

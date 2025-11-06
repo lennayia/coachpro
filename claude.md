@@ -1313,5 +1313,193 @@ if (firstName.endsWith('a')) return firstName.slice(0, -1) + 'o';
 
 ---
 
-**Poslední update**: 6. listopadu 2025, večer
-**Status**: Production-ready ✅ (4 commits ahead, not pushed)
+## 📋 Mini-Session: TesterSignup UI & Admin Management (6.11.2025, pozdě večer)
+
+**Branch**: `smart-oauth-redirect` (continuation)
+**Duration**: ~1.5 hodiny
+
+### 🎯 Goals Achieved
+
+1. ✅ Split name field in TesterSignup (firstName/lastName for Czech vocative)
+2. ✅ Create admin-only view for tester management
+3. ✅ **CRITICAL**: Restore RLS policies in production
+
+### 🔑 Key Technical Learnings
+
+#### Learning #1: RLS ENABLE vs CREATE POLICY ⚠️
+
+**CRITICAL ERROR PATTERN DISCOVERED**:
+
+```sql
+-- ❌ WRONG - This does NOTHING without ENABLE!
+CREATE POLICY "xyz" ON table USING (...);
+
+-- ✅ CORRECT - Must explicitly enable RLS
+CREATE POLICY "xyz" ON table USING (...);
+ALTER TABLE table ENABLE ROW LEVEL SECURITY; -- This is MANDATORY!
+```
+
+**Why this matters**:
+- Creating policies ≠ enforcing security
+- Policies without `ENABLE ROW LEVEL SECURITY` are **ignored**
+- Database remains **completely unprotected**
+
+**Detection**:
+```sql
+-- Always verify before production
+SELECT tablename, rowsecurity as rls_enabled
+FROM pg_tables
+WHERE tablename = 'your_table';
+```
+
+**In this session**: User caught the error before deployment - "ještě že mě máš, viď?"
+
+#### Learning #2: Admin-Only Features - 2-Level Security
+
+**Pattern**:
+```javascript
+// Level 1: UI Hiding (NavigationFloatingMenu.jsx)
+const currentUser = getCurrentUser();
+const isAdmin = currentUser?.isAdmin === true;
+
+const baseMenuItems = [...]; // All users see
+const adminMenuItems = [...]; // Admin only
+
+const menuItems = isAdmin ? [...baseMenuItems, ...adminMenuItems] : baseMenuItems;
+```
+
+```javascript
+// Level 2: Route Guard (TesterManagement.jsx)
+useEffect(() => {
+  if (!isAdmin) {
+    showError('Přístup odepřen', 'Tato stránka je dostupná pouze pro administrátory');
+    navigate('/coach/dashboard', { replace: true });
+  }
+}, [isAdmin, navigate, showError]);
+
+// Also return null while redirecting
+if (!isAdmin) return null;
+```
+
+**Why 2 levels**:
+- UI hiding = UX (don't show what user can't access)
+- Route guard = Security (prevent direct URL access)
+- **Never trust frontend alone**
+
+#### Learning #3: firstName/lastName Split for Czech Grammar
+
+**Problem**: Czech vocative case (5. pád) requires first name only:
+- "Lenka Penka Podkolenka" → vocative: "Lenko" (NOT "Lenko Penko Podkolinko")
+
+**Solution**:
+```javascript
+// Form - 2 separate fields
+const [firstName, setFirstName] = useState('');
+const [lastName, setLastName] = useState('');
+
+// Database - combined as fullName
+const fullName = `${firstName.trim()} ${lastName.trim()}`;
+await supabase.from('testers').insert({ name: fullName, ... });
+
+// Email - use ONLY firstName for personal greeting
+body: JSON.stringify({
+  name: firstName.trim(), // Not fullName!
+  ...
+});
+```
+
+**Pattern applies to**:
+- Tester signup
+- Client profiles (already implemented)
+- Future coach profiles
+
+### 📂 Files Modified
+
+**New**:
+- `src/modules/coach/components/coach/TesterManagement.jsx` (310 lines)
+  - Admin view with search, stats, full table
+  - 2-level security (UI + route guard)
+  - Supabase integration with testers table
+
+**Modified**:
+- `src/modules/coach/pages/TesterSignup.jsx`
+  - firstName/lastName split
+  - UI polish (logo, centered, modular button)
+- `src/modules/coach/pages/CoachDashboard.jsx`
+  - Added `/testers` route
+- `src/shared/components/NavigationFloatingMenu.jsx`
+  - Admin-only "Správa testerů" menu item
+
+**SQL Migrations**:
+- `20250106_04_restore_proper_rls.sql` - Granular policies for client_profiles + testers
+- `20250106_05_enable_rls.sql` - **ENABLE RLS** (the missing piece!)
+- `CHECK_current_policies.sql` - Verification query
+
+**Deleted**:
+- `DEBUG_check_policies.sql`
+- `20250106_02_fix_client_profiles_rls.sql`
+- `20250106_03_nuclear_fix_rls.sql`
+
+### ⚠️ PENDING SECURITY TASKS
+
+#### Coach Tables Need RLS! 🔒
+
+**Current state**:
+- ✅ `coachpro_client_profiles` - RLS enabled
+- ✅ `testers` - RLS enabled
+- ❌ `coachpro_coaches` - **NO RLS**
+- ❌ `coachpro_programs` - **NO RLS**
+- ❌ `coachpro_materials` - **NO RLS**
+- ❌ `coachpro_clients` - **NO RLS**
+- ❌ `coachpro_shared_*` tables - **NO RLS**
+
+**TODO (HIGH PRIORITY)**:
+When implementing Coach OAuth (future session), **MUST ADD**:
+```sql
+ALTER TABLE coachpro_coaches ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Coaches can read own data" ...
+
+ALTER TABLE coachpro_programs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Coaches can manage own programs" ...
+
+-- Repeat for all coach-owned tables
+```
+
+**Critical reminder**: Check `rowsecurity` column BEFORE declaring "done"!
+
+### 🎓 Patterns to Remember
+
+**Admin Detection**:
+```javascript
+const currentUser = getCurrentUser();
+const isAdmin = currentUser?.isAdmin === true;
+// isAdmin is set in AdminLogin.jsx when user logs in
+```
+
+**Testers RLS Admin Check**:
+```sql
+-- Admin = specific email
+WHERE EXISTS (
+  SELECT 1 FROM auth.users
+  WHERE auth.users.id = auth.uid()
+  AND auth.users.email = 'lenkaroubalka@gmail.com'
+)
+```
+
+**RLS Verification Checklist**:
+1. ✅ Policies created? (`SELECT * FROM pg_policies WHERE tablename = 'x'`)
+2. ✅ RLS enabled? (`SELECT rowsecurity FROM pg_tables WHERE tablename = 'x'`)
+3. ✅ Test query as user? (Try SELECT in Supabase SQL editor)
+
+### 🚨 Never Again
+
+- ❌ Create policies without `ENABLE ROW LEVEL SECURITY`
+- ❌ Trust UI hiding for security (always route guard)
+- ❌ Deploy without verification query
+- ❌ Use single name field (Czech vocative needs split)
+- ❌ Assume "policies exist" = "security works" (they must be enabled!)
+
+---
+
+**Poslední update**: 6. listopadu 2025, pozdě večer
+**Status**: Production-ready ✅ (pending commit)

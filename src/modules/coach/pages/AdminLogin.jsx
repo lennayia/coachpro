@@ -45,39 +45,36 @@ const AdminLogin = () => {
       return;
     }
 
-    // Load existing coaches and use the oldest one (your admin account)
+    // ADMIN = vždy Lenka s emailem lenna@online-byznys.cz
+    const ADMIN_EMAIL = 'lenna@online-byznys.cz';
     const coaches = await getCoaches();
 
-    if (!coaches || coaches.length === 0) {
-      // No existing coach accounts - create new admin account
-      const adminUser = {
+    // Find admin by email
+    let adminCoach = coaches?.find(c => c.email === ADMIN_EMAIL);
+
+    if (!adminCoach) {
+      // Admin account doesn't exist - create it
+      adminCoach = {
         id: 'admin-lenna',
         name: 'Lenka Roubalová',
-        email: 'lenkaroubalka@gmail.com',
+        email: ADMIN_EMAIL,
         isAdmin: true,
         createdAt: new Date().toISOString(),
       };
 
       // Ulož coach do Supabase
-      await saveCoach(adminUser);
+      await saveCoach(adminCoach);
 
-      setCurrentUser(adminUser);
+      setCurrentUser(adminCoach);
       showSuccess('Vítej! 🎉', 'Nový admin účet vytvořen');
       navigate('/coach/dashboard');
       return;
     }
 
-    // Sort by createdAt (oldest first)
-    const sortedCoaches = [...coaches].sort((a, b) => {
-      const dateA = new Date(a.createdAt || 0);
-      const dateB = new Date(b.createdAt || 0);
-      return dateA - dateB;
-    });
-
-    // Use oldest coach account as admin
+    // Admin exists - log in as admin
     const adminUser = {
-      ...sortedCoaches[0],
-      isAdmin: true, // Mark as admin for potential future features
+      ...adminCoach,
+      isAdmin: true, // Always mark as admin
     };
 
     // Ulož/update coach v Supabase (pro případ že byl jen v localStorage)

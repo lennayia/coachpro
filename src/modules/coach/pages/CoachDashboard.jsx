@@ -8,6 +8,7 @@ import ProgramsList from '../components/coach/ProgramsList';
 import ClientsList from '../components/coach/ClientsList';
 import ProfilePage from './ProfilePage';
 import CardDecksLibrary from '../components/coach/CardDecksLibrary';
+import TesterManagement from '../components/coach/TesterManagement';
 
 const CoachDashboard = () => {
   return (
@@ -19,6 +20,7 @@ const CoachDashboard = () => {
         <Route path="/programs" element={<ProgramsList />} />
         <Route path="/clients" element={<ClientsList />} />
         <Route path="/cards" element={<CardDecksLibrary />} />
+        <Route path="/testers" element={<TesterManagement />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </Layout>

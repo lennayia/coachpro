@@ -977,6 +977,78 @@
 
 ---
 
+### 🎯 Session: TesterSignup UI & Admin Management (6.11.2025, pozdě večer)
+
+**Branch**: `smart-oauth-redirect` (continuation)
+**Status**: ✅ Complete - RLS restored
+**Čas**: ~1.5 hodiny
+
+**A) TesterSignup Form Improvements** ✅
+- ✅ Split name: firstName/lastName (pro české oslovení v 5. pádu)
+- ✅ Validation: Separate checks for first/last name
+- ✅ Database: Combine as fullName (`firstName + ' ' + lastName`)
+- ✅ Email: Use ONLY firstName for personal greeting
+- ✅ UI: Logo, centered text, modular button (ne fullWidth)
+- ✅ UI: Secondary outlined button "Přihlas se"
+- Files: TesterSignup.jsx
+
+**B) TesterManagement - Admin View** ✅ NEW
+- ✅ Admin-only page (2-level security: UI + route guard)
+- ✅ Stats: Total registrations + Marketing consent count
+- ✅ Search: By name, email, access code
+- ✅ Table: Name, Email, Phone, Access Code, GDPR, Marketing, Date
+- ✅ Route: `/coach/testers` (in NavigationFloatingMenu)
+- ✅ Security: `isAdmin` check, redirect non-admin to dashboard
+- Files: TesterManagement.jsx (NEW 310 lines), CoachDashboard.jsx, NavigationFloatingMenu.jsx
+
+**C) RLS Policies - Security Restore** ✅ CRITICAL
+- ⚠️ **CRITICAL BUG FOUND**: RLS disabled, policies ignored!
+- ✅ Granular policies: Clients/Testers CRUD operations
+- ✅ **ENABLE RLS**: `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;`
+- ✅ Testers RLS: Admin = `lenkaroubalka@gmail.com`
+- ✅ Verification: CHECK_current_policies.sql
+- 🔓 **User caught bug**: "ještě že mě máš, viď?" - málem production bez RLS!
+- Files: 20250106_04_restore_proper_rls.sql, 20250106_05_enable_rls.sql, CHECK_current_policies.sql
+
+**D) Cleanup** ✅
+- ❌ Deleted: DEBUG_check_policies.sql
+- ❌ Deleted: 20250106_02_fix_client_profiles_rls.sql (failed attempt)
+- ❌ Deleted: 20250106_03_nuclear_fix_rls.sql (ultra permissive temp fix)
+- ✅ migrations folder clean
+
+**📁 Soubory**: 4 NEW, 4 modified, 3 deleted
+
+**🔒 RLS Status**:
+- ✅ `coachpro_client_profiles` - RLS ENABLED (policies active)
+- ✅ `testers` - RLS ENABLED (admin-only SELECT)
+- ❌ `coachpro_coaches` - NO RLS ⚠️ TODO
+- ❌ `coachpro_programs` - NO RLS ⚠️ TODO
+- ❌ `coachpro_materials` - NO RLS ⚠️ TODO
+
+**⚠️ PENDING (HIGH PRIORITY)**:
+1. **Coach Tables RLS** - Až bude Coach OAuth, MUSÍ se přidat policies!
+2. **Coach OAuth Flow** - Odloženo pro token optimization
+3. **Subscription Checks** - Table existuje, ale není použitá
+
+**🎓 Critical Lesson**:
+```sql
+-- ❌ WRONG - Policies without ENABLE = NO PROTECTION!
+CREATE POLICY "xyz" ON table USING (...);
+
+-- ✅ CORRECT
+CREATE POLICY "xyz" ON table USING (...);
+ALTER TABLE table ENABLE ROW LEVEL SECURITY; -- MANDATORY!
+```
+
+**Verification Checklist** (ALWAYS run before production):
+1. ✅ Policies exist? (`SELECT * FROM pg_policies`)
+2. ✅ RLS enabled? (`SELECT rowsecurity FROM pg_tables`)
+3. ✅ Test query works? (Try SELECT as user)
+
+*Detail v summary7.md (300+ lines added)*
+
+---
+
 ## 📌 Notes
 
 **O MASTER_TODO_V4.md**:

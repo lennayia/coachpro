@@ -673,7 +673,124 @@ setName(googleName || existingProfile.name || '');
 
 ### Files Changed
 - `20250105_03_add_auth_to_clients.sql` - UUID cast
-- `20250105_02_create_client_profiles.sql` - UUID cast  
+- `20250105_02_create_client_profiles.sql` - UUID cast
 - `ClientEntry.jsx` - OAuth check + linking (67 lines)
 
 **Next**: Production testing, UX improvements
+
+---
+
+## 🔒 RLS Security (6.1.2025) - CRITICAL LESSONS
+
+**Status**: ✅ ENABLED v production (after near-disaster!)
+
+### ⚠️ CRITICAL: RLS ENABLE vs CREATE POLICY
+
+**THE BUG**:
+```sql
+-- ❌ THIS DOES **NOTHING** WITHOUT ENABLE!
+CREATE POLICY "xyz" ON table USING (...);
+
+-- ✅ CORRECT - ENABLE is MANDATORY!
+CREATE POLICY "xyz" ON table USING (...);
+ALTER TABLE table ENABLE ROW LEVEL SECURITY;
+```
+
+**What happened**:
+1. Created granular policies (`20250106_04_restore_proper_rls.sql`)
+2. **FORGOT TO ENABLE RLS** (`rowsecurity = false`)
+3. Policies were **ignored** - database **completely unprotected**!
+4. User caught it: "ještě že mě máš, viď?" - saved production!
+
+**Fix**: `20250106_05_enable_rls.sql`
+
+### RLS Verification Checklist (ALWAYS Before Production)
+
+```sql
+-- 1. Check RLS is ENABLED
+SELECT tablename, rowsecurity FROM pg_tables WHERE tablename = 'xyz';
+-- Must show: rowsecurity = true
+
+-- 2. Check policies exist
+SELECT * FROM pg_policies WHERE tablename = 'xyz';
+
+-- 3. Test query as user
+-- Try SELECT in Supabase SQL editor as client
+```
+
+### Current RLS Status
+
+✅ **PROTECTED**:
+- `coachpro_client_profiles` - RLS ENABLED
+- `testers` - RLS ENABLED (admin-only)
+
+❌ **UNPROTECTED** (HIGH PRIORITY TODO):
+- `coachpro_coaches` - NO RLS
+- `coachpro_programs` - NO RLS
+- `coachpro_materials` - NO RLS
+- `coachpro_clients` - NO RLS
+
+**Action**: Když implementujeme Coach OAuth, MUSÍME přidat RLS policies!
+
+---
+
+## 🛡️ Admin-Only Features - 2-Level Security
+
+**Pattern** (from TesterManagement.jsx):
+
+```javascript
+// Level 1: UI Hiding (NavigationFloatingMenu.jsx)
+const currentUser = getCurrentUser();
+const isAdmin = currentUser?.isAdmin === true;
+const menuItems = isAdmin ? [...base, ...admin] : base;
+
+// Level 2: Route Guard (Component)
+useEffect(() => {
+  if (!isAdmin) {
+    showError('Přístup odepřen', 'Admin only');
+    navigate('/coach/dashboard', { replace: true });
+  }
+}, [isAdmin]);
+
+// Return null during redirect
+if (!isAdmin) return null;
+```
+
+**Why 2 levels**:
+- UI hiding = UX (don't show unavailable options)
+- Route guard = Security (prevent direct URL access)
+- **Never trust frontend alone**!
+
+**Admin Detection**:
+- Set in `AdminLogin.jsx`: `{ ...user, isAdmin: true }`
+- Check with: `currentUser?.isAdmin === true`
+
+---
+
+## 📝 firstName/lastName Split (Czech Vocative)
+
+**Problem**: Czech vocative (5. pád) needs ONLY first name:
+- "Lenka Penka Podkolenka" → "Lenko" (NOT "Lenko Penko Podkolinko")
+
+**Pattern**:
+```javascript
+// Form - 2 fields
+const [firstName, setFirstName] = useState('');
+const [lastName, setLastName] = useState('');
+
+// DB - combined
+const fullName = `${firstName.trim()} ${lastName.trim()}`;
+
+// Email - ONLY firstName
+name: firstName.trim() // For personal greeting
+```
+
+**Applied to**:
+- ✅ TesterSignup.jsx
+- ✅ Client profiles (via czechGrammar.js)
+- ⏳ Future: Coach profiles
+
+---
+
+**Poslední update**: 6. ledna 2025, pozdě večer
+**Status**: Production-safe ✅ (RLS enabled, admin security verified)
