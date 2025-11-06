@@ -15,7 +15,7 @@ import {
 import { Shield, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@shared/config/supabase';
-import { setCurrentUser, saveCoach } from '../utils/storage';
+import { setCurrentUser } from '../utils/storage';
 import { useNotification } from '@shared/context/NotificationContext';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
@@ -81,8 +81,7 @@ const AdminLogin = () => {
       // Save to localStorage (for getCurrentUser())
       setCurrentUser(adminUser);
 
-      // Save to Supabase coaches table (optional, for backwards compatibility)
-      await saveCoach(adminUser);
+      // Note: Admin already exists in coachpro_coaches, no need to update on every login
 
       showSuccess('Vítej zpět! 🎉', 'Přihlášena jako admin');
       navigate('/coach/dashboard');
