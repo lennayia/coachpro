@@ -342,6 +342,78 @@ if (firstName.endsWith('a')) return firstName.slice(0, -1) + 'o';
 - `ClientWelcome.jsx` - Welcome screen + logout button
 - `ClientDashboard.jsx` - Client zone (4 cards)
 
+---
+
+### 16. 🔐 OAUTH ROOT REDIRECT - KRITICKÉ!
+
+**⚠️ NOVÉ PRAVIDLO (6.11.2025 večer)**
+
+**Problem**: Supabase má limit 8 redirect URLs
+
+**PRAVIDLO - ALWAYS redirect OAuth to `/` (root):**
+
+```javascript
+// ❌ NIKDY specific pages
+<GoogleSignInButton redirectTo="/client/welcome" />
+<GoogleSignInButton redirectTo="/coach/dashboard" />
+
+// ✅ VŽDY root (RootRedirect handles routing)
+<GoogleSignInButton redirectTo="/" />
+// nebo použij default (je to `/`)
+<GoogleSignInButton />
+```
+
+**PRAVIDLO - ALWAYS use account picker:**
+
+```javascript
+// ✅ VŽDY force account selection
+await supabase.auth.signInWithOAuth({
+  provider: 'google',
+  options: {
+    redirectTo: `${window.location.origin}/`,
+    queryParams: {
+      prompt: 'select_account',  // ← KRITICKÉ!
+    },
+  },
+});
+```
+
+**PRAVIDLO - RootRedirect je Single Source of Truth:**
+
+```javascript
+// RootRedirect.jsx - Universal OAuth entry point
+const { data: { user } } = await supabase.auth.getUser();
+
+if (!user) navigate('/tester/signup');  // No auth
+
+const clientProfile = await getProfile(user.id);
+if (clientProfile) {
+  navigate(clientProfile.complete ? '/client/welcome' : '/client/profile');
+} else {
+  navigate('/client/profile');  // New signup
+}
+```
+
+**Supabase Configuration:**
+```
+Site URL: https://coachpro-weld.vercel.app
+
+Redirect URLs (jen 2!):
+✅ https://coachpro-weld.vercel.app/
+✅ http://localhost:3000/
+```
+
+**Benefits:**
+- ✅ Unlimited user types (koučky, admin) - scalable!
+- ✅ Centralized routing + business logic
+- ✅ Better UX (account picker vždy)
+- ✅ Security (can't bypass checks via deep links)
+
+**Files:**
+- `RootRedirect.jsx` (NEW - 115 lines)
+- `App.jsx` - Route `/` uses RootRedirect
+- `GoogleSignInButton.jsx` - Default redirectTo `/` + account picker
+
 **Common Pitfalls (❌ NIKDY):**
 1. Duplicate auth checks v každé stránce
 2. Hook-based auth guards (use components!)

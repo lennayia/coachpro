@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { User as UserIcon, ArrowLeft, CheckCircle as CheckIcon, Key as KeyIcon, Users as UsersIcon, BookOpen as BookOpenIcon, LogIn as LogInIcon } from 'lucide-react';
+import { User as UserIcon, Power, CheckCircle as CheckIcon, Key as KeyIcon, Users as UsersIcon, BookOpen as BookOpenIcon, LogIn as LogInIcon } from 'lucide-react';
 import { fadeIn, fadeInUp } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { useNotification } from '@shared/context/NotificationContext';
@@ -180,7 +180,7 @@ const ClientWelcome = () => {
           }}
         >
           <Box p={4} position="relative">
-            {/* Back arrow - top left (logout) */}
+            {/* Logout button - top left */}
             <IconButton
               onClick={async () => {
                 await logout();
@@ -192,12 +192,12 @@ const ClientWelcome = () => {
                 left: 16,
                 color: 'text.secondary',
                 '&:hover': {
-                  color: 'primary.main',
-                  backgroundColor: 'rgba(139, 188, 143, 0.08)',
+                  color: 'error.main',
+                  backgroundColor: 'rgba(211, 47, 47, 0.08)',
                 },
               }}
             >
-              <ArrowLeft size={20} />
+              <Power size={20} />
             </IconButton>
 
             {/* Welcome Header */}

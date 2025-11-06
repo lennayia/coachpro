@@ -297,7 +297,6 @@ const Client = () => {
             >
               <GoogleSignInButton
                 variant="contained"
-                redirectTo="/client/welcome"
                 showDivider={false}
                 buttonText="Pokračovat s Google"
                 showSuccessToast={false}
