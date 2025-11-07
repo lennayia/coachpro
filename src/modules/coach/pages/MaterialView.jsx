@@ -100,7 +100,7 @@ const MaterialView = () => {
         <Button
           variant="outlined"
           startIcon={<ArrowLeft />}
-          onClick={() => navigate('/client/entry')}
+          onClick={() => navigate('/client')}
         >
           Zpět na vstup
         </Button>
@@ -127,7 +127,7 @@ const MaterialView = () => {
           <Button
             variant="text"
             startIcon={<ArrowLeft />}
-            onClick={() => navigate('/client/entry')}
+            onClick={() => navigate('/client')}
             sx={{ mb: 2 }}
           >
             Zpět

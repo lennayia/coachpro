@@ -482,40 +482,40 @@ const ClientEntry = () => {
                   </motion.div>
                 )}
 
-                <Box display="flex" justifyContent="center">
-                  <Button
-                    variant="contained"
-                    size="large"
-                    onClick={handleCodeSubmit}
-                    disabled={code.length !== 6 || loading}
-                    sx={{
-                      mt: 3,
-                      px: 4,
-                      py: 1.5,
-                      color: '#ffffff !important',
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={handleCodeSubmit}
+                  disabled={code.length !== 6 || loading}
+                  sx={{
+                    mt: 3,
+                    px: { xs: 3, sm: 4 },
+                    py: 1.5,
+                    minWidth: 'fit-content',
+                    alignSelf: 'flex-start',
+                    color: '#ffffff !important',
+                    background: (theme) =>
+                      `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                    '&:hover': {
                       background: (theme) =>
-                        `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                      '&:hover': {
-                        background: (theme) =>
-                          `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.primary.main} 100%)`,
-                        boxShadow: (theme) =>
-                          theme.palette.mode === 'dark'
-                            ? '0 12px 32px rgba(143, 188, 143, 0.3)'
-                            : '0 12px 32px rgba(85, 107, 47, 0.3)',
-                      },
-                      '& .MuiButton-label': {
-                        color: '#ffffff',
-                      },
-                    }}
-                    startIcon={loading && <CircularProgress size={20} sx={{ color: '#ffffff' }} />}
-                  >
-                    {loading
-                      ? 'Ověřuji...'
-                      : showNameInput
-                      ? 'Začít program'
-                      : 'Pokračovat'}
-                  </Button>
-                </Box>
+                        `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.primary.main} 100%)`,
+                      boxShadow: (theme) =>
+                        theme.palette.mode === 'dark'
+                          ? '0 12px 32px rgba(143, 188, 143, 0.3)'
+                          : '0 12px 32px rgba(85, 107, 47, 0.3)',
+                    },
+                    '& .MuiButton-label': {
+                      color: '#ffffff',
+                    },
+                  }}
+                  startIcon={loading && <CircularProgress size={20} sx={{ color: '#ffffff' }} />}
+                >
+                  {loading
+                    ? 'Ověřuji...'
+                    : showNameInput
+                    ? 'Vstoupit do programu'
+                    : 'Pokračovat'}
+                </Button>
               </motion.div>
             )}
 

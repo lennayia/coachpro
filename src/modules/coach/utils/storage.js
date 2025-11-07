@@ -573,9 +573,10 @@ export const getProgramByCode = async (code) => {
       .from('coachpro_programs')
       .select('*')
       .eq('share_code', code.toUpperCase())
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) return null; // Not found
     return convertProgramFromDB(data);
   } catch (error) {
     console.error('Error fetching program by code from Supabase:', error);
@@ -887,9 +888,10 @@ export const getSharedMaterialByCode = async (shareCode) => {
       .from('coachpro_shared_materials')
       .select('*')
       .eq('share_code', shareCode.toUpperCase())
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) return null; // Not found
     return convertSharedMaterialFromDB(data);
   } catch (error) {
     console.error('Error fetching shared material by code from Supabase:', error);

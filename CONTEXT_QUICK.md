@@ -18,40 +18,50 @@
 
 ---
 
-## 🎯 Aktuální Práce (6.11.2025, pozdě večer - mini-session)
+## 🎯 Aktuální Práce (7.11.2025, dopoledne - mini-session)
 
-**Aktuální task**: TesterSignup UI & Admin Management + RLS Security Restore - DOKONČENO ✅
-**Status**: Ready for commit & production deployment
-**Branch**: `smart-oauth-redirect` (pending commit)
+**Aktuální task**: Route Consolidation & Query Fix - DOKONČENO ✅
+**Status**: Ready for commit
+**Branch**: `google-auth-implementation`
 
-### Co bylo hotové v TÉTO mini-session (pozdě večer):
+### Co bylo hotové v TÉTO mini-session (7.11.2025 dopoledne):
+
+**1. Route Consolidation - Single Client Entry Point**
+- Problem: Duplicitní routes `/client` + `/client/entry`
+- Solution: Odstranit `/client/entry` VŠUDE (8 replacements, 5 files)
+- Files: MaterialView.jsx, DailyView.jsx, Login.jsx, MaterialEntry.jsx, ClientView.jsx
+- Benefit: Jednodušší navigace, single canonical route
+
+**2. Supabase Query Fix - Eliminate 406 Errors**
+- Problem: `.single()` throws 406 error při lookup share_code
+- Solution: `.single()` → `.maybeSingle()` in lookup functions
+- Files: storage.js (getProgramByCode, getSharedMaterialByCode)
+- Pattern:
+  ```javascript
+  .maybeSingle();  // Returns null if 0 rows, NO error
+  if (!data) return null;
+  ```
+- Benefit: Čistá konzole, profesionální UX
+
+**Impact**:
+- UX: Žádné scary 406 errors v konzoli ✅
+- Navigation: Jednodušší URL struktura ✅
+- Code Quality: Single canonical routes ✅
+
+### Co bylo hotové v předchozí mini-session (6.11.2025 pozdě večer):
 
 **1. TesterSignup.jsx - Form Improvements**
 - Split name: firstName/lastName (pro české oslovení)
 - UI polish: Logo, centrované texty, modular button
-- Files: TesterSignup.jsx
 
 **2. TesterManagement.jsx (NEW 310 řádků)** - Admin view
-- Stats cards (registrations + marketing consent)
-- Search (name, email, access code)
-- Table: Name, Email, Phone, Code, GDPR, Marketing, Date
+- Stats cards, search, table
 - 2-level security (UI + route guard)
-- Files: TesterManagement.jsx, CoachDashboard.jsx, NavigationFloatingMenu.jsx
 
 **3. RLS Security Restore** ⚠️ CRITICAL
 - **BUG FOUND**: RLS disabled, policies ignored!
-- Fix: Created policies + **ENABLE RLS** (málem nasazeno bez!)
+- Fix: Created policies + **ENABLE RLS**
 - User caught it: "ještě že mě máš, viď?"
-- Files: 20250106_04_restore_proper_rls.sql, 20250106_05_enable_rls.sql, CHECK_current_policies.sql
-
-**4. Cleanup**
-- Smazáno: DEBUG_check_policies.sql, 20250106_02_*.sql, 20250106_03_nuclear_fix_rls.sql
-
-**Impact**:
-- Security: RLS zapnuté na client_profiles + testers ✅
-- Admin: TesterManagement pouze pro admin ✅
-- UX: Lepší signup form ✅
-- Tech Debt: Coach tables STÁLE NEMAJÍ RLS ⚠️ (pending)
 
 ### Co bylo hotové v předchozí session (večer):
 
@@ -422,5 +432,5 @@ ADD COLUMN client_id TEXT REFERENCES coachpro_clients(id);  -- nullable!
 
 ---
 
-**Poslední update**: 6.11.2025, večer (Smart OAuth Redirect session)
+**Poslední update**: 7.11.2025, dopoledne (Route Consolidation & Query Fix)
 **Autor**: Lenka + Claude Sonnet 4.5
