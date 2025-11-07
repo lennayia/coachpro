@@ -73,10 +73,17 @@ const AdminLogin = () => {
       console.log('🔵 Auth successful, session:', authData.session);
       console.log('🔵 User:', authData.user.email);
 
-      // Create admin user object for localStorage (compatibility with current system)
+      // Find existing coach record to get correct ID (data is linked to this ID!)
+      const { data: existingCoach } = await supabase
+        .from('coachpro_coaches')
+        .select('id, name')
+        .eq('email', ADMIN_EMAIL)
+        .single();
+
+      // Create admin user object using existing coach ID (not auth.user.id!)
       const adminUser = {
-        id: authData.user.id,
-        name: 'Lenka Roubalová',
+        id: existingCoach?.id || authData.user.id, // Use existing coach ID if found
+        name: existingCoach?.name || 'Lenka Roubalová',
         email: ADMIN_EMAIL,
         isAdmin: true,
         createdAt: new Date().toISOString(),
