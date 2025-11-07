@@ -792,5 +792,79 @@ name: firstName.trim() // For personal greeting
 
 ---
 
-**Poslední update**: 6. ledna 2025, pozdě večer
-**Status**: Production-safe ✅ (RLS enabled, admin security verified)
+---
+
+### 17. 🔍 SUPABASE LOOKUPS - .maybeSingle() Pattern
+
+**⚠️ NOVÉ PRAVIDLO (7.11.2025)**
+
+**Problem**: `.single()` throws 406 error when no rows found → scary errors v konzoli
+
+**PRAVIDLO - Share code lookups = ALWAYS `.maybeSingle()`:**
+
+```javascript
+// ❌ NIKDY .single() pro optional lookups
+const { data, error } = await supabase
+  .from('coachpro_programs')
+  .select('*')
+  .eq('share_code', code)
+  .single();  // ❌ Throws error if 0 rows!
+
+// ✅ VŽDY .maybeSingle() pro lookups
+const { data, error } = await supabase
+  .from('coachpro_programs')
+  .select('*')
+  .eq('share_code', code)
+  .maybeSingle();  // ✅ Returns null if 0 rows, NO error
+
+if (error) throw error;
+if (!data) return null;  // ← Explicit null check!
+return convertFromDB(data);
+```
+
+**When to use each**:
+- `.single()` - When record MUST exist (fetch by ID)
+- `.maybeSingle()` - When record MAY exist (lookup by share_code)
+
+**Impact**: Clean console, professional UX, no false alarms
+
+**Applied in**:
+- `getProgramByCode()` - storage.js:576
+- `getSharedMaterialByCode()` - storage.js:891
+- Future: Apply pattern to all share_code lookups
+
+---
+
+### 18. 🛤️ ROUTE CONSOLIDATION - Single Canonical Route
+
+**⚠️ NOVÉ PRAVIDLO (7.11.2025)**
+
+**Problem**: Duplicitní routes (`/client` + `/client/entry`) → confusion, maintenance
+
+**PRAVIDLO - ONE route per resource:**
+
+```javascript
+// ❌ NIKDY duplicate routes
+<Route path="/" element={<Client />} />
+<Route path="/entry" element={<Client />} />  // ← REMOVE!
+
+// ✅ VŽDY single canonical route
+<Route path="/" element={<Client />} />
+
+// All navigations use ONLY canonical route:
+navigate('/client');  // ✅
+navigate('/client/entry');  // ❌ NO!
+```
+
+**Benefits**:
+- Simpler mental model
+- Less maintenance
+- No URL confusion
+- Better SEO (no duplicate content)
+
+**Applied**: Removed `/client/entry` (8 replacements, 5 files)
+
+---
+
+**Poslední update**: 7. listopadu 2025, dopoledne
+**Status**: Production-safe ✅ (RLS enabled, query fixes applied, routes consolidated)

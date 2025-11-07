@@ -1049,6 +1049,58 @@ ALTER TABLE table ENABLE ROW LEVEL SECURITY; -- MANDATORY!
 
 ---
 
+### 🎯 Session: Route Consolidation & Query Fix (7.11.2025, dopoledne)
+
+**Branch**: `google-auth-implementation`
+**Status**: ✅ Complete - ready to commit
+**Čas**: ~30 minut
+
+**A) Route Consolidation - Single Client Entry** ✅
+- ✅ Problem: Duplicitní routes `/client` + `/client/entry`
+- ✅ Solution: Odstranit `/client/entry` VŠUDE
+- ✅ Changes: 8 replacements across 5 files
+  - MaterialView.jsx (2× navigate)
+  - DailyView.jsx (4× navigate)
+  - Login.jsx (1× navigate)
+  - MaterialEntry.jsx (1× navigate)
+  - ClientView.jsx (1 route removed)
+- ✅ Benefit: Jednodušší navigace, single canonical route
+
+**B) Supabase Query Fix - Eliminate 406 Errors** ✅
+- ❌ Problem: 406 error v konzoli při lookup share_code
+  ```
+  GET .../coachpro_programs?share_code=eq.AXP857 406 (Not Acceptable)
+  Error: PGRST116 - The result contains 0 rows
+  ```
+- ✅ Solution: `.single()` → `.maybeSingle()` in lookup functions
+- ✅ Files: storage.js (2 functions)
+  - `getProgramByCode()` - line 576
+  - `getSharedMaterialByCode()` - line 891
+- ✅ Pattern:
+  ```javascript
+  .maybeSingle();  // Returns null if 0 rows, NO error
+  if (!data) return null;  // Explicit null check
+  ```
+- ✅ Benefit: Čistá konzole, profesionální UX
+
+**📊 Stats**: 6 files modified, 11 total changes (8× route, 2× query, 1× route removal)
+
+**🎓 Critical Lesson**:
+```javascript
+// ❌ WRONG - Lookups with .single() = errors when not found
+.single();
+
+// ✅ CORRECT - Lookups with .maybeSingle() = graceful null
+.maybeSingle();
+if (!data) return null;
+```
+
+**Rule**: **Share code lookups = ALWAYS `.maybeSingle()`**
+
+*Detail v summary7.md (Section: Mini-Session Route Consolidation)*
+
+---
+
 ## 📌 Notes
 
 **O MASTER_TODO_V4.md**:

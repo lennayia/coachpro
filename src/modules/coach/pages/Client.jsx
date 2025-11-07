@@ -388,21 +388,21 @@ const Client = () => {
                 </motion.div>
               )}
 
-              <Box display="flex" justifyContent="center">
-                <Button
-                  variant="contained"
-                  size="large"
-                  onClick={handleCodeSubmit}
-                  disabled={code.length !== 6 || !detectedType || loading}
-                  sx={{
-                    mt: 3,
-                    px: 4,
-                    py: 1.5,
-                  }}
-                >
-                  {loading ? <CircularProgress size={24} /> : 'Vstoupit'}
-                </Button>
-              </Box>
+              <Button
+                variant="contained"
+                size="large"
+                onClick={handleCodeSubmit}
+                disabled={code.length !== 6 || !detectedType || loading}
+                sx={{
+                  mt: 3,
+                  px: { xs: 3, sm: 4 },
+                  py: 1.5,
+                  minWidth: 'fit-content',
+                  alignSelf: 'flex-start',
+                }}
+              >
+                {loading ? <CircularProgress size={24} /> : detectedType === 'program' ? 'Vstoupit do programu' : 'Vstoupit'}
+              </Button>
             </motion.div>
           </Box>
         </Card>

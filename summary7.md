@@ -873,6 +873,274 @@ useEffect(() => {
 
 ---
 
+---
+
+## 📋 Mini-Session: Route Consolidation & Query Fix (7.11.2025, dopoledne)
+
+**Branch**: `google-auth-implementation`
+**Duration**: ~30 minut
+**Status**: ✅ Complete
+
+### 🎯 Kontext
+
+Dva drobné, ale důležité bugfixy:
+1. **Duplicitní routes**: `/client` a `/client/entry` dělaly totéž
+2. **406 chyba v konzoli**: Při zadání kódu materiálu se logovala scary error (aplikace fungovala, ale UX špatný)
+
+---
+
+### ✅ Implementované Změny
+
+#### 1. Route Consolidation - Single Client Entry Point
+
+**Problém**: Aplikace měla 2 cesty pro vstup klientek:
+- `/client` - hlavní entry
+- `/client/entry` - redundantní, pouze redirect na `/client`
+
+**Důsledek**: Zmatení, duplicitní navigace, zbytečná komplexita
+
+**Řešení**: Odstranit `/client/entry` VŠUDE a použít jen `/client`
+
+**Files Changed (5)**:
+
+**1. MaterialView.jsx** (2× replace)
+```javascript
+// Lines 103, 105, 244
+- navigate('/client/entry');
++ navigate('/client');
+```
+
+**2. DailyView.jsx** (4× replace)
+```javascript
+// Lines 94, 101, 114, 244
+- navigate('/client/entry');
++ navigate('/client');
+```
+
+**3. Login.jsx** (1× replace)
+```javascript
+// Line 55
+const handleClientLogin = () => {
+-  navigate('/client/entry');
++  navigate('/client');
+};
+```
+
+**4. MaterialEntry.jsx** (1× replace)
+```javascript
+// Line 309
+<MuiLink onClick={() => navigate('/client')}>
+-  onClick={() => navigate('/client/entry')}
++  onClick={() => navigate('/client')}
+```
+
+**5. ClientView.jsx** - Route Removed
+```javascript
+// BEFORE
+<Routes>
+  <Route path="/" element={<Client />} />
+  <Route path="/entry" element={<Client />} /> {/* ← REMOVED */}
+  ...
+</Routes>
+
+// AFTER
+<Routes>
+  <Route path="/" element={<Client />} />
+  {/* /entry route deleted */}
+  ...
+</Routes>
+```
+
+**Total**: 8 changes across 5 files
+
+**Benefit**:
+- ✅ Jednodušší navigace (1 cesta místo 2)
+- ✅ Méně zmatení pro developery
+- ✅ Konzistentnější URL struktura
+
+---
+
+#### 2. Supabase Query Fix - Eliminate 406 Errors
+
+**Problém**: Při zadání 6místného kódu materiálu se v konzoli zobrazovala chyba:
+```
+GET .../coachpro_programs?select=*&share_code=eq.AXP857 406 (Not Acceptable)
+Error: PGRST116 - The result contains 0 rows
+```
+
+**Root Cause**:
+- Client.jsx zkouší najít kód jako program FIRST → `.single()` vrací error když není nalezen
+- Pak zkouší jako materiál → najde ho ✅
+- Aplikace funguje, ale **error log vypadá špatně**
+
+**Řešení**: Změnit `.single()` → `.maybeSingle()` v lookup funkcích
+
+**storage.js - 2 functions updated**:
+
+**Function 1: getProgramByCode**
+```javascript
+// Line 576
+export const getProgramByCode = async (code) => {
+  try {
+    const { data, error } = await supabase
+      .from('coachpro_programs')
+      .select('*')
+      .eq('share_code', code.toUpperCase())
+-      .single();
++      .maybeSingle();
+
+    if (error) throw error;
++    if (!data) return null; // Not found - no error!
+    return convertProgramFromDB(data);
+  } catch (error) {
+    console.error('Error fetching program by code from Supabase:', error);
+    // Fallback to localStorage
+    const programs = loadFromStorage(STORAGE_KEYS.PROGRAMS, []);
+    return programs.find(p => p.shareCode === code.toUpperCase());
+  }
+};
+```
+
+**Function 2: getSharedMaterialByCode**
+```javascript
+// Line 891
+export const getSharedMaterialByCode = async (shareCode) => {
+  try {
+    const { data, error } = await supabase
+      .from('coachpro_shared_materials')
+      .select('*')
+      .eq('share_code', shareCode.toUpperCase())
+-      .single();
++      .maybeSingle();
+
+    if (error) throw error;
++    if (!data) return null; // Not found - no error!
+    return convertSharedMaterialFromDB(data);
+  } catch (error) {
+    console.error('Error fetching shared material by code from Supabase:', error);
+    // Fallback to localStorage
+    const sharedMaterials = loadFromStorage(STORAGE_KEYS.SHARED_MATERIALS, []);
+    return sharedMaterials.find(sm => sm.shareCode === shareCode.toUpperCase());
+  }
+};
+```
+
+**Difference**:
+- `.single()` - Throws error if 0 or 2+ rows → **406 error logged**
+- `.maybeSingle()` - Returns `null` if 0 rows, throws only if 2+ rows → **no error when not found**
+
+**Benefit**:
+- ✅ Čistá konzole (žádné scary 406 errors)
+- ✅ Stejná funkcionalita (aplikace funguje identicky)
+- ✅ Lepší UX (user nevidí error při normálním flow)
+
+---
+
+### 📊 Statistiky
+
+**Soubory upravené**: 6
+- MaterialView.jsx (2 changes)
+- DailyView.jsx (4 changes)
+- Login.jsx (1 change)
+- MaterialEntry.jsx (1 change)
+- ClientView.jsx (1 route removed)
+- storage.js (2 functions updated)
+
+**Total změn**: 11 (8× route replace, 2× query fix, 1× route removal)
+
+**Net impact**: Jednodušší + čistší code, žádné funkční změny
+
+---
+
+### 🎓 Klíčové Lekce
+
+#### 1. `.single()` vs `.maybeSingle()` - Critical Difference
+
+**Use Cases**:
+```javascript
+// ✅ Use .single() when record MUST exist
+const { data } = await supabase
+  .from('users')
+  .select('*')
+  .eq('id', userId)
+  .single(); // Expect exactly 1 row, error if 0 or 2+
+
+// ✅ Use .maybeSingle() when record MAY exist (lookup)
+const { data } = await supabase
+  .from('programs')
+  .select('*')
+  .eq('share_code', code)
+  .maybeSingle(); // Returns null if 0 rows, no error
+```
+
+**Rule**: **Lookups by share code = always `.maybeSingle()`**
+
+#### 2. Route Consolidation Importance
+
+**Anti-pattern**:
+```javascript
+// ❌ Multiple routes for same functionality
+<Route path="/" element={<Client />} />
+<Route path="/entry" element={<Client />} />
+```
+
+**Best practice**:
+```javascript
+// ✅ Single canonical route
+<Route path="/" element={<Client />} />
+// All navigations use ONLY '/'
+```
+
+**Why**: Simplicity, maintainability, SEO (no duplicate content)
+
+#### 3. Console Cleanliness = Professional UX
+
+Users (especially testers) **DO check console**. Scary errors (even if benign) create:
+- ❌ Perceived bugs ("something's broken!")
+- ❌ Loss of confidence in app quality
+- ❌ Support tickets ("I see error messages")
+
+**Solution**: Graceful handling with `.maybeSingle()` → clean console ✅
+
+---
+
+### 📝 Notes for Future AI Sessions
+
+**CRITICAL PATTERNS**:
+
+1. ✅ **Supabase lookups** by share_code = `.maybeSingle()` (not `.single()`)
+2. ✅ **Single canonical route** - `/client` (no `/client/entry`)
+3. ✅ **Check console** - no errors during normal user flow
+4. ✅ **Null checks** - `if (!data) return null;` after `.maybeSingle()`
+
+**PATTERNS TO MAINTAIN**:
+```javascript
+// Lookup pattern (storage.js)
+const { data, error } = await supabase
+  .from('table')
+  .select('*')
+  .eq('share_code', code)
+  .maybeSingle(); // ← NOT .single()
+
+if (error) throw error;
+if (!data) return null; // ← Explicit null return
+return convertFromDB(data);
+```
+
+**AVOID**:
+- ❌ Using `.single()` for optional/lookup queries
+- ❌ Creating duplicate routes for same component
+- ❌ Leaving 406 errors in console (even if harmless)
+
+---
+
+**Poslední update**: 7. listopadu 2025, dopoledne
+**Autor**: Lenka + Claude Sonnet 4.5
+**Session duration**: ~30 minut
+**Status**: ✅ Complete - ready to commit
+
+---
+
 ## 🔗 Related Documents
 
 - `CONTEXT_QUICK.md` - Current session context

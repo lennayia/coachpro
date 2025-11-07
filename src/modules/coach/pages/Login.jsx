@@ -52,7 +52,7 @@ const Login = () => {
   };
 
   const handleClientLogin = () => {
-    navigate('/client/entry');
+    navigate('/client');
   };
 
   const handleAccessCodeLogin = async (e) => {
