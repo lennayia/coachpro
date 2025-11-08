@@ -1,124 +1,164 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
 import { supabase } from '@shared/config/supabase';
+import RoleSelector from './RoleSelector';
+import LandingPage from '../../modules/coach/pages/LandingPage';
 
-/**
- * Smart Root Redirect Component
- *
- * Handles OAuth callback and routes users to correct destination based on:
- * - Authentication state (OAuth session)
- * - User role (client, coach, tester)
- * - Profile completion status
- * - Subscription status (future: payment checks)
- *
- * Flow:
- * 1. Check if user is authenticated (OAuth session)
- * 2. Load user profile from database
- * 3. Determine role and redirect accordingly
- * 4. Fallback to tester signup if no auth
- */
 const RootRedirect = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [checking, setChecking] = useState(true);
+  const [user, setUser] = useState(null);
+  const [availableRoles, setAvailableRoles] = useState([]);
+  const [showRoleSelector, setShowRoleSelector] = useState(false);
+  const [showLanding, setShowLanding] = useState(false);
 
   useEffect(() => {
     const checkAuthAndRedirect = async () => {
       try {
-        // 1. Check OAuth session
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const intent = searchParams.get('intent');
 
-        // No OAuth session → default signup flow
-        if (authError || !user) {
-          console.log('No OAuth session, redirecting to tester signup');
-          navigate('/tester/signup', { replace: true });
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !authUser) {
+          setShowLanding(true);
+          setChecking(false);
           return;
         }
 
-        console.log('OAuth user found:', user.id);
+        setUser(authUser);
 
-        // 2. Check if user is a CLIENT (has profile in coachpro_client_profiles)
-        const { data: clientProfile, error: clientError } = await supabase
-          .from('coachpro_client_profiles')
-          .select('*')
-          .eq('auth_user_id', user.id)
-          .single();
+        const ADMIN_EMAIL = 'lenna@online-byznys.cz';
+        const [adminCheck, clientCheck, testerCheck] = await Promise.all([
+          authUser.email === ADMIN_EMAIL
+            ? supabase.from('coachpro_coaches').select('*').eq('email', ADMIN_EMAIL).eq('is_admin', true).maybeSingle()
+            : Promise.resolve({ data: null }),
+          supabase.from('coachpro_client_profiles').select('*').eq('auth_user_id', authUser.id).maybeSingle(),
+          supabase.from('testers').select('*').eq('auth_user_id', authUser.id).maybeSingle(),
+        ]);
 
-        if (clientProfile && !clientError) {
-          console.log('Client profile found:', clientProfile);
+        const roles = [];
 
-          // Check if profile is completed
-          const hasName = clientProfile.name && clientProfile.name.trim();
-          const hasEmail = clientProfile.email && clientProfile.email.trim();
+        if (adminCheck.data) {
+          roles.push('admin');
+
+          const { setCurrentUser } = await import('../../modules/coach/utils/storage');
+          setCurrentUser({
+            id: adminCheck.data.id,
+            name: adminCheck.data.name,
+            email: adminCheck.data.email,
+            isAdmin: true,
+            createdAt: adminCheck.data.created_at,
+          });
+        }
+
+        if (clientCheck.data) {
+          const hasName = clientCheck.data.name && clientCheck.data.name.trim();
+          const hasEmail = clientCheck.data.email && clientCheck.data.email.trim();
 
           if (!hasName || !hasEmail) {
-            // Profile incomplete → finish profile
-            console.log('Profile incomplete, redirecting to profile form');
             navigate('/client/profile', { replace: true });
             return;
           }
 
-          // Profile complete → welcome page
-          console.log('Profile complete, redirecting to welcome');
-          navigate('/client/welcome', { replace: true });
+          roles.push('client');
+        }
+
+        if (testerCheck.data) {
+          const hasName = testerCheck.data.name && testerCheck.data.name.trim();
+          const hasEmail = testerCheck.data.email && testerCheck.data.email.trim();
+
+          if (!hasName || !hasEmail) {
+            navigate('/tester/profile', { replace: true });
+            return;
+          }
+
+          roles.push('tester');
+        }
+
+        if (intent) {
+          if (intent === 'tester') {
+            if (roles.includes('tester')) {
+              navigate('/coach/dashboard', { replace: true });
+            } else {
+              navigate('/tester/profile', { replace: true });
+            }
+            return;
+          }
+
+          if (intent === 'client') {
+            if (roles.includes('client')) {
+              navigate('/client/welcome', { replace: true });
+            } else {
+              navigate('/client/profile', { replace: true });
+            }
+            return;
+          }
+        }
+
+        if (roles.length === 0) {
+          navigate('/client/profile', { replace: true });
           return;
         }
 
-        // 3. Check if user is a COACH (future: coachpro_coaches table)
-        // TODO: When OAuth for coaches is implemented, check coachpro_coaches table
-        // const { data: coachProfile } = await supabase
-        //   .from('coachpro_coaches')
-        //   .select('*')
-        //   .eq('auth_user_id', user.id)
-        //   .single();
-        //
-        // if (coachProfile) {
-        //   navigate('/coach/dashboard', { replace: true });
-        //   return;
-        // }
+        if (roles.length === 1) {
+          const roleMap = {
+            admin: '/coach/dashboard',
+            client: '/client/welcome',
+            tester: '/coach/dashboard',
+          };
 
-        // 4. User has OAuth but no profile → new client signup
-        // This happens when:
-        // - User signs in with Google for first time
-        // - User needs to create client profile
-        console.log('OAuth user without profile, redirecting to client profile creation');
-        navigate('/client/profile', { replace: true });
+          navigate(roleMap[roles[0]], { replace: true });
+          return;
+        }
+
+        setAvailableRoles(roles);
+        setShowRoleSelector(true);
+        setChecking(false);
 
       } catch (error) {
-        console.error('Error in root redirect:', error);
-        // On error, fallback to tester signup
-        navigate('/tester/signup', { replace: true });
-      } finally {
+        setShowLanding(true);
         setChecking(false);
       }
     };
 
     checkAuthAndRedirect();
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
-  // Show loading spinner while checking
-  return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: (theme) =>
-          theme.palette.mode === 'dark'
-            ? 'linear-gradient(135deg, #0a0f0a 0%, #1a2410 100%)'
-            : 'linear-gradient(135deg, #e8ede5 0%, #d4ddd0 100%)',
-      }}
-    >
-      <CircularProgress
-        size={48}
+  if (showLanding) {
+    return <LandingPage />;
+  }
+
+  if (showRoleSelector) {
+    return <RoleSelector availableRoles={availableRoles} user={user} />;
+  }
+
+  if (checking && !showLanding && !showRoleSelector) {
+    return (
+      <Box
         sx={{
-          color: (theme) =>
-            theme.palette.mode === 'dark' ? '#8FBC8F' : '#556B2F',
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: (theme) =>
+            theme.palette.mode === 'dark'
+              ? 'linear-gradient(135deg, #0a0f0a 0%, #1a2410 100%)'
+              : 'linear-gradient(135deg, #e8ede5 0%, #d4ddd0 100%)',
         }}
-      />
-    </Box>
-  );
+      >
+        <CircularProgress
+          size={48}
+          sx={{
+            color: (theme) => theme.palette.mode === 'dark' ? '#8FBC8F' : '#556B2F',
+          }}
+        />
+      </Box>
+    );
+  }
+
+  return null;
 };
 
 export default RootRedirect;

@@ -8,10 +8,12 @@ import {
   Alert,
   CircularProgress,
   InputAdornment,
+  IconButton,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle as CheckIcon } from '@mui/icons-material';
+import { ArrowLeft } from 'lucide-react';
 import { fadeIn, fadeInUp } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
 import {
@@ -227,6 +229,20 @@ const Client = () => {
           }}
         >
           <Box p={4}>
+            {/* Back Button */}
+            <Box mb={2}>
+              <IconButton
+                onClick={() => navigate('/')}
+                sx={{
+                  '&:hover': {
+                    background: 'rgba(85, 107, 47, 0.1)',
+                  },
+                }}
+              >
+                <ArrowLeft size={20} />
+              </IconButton>
+            </Box>
+
             {/* Logo */}
             <motion.div
               variants={fadeInUp}
@@ -273,10 +289,10 @@ const Client = () => {
                   </Typography>
                 </Box>
                 <Typography variant="h5" fontWeight={600} gutterBottom>
-                  Vítejte v CoachPro
+                  Vítejte v CoachProApp
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                  Přihlaste se nebo zadejte kód
+                  Přihlaste se nebo zadejte kód ke svému programu
                 </Typography>
               </Box>
             </motion.div>
@@ -297,6 +313,7 @@ const Client = () => {
             >
               <GoogleSignInButton
                 variant="contained"
+                redirectTo="/?intent=client"
                 showDivider={false}
                 buttonText="Pokračovat s Google"
                 showSuccessToast={false}

@@ -10,14 +10,16 @@ import {
   Alert,
   CircularProgress,
   Link,
+  IconButton,
 } from '@mui/material';
-import { Key, ArrowRight } from 'lucide-react';
+import { Key, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@shared/config/supabase';
 import { setCurrentUser, saveCoach } from '../utils/storage';
 import { useNotification } from '@shared/context/NotificationContext';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
+import GoogleSignInButton from '@shared/components/GoogleSignInButton';
 
 const TesterLogin = () => {
   const navigate = useNavigate();
@@ -47,9 +49,17 @@ const TesterLogin = () => {
         .from('testers')
         .select('*')
         .eq('access_code', accessCode.trim().toUpperCase())
-        .single();
+        .maybeSingle(); // Returns null if not found, no 406 error
 
-      if (supabaseError || !tester) {
+      if (supabaseError) {
+        console.error('Error looking up access code:', supabaseError);
+        setError('Chyba při ověřování kódu. Zkuste to prosím znovu.');
+        showError('Chyba', 'Nepodařilo se ověřit access kód');
+        setLoading(false);
+        return;
+      }
+
+      if (!tester) {
         setError('Access kód nebyl nalezen. Zkontrolujte, prosím, že jste zadala správný kód.');
         showError('Neplatný kód', 'Access kód nebyl nalezen');
         setLoading(false);
@@ -63,6 +73,7 @@ const TesterLogin = () => {
         email: tester.email,
         isTester: true,
         testerId: tester.id,
+        isAdmin: false, // CRITICAL: Testers are NOT admins
         createdAt: new Date().toISOString(),
       };
 
@@ -106,6 +117,20 @@ const TesterLogin = () => {
         }}
       >
         <CardContent sx={{ p: 4 }}>
+          {/* Back Button */}
+          <Box mb={2}>
+            <IconButton
+              onClick={() => navigate('/')}
+              sx={{
+                '&:hover': {
+                  background: 'rgba(85, 107, 47, 0.1)',
+                },
+              }}
+            >
+              <ArrowLeft size={20} />
+            </IconButton>
+          </Box>
+
           {/* Header */}
           <Box display="flex" flexDirection="column" alignItems="center" mb={4}>
             <Box
@@ -141,6 +166,23 @@ const TesterLogin = () => {
               {error}
             </Alert>
           )}
+
+          {/* Google OAuth Sign In */}
+          <GoogleSignInButton
+            variant="contained"
+            redirectTo="/?intent=tester"
+            buttonText="Přihlásit se přes Google"
+            showDivider={false}
+          />
+
+          {/* Divider */}
+          <Box sx={{ display: 'flex', alignItems: 'center', my: 3 }}>
+            <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
+            <Typography variant="body2" sx={{ px: 2, color: 'text.secondary' }}>
+              nebo pomocí access kódu
+            </Typography>
+            <Box sx={{ flex: 1, height: '1px', bgcolor: 'divider' }} />
+          </Box>
 
           {/* Form */}
           <form onSubmit={handleSubmit}>
@@ -199,8 +241,8 @@ const TesterLogin = () => {
             severity="info"
             sx={{ mt: 3, borderRadius: BORDER_RADIUS.compact }}
           >
-            💡 <strong>Tip:</strong> Access kód by měl být v emailu, který jsi obdržela po registraci.
-            Pokud ho nemůžete najít, kontaktujte nás na{' '}
+            💡 <strong>Tip:</strong> Access kód by měl být v emailu, který jste obdržela po registraci.
+            Pokud ho nemůžete najít, kontaktujte {' '}
             <Link href="mailto:lenna@online-byznys.cz" sx={{ fontWeight: 600 }}>
               lenna@online-byznys.cz
             </Link>

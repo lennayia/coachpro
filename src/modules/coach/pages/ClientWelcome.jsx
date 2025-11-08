@@ -184,7 +184,7 @@ const ClientWelcome = () => {
             <IconButton
               onClick={async () => {
                 await logout();
-                navigate('/client');
+                navigate('/');
               }}
               sx={{
                 position: 'absolute',

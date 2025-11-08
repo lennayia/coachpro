@@ -574,22 +574,22 @@ setName(googleName || existingProfile.name || '');
 
 ---
 
-## 📊 AKTUÁLNÍ STAV (6.11.2025, večer)
+## 📊 AKTUÁLNÍ STAV (8.11.2025, odpoledne)
 
-**Session**: Client Auth Modularity Refactor
-**Commits**: 4 (0838433, 0a83633, f95abbf, c033ef1)
-**Branch**: `client-flow-refactor` (4 commits ahead, not pushed)
+**Session**: Dashboard Security Fix (#8)
+**Status**: ⚠️ PENDING (čeká na user zálohu)
+**Branch**: `fix/client-route-consolidation`
 
 **Dokončeno v této session**:
-- ✅ ClientAuthContext.jsx - Centralized auth state (131 řádků)
-  - 67% reduction v DB queries (6 → 2)
-  - Single source of truth (user + profile + loading)
-- ✅ ClientAuthGuard.jsx - Component-based route protection (76 řádků)
-- ✅ czechGrammar.js - Vocative utility (32 řádků)
-- ✅ ClientWelcome.jsx - Welcome screen + logout button (509 řádků)
-- ✅ ClientDashboard.jsx - Client zone (4 cards, 287 řádků)
-- ✅ Refactored 5 pages (ClientProfile, Client, ClientView, ClientSignup, GoogleSignInButton)
-- ✅ Bug fix: CircularProgress import
+- ✅ DashboardOverview.jsx - Fix personalized greeting
+  - Added useTesterAuth context
+  - Added getVocative for Czech 5th case
+  - Priority: tester profile → coach localStorage → fallback "koučko"
+- ✅ RLS Security Audit (Supabase SQL queries)
+  - Identified permissive policies: `USING (true)` ❌
+  - Materials & Programs visible to ALL coaches ⚠️
+  - Planned migration: auth_user_id + proper RLS policies
+- ✅ Documentation complete (summary8.md, MASTER_TODO_V4.md)
 
 **Předchozí sessions (6.11.2025)**:
 - ✅ Google OAuth Cleanup & Smart Client Flow (ráno)
@@ -606,6 +606,14 @@ setName(googleName || existingProfile.name || '');
 
 **Tech Debt**:
 - ⚠️ MaterialCard.jsx NEpoužívá BaseCard (zůstává standalone)
+- ⚠️ RLS Policies - Permissive (CRITICAL security issue)
+
+**Pending (CRITICAL - Security Fix 8.11.2025)** 🔥:
+- [ ] Add `auth_user_id` to coachpro_coaches (Sprint 2a.1)
+- [ ] Fix RLS policies for materials/programs (Sprint 2a.2)
+- [ ] Support multiple admin accounts (Sprint 2a.3)
+- [ ] Link auth_user_id v Tester.jsx + AdminLogin.jsx
+- [ ] Test as tester (should see ONLY own materials)
 
 **Pending (Sprint 6a - Klientské Rozhraní)**:
 - [ ] Materials page (`/client/materials`)

@@ -2,17 +2,17 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@shared/config/supabase';
 import { clearCurrentUser } from '../../modules/coach/utils/storage';
 
-const ClientAuthContext = createContext(null);
+const TesterAuthContext = createContext(null);
 
-export const useClientAuth = () => {
-  const context = useContext(ClientAuthContext);
+export const useTesterAuth = () => {
+  const context = useContext(TesterAuthContext);
   if (!context) {
-    throw new Error('useClientAuth must be used within ClientAuthProvider');
+    throw new Error('useTesterAuth must be used within TesterAuthProvider');
   }
   return context;
 };
 
-export const ClientAuthProvider = ({ children }) => {
+export const TesterAuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -36,12 +36,16 @@ export const ClientAuthProvider = ({ children }) => {
 
       // Get profile from DB
       const { data: profileData, error: profileError } = await supabase
-        .from('coachpro_client_profiles')
+        .from('testers')
         .select('*')
         .eq('auth_user_id', authUser.id)
-        .single();
+        .maybeSingle(); // Returns null if not found, no 406 error
 
-      if (!profileError && profileData) {
+      if (profileError) {
+        console.error('Error loading tester profile:', profileError);
+      }
+
+      if (profileData) {
         // Get name from Google OAuth (PRIORITY!)
         const googleName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || '';
 
@@ -55,7 +59,7 @@ export const ClientAuthProvider = ({ children }) => {
 
       setLoading(false);
     } catch (err) {
-      console.error('Auth load error:', err);
+      console.error('Tester auth load error:', err);
       setUser(null);
       setProfile(null);
       setLoading(false);
@@ -67,11 +71,16 @@ export const ClientAuthProvider = ({ children }) => {
     if (!user) return;
 
     try {
-      const { data: profileData } = await supabase
-        .from('coachpro_client_profiles')
+      const { data: profileData, error } = await supabase
+        .from('testers')
         .select('*')
         .eq('auth_user_id', user.id)
-        .single();
+        .maybeSingle(); // Returns null if not found, no 406 error
+
+      if (error) {
+        console.error('Error refreshing tester profile:', error);
+        return;
+      }
 
       if (profileData) {
         const googleName = user.user_metadata?.full_name || user.user_metadata?.name || '';
@@ -81,7 +90,7 @@ export const ClientAuthProvider = ({ children }) => {
         });
       }
     } catch (err) {
-      console.error('Profile refresh error:', err);
+      console.error('Tester profile refresh error:', err);
     }
   };
 
@@ -126,10 +135,10 @@ export const ClientAuthProvider = ({ children }) => {
   };
 
   return (
-    <ClientAuthContext.Provider value={value}>
+    <TesterAuthContext.Provider value={value}>
       {children}
-    </ClientAuthContext.Provider>
+    </TesterAuthContext.Provider>
   );
 };
 
-export default ClientAuthContext;
+export default TesterAuthContext;
