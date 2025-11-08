@@ -6,8 +6,7 @@ import { createNatureTheme } from '@shared/themes/natureTheme';
 // Pages - budeme vytvářet postupně
 import CoachDashboard from '@modules/coach/pages/CoachDashboard';
 import ClientView from '@modules/coach/pages/ClientView';
-import TesterSignup from '@modules/coach/pages/TesterSignup';
-import TesterLogin from '@modules/coach/pages/TesterLogin';
+import TesterView from '@modules/coach/pages/TesterView';
 import AdminLogin from '@modules/coach/pages/AdminLogin';
 import PrivacyPolicy from '@modules/coach/pages/PrivacyPolicy';
 import RootRedirect from '@shared/components/RootRedirect';
@@ -46,11 +45,10 @@ function App() {
               <Routes>
                 <Route path="/" element={<RootRedirect />} />
                 <Route path="/lenna" element={<AdminLogin />} />
-                <Route path="/tester/signup" element={<TesterSignup />} />
-                <Route path="/tester/login" element={<TesterLogin />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/coach/*" element={<ErrorBoundary><CoachDashboard /></ErrorBoundary>} />
                 <Route path="/client/*" element={<ErrorBoundary><ClientView /></ErrorBoundary>} />
+                <Route path="/tester/*" element={<ErrorBoundary><TesterView /></ErrorBoundary>} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </ErrorBoundary>

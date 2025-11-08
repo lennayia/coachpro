@@ -18,35 +18,46 @@
 
 ---
 
-## 🎯 Aktuální Práce (7.11.2025, dopoledne - mini-session)
+## 🎯 Aktuální Práce (8.11.2025, odpoledne - Session #8)
 
-**Aktuální task**: Route Consolidation & Query Fix - DOKONČENO ✅
-**Status**: Ready for commit
-**Branch**: `google-auth-implementation`
+**Aktuální task**: Dashboard Security Fix
+**Status**: ⚠️ PENDING (čeká na user zálohu před RLS migrací)
+**Branch**: `fix/client-route-consolidation`
 
-### Co bylo hotové v TÉTO mini-session (7.11.2025 dopoledne):
+### Co bylo hotové v TÉTO session (8.11.2025 odpoledne):
 
-**1. Route Consolidation - Single Client Entry Point**
-- Problem: Duplicitní routes `/client` + `/client/entry`
-- Solution: Odstranit `/client/entry` VŠUDE (8 replacements, 5 files)
-- Files: MaterialView.jsx, DailyView.jsx, Login.jsx, MaterialEntry.jsx, ClientView.jsx
-- Benefit: Jednodušší navigace, single canonical route
-
-**2. Supabase Query Fix - Eliminate 406 Errors**
-- Problem: `.single()` throws 406 error při lookup share_code
-- Solution: `.single()` → `.maybeSingle()` in lookup functions
-- Files: storage.js (getProgramByCode, getSharedMaterialByCode)
+**1. Fix Personalized Greeting ✅**
+- Problem: Dashboard zobrazuje "Ahoj koučko" místo jména
+- Solution: DashboardOverview.jsx používá TesterAuthContext
+- Files: DashboardOverview.jsx (lines 1-30, 141-145)
 - Pattern:
   ```javascript
-  .maybeSingle();  // Returns null if 0 rows, NO error
-  if (!data) return null;
+  const { profile: testerProfile } = useTesterAuth();
+  {testerProfile?.displayName ? getVocative(testerProfile.displayName)
+    : (currentUser?.name ? getVocative(currentUser.name) : 'koučko')}
   ```
-- Benefit: Čistá konzole, profesionální UX
+- Benefit: Personalized greeting pro OAuth testers ✅
+
+**2. RLS Security Audit ⚠️ CRITICAL**
+- Problem: Testers vidí materiály/programy od VŠECH koučů!
+- Root Cause: RLS políti ky `USING (true)` - žádné filtrování
+- Supabase Query:
+  ```sql
+  SELECT * FROM pg_policies WHERE tablename IN ('coachpro_materials', 'coachpro_programs');
+  -- Result: 8 rows, všechny s USING (true) ❌
+  ```
+- Impact: **SECURITY VULNERABILITY** - každý vidí cizí data!
+
+**3. Migration Plan Prepared ⏳**
+- Sprint 2a.1: Add auth_user_id to coachpro_coaches
+- Sprint 2a.2: Fix RLS policies (materials/programs)
+- Sprint 2a.3: Support multiple admin accounts
+- Status: PENDING (čeká na user zálohu)
 
 **Impact**:
-- UX: Žádné scary 406 errors v konzoli ✅
-- Navigation: Jednodušší URL struktura ✅
-- Code Quality: Single canonical routes ✅
+- Security: ⚠️ CRITICAL ISSUE identified and planned
+- Dashboard: ✅ Personalized greeting fixed
+- Documentation: ✅ summary8.md, MASTER_TODO_V4.md updated
 
 ### Co bylo hotové v předchozí mini-session (6.11.2025 pozdě večer):
 

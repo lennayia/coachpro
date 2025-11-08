@@ -12,6 +12,7 @@ import { HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, getMaterials, getPrograms, getClientsByCoachId } from '../../utils/storage';
 import { formatDate, formatRelativeTime } from '@shared/utils/helpers';
+import { getVocative } from '@shared/utils/czechGrammar';
 import { staggerContainer, staggerItem } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
 import OnboardingModal from '@shared/components/OnboardingModal';
@@ -19,12 +20,14 @@ import WelcomeBanner from '@shared/components/WelcomeBanner';
 import HelpDialog from '@shared/components/HelpDialog';
 import QuickTooltip from '@shared/components/AppTooltip';
 import { getBetaConfig } from '@shared/constants/betaInfo';
+import { useTesterAuth } from '@shared/context/TesterAuthContext';
 
 const DashboardOverview = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const currentUser = getCurrentUser();
+  const { profile: testerProfile } = useTesterAuth();
   const [materials, setMaterials] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [clients, setClients] = useState([]);
@@ -138,7 +141,7 @@ const DashboardOverview = () => {
         <Box mb={4} display="flex" justifyContent="space-between" alignItems="flex-start">
           <Box>
             <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
-              Ahoj {currentUser?.name || 'koučko'}, hezký den!
+              Ahoj {testerProfile?.displayName ? getVocative(testerProfile.displayName) : (currentUser?.name ? getVocative(currentUser.name) : 'koučko')}, hezký den!
             </Typography>
             <Typography variant="body1" color="text.secondary">
               {formatDate(new Date().toISOString(), {

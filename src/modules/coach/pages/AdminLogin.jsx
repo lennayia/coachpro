@@ -12,7 +12,7 @@ import {
   IconButton,
   CircularProgress,
 } from '@mui/material';
-import { Shield, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Shield, Eye, EyeOff, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@shared/config/supabase';
 import { setCurrentUser } from '../utils/storage';
@@ -114,6 +114,20 @@ const AdminLogin = () => {
         }}
       >
         <CardContent sx={{ p: 4 }}>
+          {/* Back Button */}
+          <Box mb={2}>
+            <IconButton
+              onClick={() => navigate('/')}
+              sx={{
+                '&:hover': {
+                  background: 'rgba(85, 107, 47, 0.1)',
+                },
+              }}
+            >
+              <ArrowLeft size={20} />
+            </IconButton>
+          </Box>
+
           {/* Header */}
           <Box display="flex" flexDirection="column" alignItems="center" mb={4}>
             <Box

@@ -67,7 +67,8 @@ const FloatingMenu = ({ isOpen = false, onToggle }) => {
   const handleLogout = () => {
     onToggle?.(false);
     sessionStorage.removeItem('coachpro_currentUser');
-    navigate('/tester/login');
+    localStorage.clear();
+    navigate('/');
   };
 
   // Menu items configuration - Mix primary & secondary jako u hlavní FAB!

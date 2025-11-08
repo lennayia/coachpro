@@ -59,26 +59,136 @@
 
 ## 🔥 CRITICAL PRIORITY
 
-### Sprint 2a: Data Persistence & Supabase Integration
+### Sprint 2a: Data Persistence & Supabase Integration ⚠️ IN PROGRESS
 
 **Odhad**: 4-6 hodin
+**Status**: Částečně hotovo (Session #8, 8.11.2025)
 **Poznámka**: User řekla "Já totiž teď úplně nevím, co jsme mysleli tímto"
 
 #### 2.1 Supabase Database Tables
 
-- [ ] **Vytvořit SQL migrace pro všechny tabulky**:
-  - [ ] `coachpro_coaches` (id, name, email, profilePhoto, bio, atd.)
-  - [ ] `coachpro_clients` (id, name, email, programId, completedDays, atd.)
-  - [ ] `coachpro_materials` (id, coachId, type, title, content, category, atd.)
-  - [ ] `coachpro_programs` (id, coachId, title, duration, days, shareCode, atd.)
-  - [ ] `coachpro_shared_materials` (už existuje, ale zkontrolovat)
-  - [ ] `coachpro_testers` (už existuje - OK ✅)
+- [x] **Vytvořit SQL migrace pro všechny tabulky**:
+  - [x] `coachpro_coaches` (id, name, email, profilePhoto, bio, atd.) ✅
+  - [ ] `coachpro_coaches` - ADD auth_user_id column ⚠️ PENDING (Sprint 2a.1)
+  - [x] `coachpro_clients` (id, name, email, programId, completedDays, atd.) ✅
+  - [x] `coachpro_materials` (id, coachId, type, title, content, category, atd.) ✅
+  - [x] `coachpro_programs` (id, coachId, title, duration, days, shareCode, atd.) ✅
+  - [x] `coachpro_shared_materials` (už existuje - OK ✅)
+  - [x] `coachpro_testers` (už existuje - OK ✅)
+
+- [ ] **RLS (Row Level Security) politiky** ⚠️ CRITICAL ISSUE FOUND (8.11.2025):
+  - [x] Coaches: RLS enabled but PERMISSIVE policies ❌ (anyone can read)
+  - [x] Clients: SELECT where programCode match ✅
+  - [ ] Materials: BROKEN - Using (true) instead of coach_id filter ⚠️ Sprint 2a.2
+  - [ ] Programs: BROKEN - Using (true) instead of coach_id filter ⚠️ Sprint 2a.2
+
+---
+
+### Sprint 2a.1: Auth User ID Migration (NEW - 8.11.2025) 🔥
+
+**Priorita**: CRITICAL (Security issue)
+**Odhad**: 30-40 minut
+**Status**: PENDING (čeká na user zálohu)
+
+#### Problem
+- `coachpro_coaches` nemá `auth_user_id` column
+- RLS policies nemohou filtrovat podle `auth.uid()`
+- Testers vidí materiály/programy od VŠECH koučů!
+
+#### Solution
+- [ ] **Add auth_user_id to coachpro_coaches**:
+  ```sql
+  ALTER TABLE coachpro_coaches
+  ADD COLUMN auth_user_id UUID REFERENCES auth.users(id);
+  ```
+- [ ] **Link auth_user_id při login**:
+  - Tester.jsx - OAuth testers
+  - AdminLogin.jsx - Admin users
+- [ ] **Update saveCoach()** - storage.js
+
+**Soubory**:
+- `supabase/migrations/20250108_01_add_auth_to_coaches.sql` (NEW)
+- `src/modules/coach/pages/Tester.jsx` (modify)
+- `src/modules/coach/pages/AdminLogin.jsx` (modify)
+- `src/modules/coach/utils/storage.js` (modify)
+
+---
+
+### Sprint 2a.2: Fix RLS Policies - Materials & Programs (NEW - 8.11.2025) 🔥
+
+**Priorita**: CRITICAL (Security vulnerability)
+**Odhad**: 30 minut
+**Status**: PENDING
+
+#### Problem Identified (Supabase Query 8.11.2025)
+```sql
+Policy: "Anyone can read materials" - USING (true)  ❌
+Policy: "Anyone can read programs" - USING (true)   ❌
+```
+**Impact**: Všichni coaches vidí VŠECHNY materiály/programy (ne jen svoje)!
+
+#### Root Cause
+- Development/testing policies v produkci
+- RLS enabled (`rowsecurity = true`) ✅
+- Ale policies jsou permissive (`USING (true)`) ❌
+
+#### Solution
+- [ ] **Drop permissive policies**:
+  - DROP "Anyone can read materials"
+  - DROP "Anyone can read programs"
+- [ ] **Create coach-scoped policies**:
+  ```sql
+  CREATE POLICY "Coaches can read own materials"
+  ON coachpro_materials FOR SELECT TO authenticated
+  USING (coach_id = (
+    SELECT id FROM coachpro_coaches WHERE auth_user_id = auth.uid()
+  ));
+  ```
+- [ ] **Test with tester account** (should see ONLY own materials)
+
+**Depends on**: Sprint 2a.1 (auth_user_id musí existovat)
+
+**Soubory**:
+- `supabase/migrations/20250108_02_fix_materials_programs_rls.sql` (NEW)
+
+---
+
+### Sprint 2a.3: Multiple Admin Accounts Support (NEW - 8.11.2025) 🚀
+
+**Priorita**: HIGH
+**Odhad**: 15 minut
+**Status**: PENDING
+
+#### Problem
+- Hardcoded admin email v RootRedirect.jsx: `ADMIN_EMAIL = 'lenna@online-byznys.cz'`
+- User má 2 admin účty v Supabase, ale jen 1 funguje
+
+#### Solution
+- [ ] **Remove hardcoded email check**
+- [ ] **Query database for is_admin flag**:
+  ```javascript
+  const { data: adminCheck } = await supabase
+    .from('coachpro_coaches')
+    .select('*')
+    .eq('email', authUser.email)
+    .eq('is_admin', true)
+    .maybeSingle();
+  ```
+
+**Benefit**: Jakýkoliv admin v DB bude fungovat (ne jen hardcoded)
+
+**Soubory**:
+- `src/shared/components/RootRedirect.jsx` (lines 32-54)
+
+---
+
+### Sprint 2a (original - částečně hotové)
 
 - [ ] **RLS (Row Level Security) politiky**:
-  - [ ] Coaches: SELECT own, INSERT own, UPDATE own
-  - [ ] Clients: SELECT where programCode match
-  - [ ] Materials: SELECT where coachId = current_user
-  - [ ] Programs: SELECT where active OR coachId = current_user
+  - [x] Coaches: SELECT own, INSERT own, UPDATE own ✅
+  - [x] Clients: SELECT where programCode match ✅
+  - [ ] Materials: ⚠️ BROKEN - Fix v Sprint 2a.2
+  - [ ] Programs: ⚠️ BROKEN - Fix v Sprint 2a.2
 
 #### 2.2 Supabase Storage - Aktivace & Debugging
 
