@@ -29,11 +29,8 @@ const RootRedirect = () => {
 
         setUser(authUser);
 
-        const ADMIN_EMAIL = 'lenna@online-byznys.cz';
         const [adminCheck, clientCheck, testerCheck] = await Promise.all([
-          authUser.email === ADMIN_EMAIL
-            ? supabase.from('coachpro_coaches').select('*').eq('email', ADMIN_EMAIL).eq('is_admin', true).maybeSingle()
-            : Promise.resolve({ data: null }),
+          supabase.from('coachpro_coaches').select('*').eq('auth_user_id', authUser.id).eq('is_admin', true).maybeSingle(),
           supabase.from('coachpro_client_profiles').select('*').eq('auth_user_id', authUser.id).maybeSingle(),
           supabase.from('testers').select('*').eq('auth_user_id', authUser.id).maybeSingle(),
         ]);
@@ -46,9 +43,12 @@ const RootRedirect = () => {
           const { setCurrentUser } = await import('../../modules/coach/utils/storage');
           setCurrentUser({
             id: adminCheck.data.id,
+            auth_user_id: adminCheck.data.auth_user_id,
             name: adminCheck.data.name,
             email: adminCheck.data.email,
             isAdmin: true,
+            isTester: adminCheck.data.is_tester || false,
+            testerId: adminCheck.data.tester_id || null,
             createdAt: adminCheck.data.created_at,
           });
         }

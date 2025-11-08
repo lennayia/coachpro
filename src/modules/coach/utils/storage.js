@@ -76,9 +76,9 @@ export const getCoaches = async () => {
 
 export const saveCoach = async (coach) => {
   try {
-    // Prepare data - remove any undefined fields
     const coachData = {
       id: coach.id,
+      auth_user_id: coach.auth_user_id || null,
       name: coach.name,
       email: coach.email,
       phone: coach.phone || null,
@@ -90,8 +90,6 @@ export const saveCoach = async (coach) => {
       updated_at: new Date().toISOString(),
     };
 
-    console.log('🔵 Pokouším se uložit coach do Supabase:', coachData);
-
     const { data, error } = await supabase
       .from('coachpro_coaches')
       .upsert(coachData, { onConflict: 'id' })
@@ -99,17 +97,12 @@ export const saveCoach = async (coach) => {
       .single();
 
     if (error) {
-      console.error('❌ Supabase error details (saveCoach):', error);
       throw error;
     }
 
-    console.log('✅ Coach úspěšně uložen do Supabase:', data);
     return data;
   } catch (error) {
-    console.error('❌ Error saving coach to Supabase:', error);
-    // ⚠️ CRITICAL: Ne fallback na localStorage!
-    // Coach MUSÍ být v Supabase kvůli foreign key constraints.
-    // Pokud uložení selže, MUSÍME to propagovat nahoru a zobrazit uživateli chybu.
+    console.error('Error saving coach to Supabase:', error);
     throw new Error(`Nepodařilo se uložit coach data. ${error.message || 'Zkus to prosím znovu.'}`);
   }
 };
@@ -227,16 +220,12 @@ export const getMaterials = async (coachId = null) => {
 
 export const saveMaterial = async (material) => {
   try {
-    // ⚠️ CRITICAL: Ensure coach exists in Supabase before saving material
-    // Foreign key constraint requires coach_id to exist in coachpro_coaches table
     if (material.coachId) {
       const coach = await getCoachById(material.coachId);
 
       if (!coach) {
-        // Coach doesn't exist in Supabase - get from sessionStorage and save
         const currentUser = getCurrentUser();
         if (currentUser && currentUser.id === material.coachId) {
-          console.log('🔵 Coach neexistuje v Supabase, ukládám...');
           await saveCoach(currentUser);
         } else {
           throw new Error(`Coach s ID ${material.coachId} nebyl nalezen. Přihlaš se prosím znovu.`);
@@ -244,7 +233,6 @@ export const saveMaterial = async (material) => {
       }
     }
 
-    // Prepare data - convert camelCase to snake_case for DB
     const materialData = {
       id: material.id,
       coach_id: material.coachId,
@@ -270,8 +258,6 @@ export const saveMaterial = async (material) => {
       updated_at: new Date().toISOString(),
     };
 
-    console.log('🔵 Ukládám materiál do Supabase:', materialData);
-
     const { data, error } = await supabase
       .from('coachpro_materials')
       .upsert(materialData, { onConflict: 'id' })
@@ -279,17 +265,13 @@ export const saveMaterial = async (material) => {
       .single();
 
     if (error) {
-      console.error('❌ Supabase error details:', error);
       throw error;
     }
 
-    console.log('✅ Materiál úspěšně uložen do Supabase');
     return convertMaterialFromDB(data);
   } catch (error) {
-    console.error('❌ Error saving material to Supabase:', error);
+    console.error('Error saving material to Supabase:', error);
 
-    // ⚠️ CRITICAL: Do NOT fallback to localStorage for foreign key errors
-    // These indicate data integrity issues that must be fixed
     if (error.code === '23503') {
       throw new Error('Nepodařilo se uložit materiál. Zkus se odhlásit a znovu přihlásit.');
     }
@@ -470,15 +452,11 @@ const convertProgramFromDB = (dbProgram) => {
 
 export const saveProgram = async (program) => {
   try {
-    // ⚠️ CRITICAL: Ensure coach exists in Supabase before saving program
-    // Foreign key constraint requires coach_id to exist in coachpro_coaches table
     let coach = await getCoachById(program.coachId);
 
     if (!coach) {
-      // Coach doesn't exist in Supabase - get from sessionStorage and save
       const currentUser = getCurrentUser();
       if (currentUser && currentUser.id === program.coachId) {
-        console.log('🔵 Coach neexistuje v Supabase, ukládám...');
         await saveCoach(currentUser);
         coach = currentUser;
       } else {
@@ -488,7 +466,6 @@ export const saveProgram = async (program) => {
 
     const coachName = coach?.name || 'Neznámá koučka';
 
-    // Prepare data - convert camelCase to snake_case for DB
     const programData = {
       id: program.id,
       coach_id: program.coachId,
@@ -509,8 +486,6 @@ export const saveProgram = async (program) => {
       updated_at: new Date().toISOString(),
     };
 
-    console.log('🔵 Ukládám program do Supabase:', programData);
-
     const { data, error } = await supabase
       .from('coachpro_programs')
       .upsert(programData, { onConflict: 'id' })
@@ -518,16 +493,13 @@ export const saveProgram = async (program) => {
       .single();
 
     if (error) {
-      console.error('❌ Supabase error details:', error);
       throw error;
     }
 
-    console.log('✅ Program úspěšně uložen do Supabase');
     return convertProgramFromDB(data);
   } catch (error) {
-    console.error('❌ Error saving program to Supabase:', error);
+    console.error('Error saving program to Supabase:', error);
 
-    // ⚠️ CRITICAL: Do NOT fallback to localStorage for foreign key errors
     if (error.code === '23503') {
       throw new Error('Nepodařilo se uložit program. Zkus se odhlásit a znovu přihlásit.');
     }
@@ -799,15 +771,11 @@ export const createSharedMaterial = async (material, coachId, accessStartDate = 
     const shareCode = generateShareCode();
     const qrCode = await generateQRCode(shareCode);
 
-    // ⚠️ CRITICAL: Ensure coach exists in Supabase before creating shared material
-    // Foreign key constraint requires coach_id to exist in coachpro_coaches table
     let coach = await getCoachById(coachId);
 
     if (!coach) {
-      // Coach doesn't exist in Supabase - get from sessionStorage and save
       const currentUser = getCurrentUser();
       if (currentUser && currentUser.id === coachId) {
-        console.log('🔵 Coach neexistuje v Supabase, ukládám...');
         await saveCoach(currentUser);
         coach = currentUser;
       } else {
@@ -829,8 +797,6 @@ export const createSharedMaterial = async (material, coachId, accessStartDate = 
       access_end_date: accessEndDate,
     };
 
-    console.log('🔵 Vytvářím shared material v Supabase:', sharedMaterialData);
-
     const { data, error } = await supabase
       .from('coachpro_shared_materials')
       .insert(sharedMaterialData)
@@ -838,16 +804,13 @@ export const createSharedMaterial = async (material, coachId, accessStartDate = 
       .single();
 
     if (error) {
-      console.error('❌ Supabase error details:', error);
       throw error;
     }
 
-    console.log('✅ Shared material úspěšně vytvořen v Supabase');
     return convertSharedMaterialFromDB(data);
   } catch (error) {
-    console.error('❌ Error creating shared material in Supabase:', error);
+    console.error('Error creating shared material in Supabase:', error);
 
-    // ⚠️ CRITICAL: Do NOT fallback to localStorage for foreign key errors
     if (error.code === '23503') {
       throw new Error('Nepodařilo se vytvořit sdílený materiál. Zkus se odhlásit a znovu přihlásit.');
     }

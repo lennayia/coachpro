@@ -11,53 +11,100 @@
 **Dokumentace:**
 - `CLAUDE_QUICK.md` - Kritická pravidla, quick patterns (ZAČNI TADY!)
 - `CLAUDE.md` - Kompletní historie (JEN když potřebuješ detaily)
-- `summary7.md` - Changelog (6.11.2025 večer) ⭐ NOVÝ!
+- `summary9.md` - Changelog Session #9 (8.11.2025 odpoledne) ⭐ NOVÝ!
+- `summary8.md` - Changelog Session #8 (8.11.2025 odpoledne)
+- `summary7.md` - Changelog (6.11.2025 večer)
 - `summary6.md` - Changelog (6.11.2025 ráno)
 - `MASTER_TODO_V3.md` - TODO list (archived)
 - `MASTER_TODO_V4.md` - TODO list (AKTUÁLNÍ) ⭐
 
 ---
 
-## 🎯 Aktuální Práce (8.11.2025, odpoledne - Session #8)
+## 🎯 Aktuální Práce (8.11.2025, odpoledne - Session #9)
 
-**Aktuální task**: Dashboard Security Fix
-**Status**: ⚠️ PENDING (čeká na user zálohu před RLS migrací)
-**Branch**: `fix/client-route-consolidation`
+**Aktuální task**: RLS Security & Multi-Admin Fix
+**Status**: ✅ COMPLETED
+**Branch**: `fix/rls-security-auth-user-id` (merged to main)
 
 ### Co bylo hotové v TÉTO session (8.11.2025 odpoledne):
 
-**1. Fix Personalized Greeting ✅**
-- Problem: Dashboard zobrazuje "Ahoj koučko" místo jména
-- Solution: DashboardOverview.jsx používá TesterAuthContext
-- Files: DashboardOverview.jsx (lines 1-30, 141-145)
+**1. CRITICAL RLS Security Fix ✅ 🔥**
+- Problem: Testers viděli materiály/programy od VŠECH koučů
+- Root Cause: RLS policies `USING (true)` - permissive, žádné filtrování
+- Solution:
+  - Migration #1: Added `auth_user_id UUID` column to coachpro_coaches
+  - Migration #2: Fixed RLS policies with coach-scoped filtering
+  - Pattern:
+    ```sql
+    USING (
+      -- Admins see everything
+      EXISTS (
+        SELECT 1 FROM coachpro_coaches
+        WHERE id = (SELECT id FROM coachpro_coaches WHERE auth_user_id = auth.uid() LIMIT 1)
+        AND is_admin = true
+      )
+      OR
+      -- Regular coaches see only their own
+      coach_id IN (
+        SELECT id FROM coachpro_coaches WHERE auth_user_id = auth.uid()
+      )
+    )
+    ```
+- Benefit: Coaches see ONLY their own data, admins see all ✅
+
+**2. Multi-Admin Support ✅**
+- Problem: Only `lenna@online-byznys.cz` worked as admin (hardcoded)
+- Solution:
+  - AdminLogin.jsx: `ADMIN_EMAIL` → `ADMIN_EMAILS` array
+  - RootRedirect.jsx: Dynamic check via `auth_user_id` + `is_admin` flag
+- Benefit: Unlimited admin accounts via database configuration ✅
+
+**3. AdminLogin.jsx Bug Fix ✅**
+- Problem: Admin login overwrote `isTester` and `testerId` fields
+- Solution: Added tester profile check, preserved existing fields
 - Pattern:
   ```javascript
-  const { profile: testerProfile } = useTesterAuth();
-  {testerProfile?.displayName ? getVocative(testerProfile.displayName)
-    : (currentUser?.name ? getVocative(currentUser.name) : 'koučko')}
-  ```
-- Benefit: Personalized greeting pro OAuth testers ✅
+  const { data: testerProfile } = await supabase
+    .from('testers').select('id').eq('email', email).maybeSingle();
 
-**2. RLS Security Audit ⚠️ CRITICAL**
-- Problem: Testers vidí materiály/programy od VŠECH koučů!
-- Root Cause: RLS políti ky `USING (true)` - žádné filtrování
-- Supabase Query:
-  ```sql
-  SELECT * FROM pg_policies WHERE tablename IN ('coachpro_materials', 'coachpro_programs');
-  -- Result: 8 rows, všechny s USING (true) ❌
+  const adminUser = {
+    ...existingCoach,
+    auth_user_id: authData.user.id,
+    isAdmin: true,
+    isTester: existingCoach?.is_tester || !!testerProfile,
+    testerId: existingCoach?.tester_id || testerProfile?.id || null,
+  };
   ```
-- Impact: **SECURITY VULNERABILITY** - každý vidí cizí data!
+- Benefit: Admins who are also testers retain both roles ✅
 
-**3. Migration Plan Prepared ⏳**
-- Sprint 2a.1: Add auth_user_id to coachpro_coaches
-- Sprint 2a.2: Fix RLS policies (materials/programs)
-- Sprint 2a.3: Support multiple admin accounts
-- Status: PENDING (čeká na user zálohu)
+**4. DashboardOverview.jsx Context Error Fix ✅**
+- Problem: `useTesterAuth must be used within TesterAuthProvider` crash
+- Solution: Added try-catch wrapper with localStorage fallback
+- Files: DashboardOverview.jsx (lines 29-39)
+- Benefit: No crash when Context unavailable ✅
+
+**5. TesterAuthGuard.jsx Enhancement ✅**
+- Problem: OAuth testers didn't have `auth_user_id` in coaches table
+- Solution: Added useEffect to create coach record when OAuth user enters
+- Files: TesterAuthGuard.jsx (lines 30-60)
+- Benefit: Automatic linking for OAuth testers ✅
+
+**6. Code Cleanup ✅**
+- Removed 11+ debug console.log() calls
+- Removed unnecessary comments
+- Kept console.error() for error handling
+- Files: storage.js, AdminLogin.jsx, TesterAuthGuard.jsx, RootRedirect.jsx
+
+**7. Documentation Complete ✅**
+- summary9.md (475 lines) - Full session documentation
+- MASTER_TODO_V4.md - Marked Sprints 2a.1, 2a.2, 2a.3 as COMPLETED
+- CLAUDE_QUICK.md, CONTEXT_QUICK.md - Updated (THIS file)
 
 **Impact**:
-- Security: ⚠️ CRITICAL ISSUE identified and planned
-- Dashboard: ✅ Personalized greeting fixed
-- Documentation: ✅ summary8.md, MASTER_TODO_V4.md updated
+- Security: ✅ CRITICAL VULNERABILITY FIXED (coaches see only own data)
+- Multi-admin: ✅ Scalable admin system via database
+- Bug fixes: ✅ AdminLogin preserves tester fields, DashboardOverview no crash
+- Code quality: ✅ Clean, production-ready code (no debug logs)
 
 ### Co bylo hotové v předchozí mini-session (6.11.2025 pozdě večer):
 
@@ -161,9 +208,101 @@
 ### Tech Debt:
 - ⚠️ MaterialCard.jsx NEpoužívá BaseCard (zůstává standalone)
 
+### Předchozí session (#8, 8.11.2025 odpoledne):
+- ✅ DashboardOverview.jsx - Personalized greeting fix (TesterAuthContext)
+- ✅ RLS Security Audit - Identified CRITICAL vulnerability (permissive policies)
+- ✅ Migration plan prepared (summary8.md)
+
+---
+
+## 🔐 RLS Security Pattern (Session #9) - KRITICKÉ!
+
+**⚠️ NOVÉ PRAVIDLO (8.11.2025)**
+
+**ALWAYS use coach-scoped RLS policies:**
+
+```sql
+-- ❌ NIKDY permissive policies
+CREATE POLICY "Anyone can read materials"
+ON coachpro_materials FOR SELECT
+USING (true);  -- ❌ Everyone sees EVERYTHING!
+
+-- ✅ VŽDY coach-scoped filtering + admin exception
+CREATE POLICY "Coaches can read own materials"
+ON coachpro_materials FOR SELECT TO authenticated
+USING (
+  -- Admins see everything
+  EXISTS (
+    SELECT 1 FROM coachpro_coaches
+    WHERE id = (SELECT id FROM coachpro_coaches WHERE auth_user_id = auth.uid() LIMIT 1)
+    AND is_admin = true
+  )
+  OR
+  -- Regular coaches see only their own
+  coach_id IN (
+    SELECT id FROM coachpro_coaches WHERE auth_user_id = auth.uid()
+  )
+);
+```
+
+**auth_user_id Pattern:**
+
+```javascript
+// VŽDY save auth_user_id v coaches table
+const coachData = {
+  id: coach.id,
+  auth_user_id: coach.auth_user_id || null, // ← CRITICAL for RLS
+  name: coach.name,
+  // ...
+};
+```
+
+**Multi-Admin Pattern:**
+
+```javascript
+// ❌ NIKDY hardcoded email
+const ADMIN_EMAIL = 'lenna@online-byznys.cz';
+if (authUser.email === ADMIN_EMAIL) { ... }
+
+// ✅ VŽDY database-driven
+const { data: adminCheck } = await supabase
+  .from('coachpro_coaches')
+  .select('*')
+  .eq('auth_user_id', authUser.id)
+  .eq('is_admin', true)
+  .maybeSingle();
+
+if (adminCheck) {
+  // User is admin
+}
+```
+
+**Benefits:**
+- ✅ Data security (coaches can't see others' data)
+- ✅ Scalable admin system (unlimited admins)
+- ✅ No hardcoded credentials
+- ✅ Production-ready RLS
+
+**Files:**
+- `supabase/migrations/20250108_01_add_auth_to_coaches.sql` (NEW)
+- `supabase/migrations/20250108_02_fix_materials_programs_rls.sql` (NEW)
+- `storage.js` - saveCoach() includes auth_user_id
+- `AdminLogin.jsx` - Multi-admin support, preserve tester fields
+- `RootRedirect.jsx` - Dynamic admin check
+- `TesterAuthGuard.jsx` - Creates coach record with auth_user_id
+
 ---
 
 ## 📁 Klíčové Soubory
+
+### RLS Security & Multi-Admin (NEW 8.11.2025) 🔥
+- ⭐ `/supabase/migrations/20250108_01_add_auth_to_coaches.sql` - auth_user_id column (NEW)
+- ⭐ `/supabase/migrations/20250108_02_fix_materials_programs_rls.sql` - Coach-scoped RLS (NEW)
+- ⭐ `/src/modules/coach/pages/AdminLogin.jsx` - Multi-admin support, preserve tester fields
+- ⭐ `/src/shared/components/RootRedirect.jsx` - Dynamic admin check
+- ⭐ `/src/shared/components/TesterAuthGuard.jsx` - OAuth auth_user_id linking
+- ⭐ `/src/modules/coach/utils/storage.js` - saveCoach() with auth_user_id
+- ⭐ `/src/modules/coach/components/coach/DashboardOverview.jsx` - Try-catch Context fix
 
 ### Client Auth System (NEW 6.11.2025) ⭐
 - ⭐ `/src/shared/context/ClientAuthContext.jsx` - Auth state provider (131 řádků)
@@ -443,5 +582,5 @@ ADD COLUMN client_id TEXT REFERENCES coachpro_clients(id);  -- nullable!
 
 ---
 
-**Poslední update**: 7.11.2025, dopoledne (Route Consolidation & Query Fix)
+**Poslední update**: 8.11.2025, odpoledne (Session #9 - RLS Security & Multi-Admin Fix)
 **Autor**: Lenka + Claude Sonnet 4.5

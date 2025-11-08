@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
 import { useTesterAuth } from '@shared/context/TesterAuthContext';
 import { useNotification } from '@shared/context/NotificationContext';
+import { saveCoach, setCurrentUser } from '../../modules/coach/utils/storage';
 
 /**
  * Tester authentication guard component
@@ -25,6 +26,34 @@ const TesterAuthGuard = ({
   const navigate = useNavigate();
   const { showError } = useNotification();
   const { user, profile, loading } = useTesterAuth();
+
+  useEffect(() => {
+    const createCoachRecord = async () => {
+      if (!user || !profile) return;
+
+      try {
+        const coachUser = {
+          id: `tester-oauth-${profile.id}`,
+          auth_user_id: user.id,
+          name: profile.displayName || profile.name,
+          email: profile.email,
+          isTester: true,
+          testerId: profile.id,
+          isAdmin: false,
+          createdAt: new Date().toISOString(),
+        };
+
+        await saveCoach(coachUser);
+        setCurrentUser(coachUser);
+      } catch (err) {
+        console.error('Error creating coach record:', err);
+      }
+    };
+
+    if (!loading && user && profile) {
+      createCoachRecord();
+    }
+  }, [user, profile, loading]);
 
   useEffect(() => {
     if (!loading) {

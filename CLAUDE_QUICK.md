@@ -576,44 +576,56 @@ setName(googleName || existingProfile.name || '');
 
 ## 📊 AKTUÁLNÍ STAV (8.11.2025, odpoledne)
 
-**Session**: Dashboard Security Fix (#8)
-**Status**: ⚠️ PENDING (čeká na user zálohu)
-**Branch**: `fix/client-route-consolidation`
+**Session**: RLS Security & Multi-Admin Fix (#9) ✅
+**Status**: ✅ COMPLETED
+**Branch**: `fix/rls-security-auth-user-id` (merged to main)
 
-**Dokončeno v této session**:
-- ✅ DashboardOverview.jsx - Fix personalized greeting
-  - Added useTesterAuth context
-  - Added getVocative for Czech 5th case
-  - Priority: tester profile → coach localStorage → fallback "koučko"
-- ✅ RLS Security Audit (Supabase SQL queries)
-  - Identified permissive policies: `USING (true)` ❌
-  - Materials & Programs visible to ALL coaches ⚠️
-  - Planned migration: auth_user_id + proper RLS policies
-- ✅ Documentation complete (summary8.md, MASTER_TODO_V4.md)
+**Dokončeno v této session (#9)**:
+- ✅ **CRITICAL RLS Security Fix** 🔥
+  - Added `auth_user_id` column to coachpro_coaches (Migration #1)
+  - Fixed permissive `USING (true)` RLS policies → coach-scoped filtering (Migration #2)
+  - Coaches now see ONLY their own materials/programs
+  - Admins see ALL data (exception in RLS)
+- ✅ **Multi-Admin Support**
+  - Changed hardcoded `ADMIN_EMAIL` → `ADMIN_EMAILS` array
+  - Dynamic admin check via `auth_user_id` + `is_admin` flag
+  - RootRedirect.jsx uses database, not hardcoded email
+- ✅ **AdminLogin.jsx Bug Fix**
+  - Preserved `isTester` and `testerId` fields (previously overwritten)
+  - Added tester profile check
+- ✅ **DashboardOverview.jsx Context Error Fix**
+  - Added try-catch wrapper for `useTesterAuth()`
+  - Fallback to localStorage when Context unavailable
+- ✅ **TesterAuthGuard.jsx Enhancement**
+  - Creates coach record with `auth_user_id` for OAuth testers
+- ✅ **Code Cleanup**
+  - Removed 11+ debug logs (kept console.error)
+  - Removed unnecessary comments
+- ✅ **Documentation Complete**
+  - summary9.md (475 lines)
+  - MASTER_TODO_V4.md updated (Sprints 2a.1, 2a.2, 2a.3 marked complete)
+
+**Files Modified (7 files)**:
+- `supabase/migrations/20250108_01_add_auth_to_coaches.sql` (NEW)
+- `supabase/migrations/20250108_02_fix_materials_programs_rls.sql` (NEW)
+- `src/modules/coach/components/coach/DashboardOverview.jsx` (try-catch fix)
+- `src/shared/components/TesterAuthGuard.jsx` (auth_user_id linking)
+- `src/modules/coach/utils/storage.js` (auth_user_id field)
+- `src/modules/coach/pages/AdminLogin.jsx` (multi-admin + preserve tester fields)
+- `src/shared/components/RootRedirect.jsx` (dynamic admin check)
+
+**Předchozí session (#8, 8.11.2025)**:
+- ✅ DashboardOverview.jsx - Personalized greeting fix
+- ✅ RLS Security Audit (identified CRITICAL vulnerability)
+- ✅ Migration plan prepared (summary8.md)
 
 **Předchozí sessions (6.11.2025)**:
-- ✅ Google OAuth Cleanup & Smart Client Flow (ráno)
-  - GoogleSignInButton.jsx (134 řádků)
-  - Client.jsx (440 řádků)
-  - ClientProfile.jsx 3-state UI (720 řádků)
-  - Czech vocative + Google name priority
-
-**Předchozí sessions (5.11.2025)**:
-- ✅ Koučovací karty - Coach Interface (večer)
-- ✅ Google OAuth integration (ráno)
-- ✅ MaterialCard layout reorganization
-- ✅ BaseCard feedback modularity
+- ✅ Google OAuth Cleanup & Smart Client Flow
+- ✅ RootRedirect.jsx (universal OAuth entry point)
+- ✅ ClientAuthContext/Guard implementation
 
 **Tech Debt**:
 - ⚠️ MaterialCard.jsx NEpoužívá BaseCard (zůstává standalone)
-- ⚠️ RLS Policies - Permissive (CRITICAL security issue)
-
-**Pending (CRITICAL - Security Fix 8.11.2025)** 🔥:
-- [ ] Add `auth_user_id` to coachpro_coaches (Sprint 2a.1)
-- [ ] Fix RLS policies for materials/programs (Sprint 2a.2)
-- [ ] Support multiple admin accounts (Sprint 2a.3)
-- [ ] Link auth_user_id v Tester.jsx + AdminLogin.jsx
-- [ ] Test as tester (should see ONLY own materials)
 
 **Pending (Sprint 6a - Klientské Rozhraní)**:
 - [ ] Materials page (`/client/materials`)
@@ -626,13 +638,14 @@ setName(googleName || existingProfile.name || '');
 - [ ] Button Modularity System (Sprint 18b, 6-8 hodin)
 - [ ] Spustit migraci `20250105_05_add_client_id_to_shared_decks.sql`
 - [ ] Client interface pro coaching karty
+- [ ] Natálka OAuth access (Sprint 2a.4, LOW priority)
 
 **Tech Stack**: React 18, MUI v6, Vite, Supabase
 **Status**: ✅ V PRODUKCI na Supabase (od 3.11.2025)
 **Dev Server**: `http://localhost:3000/`
 **Production**: `https://coachpro-weld.vercel.app/`
 
-**Next Step**: Push branch `client-flow-refactor` → Merge → Production testing
+**Next Step**: Deploy to production → Test RLS filtering
 
 ---
 
@@ -874,5 +887,5 @@ navigate('/client/entry');  // ❌ NO!
 
 ---
 
-**Poslední update**: 7. listopadu 2025, dopoledne
-**Status**: Production-safe ✅ (RLS enabled, query fixes applied, routes consolidated)
+**Poslední update**: 8. listopadu 2025, odpoledne (Session #9)
+**Status**: Production-safe ✅ (RLS security fixed, multi-admin support added)

@@ -84,41 +84,37 @@
 
 ---
 
-### Sprint 2a.1: Auth User ID Migration (NEW - 8.11.2025) 🔥
+### Sprint 2a.1: Auth User ID Migration (8.11.2025) ✅
 
 **Priorita**: CRITICAL (Security issue)
 **Odhad**: 30-40 minut
-**Status**: PENDING (čeká na user zálohu)
+**Status**: ✅ COMPLETED (Session #9, 8.11.2025 odpoledne)
 
 #### Problem
 - `coachpro_coaches` nemá `auth_user_id` column
 - RLS policies nemohou filtrovat podle `auth.uid()`
 - Testers vidí materiály/programy od VŠECH koučů!
 
-#### Solution
-- [ ] **Add auth_user_id to coachpro_coaches**:
-  ```sql
-  ALTER TABLE coachpro_coaches
-  ADD COLUMN auth_user_id UUID REFERENCES auth.users(id);
-  ```
-- [ ] **Link auth_user_id při login**:
-  - Tester.jsx - OAuth testers
+#### Solution ✅
+- [x] **Add auth_user_id to coachpro_coaches** ✅
+- [x] **Link auth_user_id při login** ✅:
+  - TesterAuthGuard.jsx - OAuth testers
   - AdminLogin.jsx - Admin users
-- [ ] **Update saveCoach()** - storage.js
+- [x] **Update saveCoach()** - storage.js ✅
 
-**Soubory**:
-- `supabase/migrations/20250108_01_add_auth_to_coaches.sql` (NEW)
-- `src/modules/coach/pages/Tester.jsx` (modify)
-- `src/modules/coach/pages/AdminLogin.jsx` (modify)
-- `src/modules/coach/utils/storage.js` (modify)
+**Implementované soubory**:
+- `supabase/migrations/20250108_01_add_auth_to_coaches.sql` ✅
+- `src/shared/components/TesterAuthGuard.jsx` ✅
+- `src/modules/coach/pages/AdminLogin.jsx` ✅
+- `src/modules/coach/utils/storage.js` ✅
 
 ---
 
-### Sprint 2a.2: Fix RLS Policies - Materials & Programs (NEW - 8.11.2025) 🔥
+### Sprint 2a.2: Fix RLS Policies - Materials & Programs (8.11.2025) ✅
 
 **Priorita**: CRITICAL (Security vulnerability)
 **Odhad**: 30 minut
-**Status**: PENDING
+**Status**: ✅ COMPLETED (Session #9, 8.11.2025 odpoledne)
 
 #### Problem Identified (Supabase Query 8.11.2025)
 ```sql
@@ -132,53 +128,40 @@ Policy: "Anyone can read programs" - USING (true)   ❌
 - RLS enabled (`rowsecurity = true`) ✅
 - Ale policies jsou permissive (`USING (true)`) ❌
 
-#### Solution
-- [ ] **Drop permissive policies**:
-  - DROP "Anyone can read materials"
-  - DROP "Anyone can read programs"
-- [ ] **Create coach-scoped policies**:
-  ```sql
-  CREATE POLICY "Coaches can read own materials"
-  ON coachpro_materials FOR SELECT TO authenticated
-  USING (coach_id = (
-    SELECT id FROM coachpro_coaches WHERE auth_user_id = auth.uid()
-  ));
-  ```
-- [ ] **Test with tester account** (should see ONLY own materials)
+#### Solution ✅
+- [x] **Drop permissive policies** ✅
+- [x] **Create coach-scoped policies with admin exception** ✅
+- [x] **Test with tester account** ✅ (viděla jen svoje materiály)
+- [x] **Test with admin account** ✅ (viděla všechna data)
 
-**Depends on**: Sprint 2a.1 (auth_user_id musí existovat)
+**Implementované soubory**:
+- `supabase/migrations/20250108_02_fix_materials_programs_rls.sql` ✅
 
-**Soubory**:
-- `supabase/migrations/20250108_02_fix_materials_programs_rls.sql` (NEW)
+**Poznámka**: Politiky obsahují admin výjimku - admini vidí všechna data
 
 ---
 
-### Sprint 2a.3: Multiple Admin Accounts Support (NEW - 8.11.2025) 🚀
+### Sprint 2a.3: Multiple Admin Accounts Support (8.11.2025) ✅
 
 **Priorita**: HIGH
 **Odhad**: 15 minut
-**Status**: PENDING
+**Status**: ✅ COMPLETED (Session #9, 8.11.2025 odpoledne)
 
 #### Problem
 - Hardcoded admin email v RootRedirect.jsx: `ADMIN_EMAIL = 'lenna@online-byznys.cz'`
 - User má 2 admin účty v Supabase, ale jen 1 funguje
 
-#### Solution
-- [ ] **Remove hardcoded email check**
-- [ ] **Query database for is_admin flag**:
-  ```javascript
-  const { data: adminCheck } = await supabase
-    .from('coachpro_coaches')
-    .select('*')
-    .eq('email', authUser.email)
-    .eq('is_admin', true)
-    .maybeSingle();
-  ```
+#### Solution ✅
+- [x] **Remove hardcoded email check** ✅
+- [x] **Query database pomocí auth_user_id + is_admin** ✅
+- [x] **AdminLogin.jsx - podpora pro oba adminy** ✅
+- [x] **Doplnění chybějících fieldů (isTester, testerId)** ✅
 
-**Benefit**: Jakýkoliv admin v DB bude fungovat (ne jen hardcoded)
+**Implementované soubory**:
+- `src/shared/components/RootRedirect.jsx` ✅
+- `src/modules/coach/pages/AdminLogin.jsx` ✅
 
-**Soubory**:
-- `src/shared/components/RootRedirect.jsx` (lines 32-54)
+**Benefit**: Libovolný počet admin účtů v databázi (dynamické)
 
 ---
 
@@ -858,6 +841,70 @@ Policy: "Anyone can read programs" - USING (true)   ❌
 
 ## ✅ COMPLETED SESSIONS - November 2025
 
+### 8.11.2025 - RLS Security Fix & Multi-Admin (Odpoledne) - Session #9
+
+**Branch**: `fix/rls-security-auth-user-id`
+**Status**: ✅ CRITICAL security fix completed
+**Čas**: ~3 hodiny
+
+**🚨 Nalezené CRITICAL problémy**:
+1. **Permissive RLS policies** - Testers viděli VŠECHNA data od všech koučů ❌
+2. **Chybějící auth_user_id** - RLS nemohl filtrovat podle přihlášeného uživatele ❌
+3. **Hardcoded admin email** - Jen jeden admin účet fungoval ❌
+4. **AdminLogin přepisoval fieldy** - Testers ztrácel `isTester`, `testerId` při admin přihlášení ❌
+
+**✅ Implementováno**:
+
+#### A) SQL Migrace ✅
+- **20250108_01_add_auth_to_coaches.sql**: Přidán `auth_user_id UUID` sloupec + index
+- **20250108_02_fix_materials_programs_rls.sql**: Vyměněny permissive policies za coach-scoped + admin exception
+
+#### B) Aplikační kód ✅
+- **TesterAuthGuard.jsx**: Vytváří coach záznam s `auth_user_id` při OAuth přihlášení
+- **AdminLogin.jsx**:
+  - Odstraněn hardcoded email, nyní array `ADMIN_EMAILS`
+  - Check v `testers` tabulce pro zachování `isTester`, `testerId`
+  - Doplněn `auth_user_id` do `setCurrentUser()`
+- **RootRedirect.jsx**:
+  - Admin check pomocí `auth_user_id` + `is_admin = true` (ne email)
+  - Doplněny chybějící fieldy v `setCurrentUser()`
+- **storage.js**: Přidán `auth_user_id` do `saveCoach()`
+- **DashboardOverview.jsx**: Try-catch wrapper pro `useTesterAuth()` (fallback na localStorage)
+
+#### C) Oprava stávajících dat ✅
+- UPDATE queries pro propojení `auth_user_id` u OAuth testerů
+- UPDATE queries pro propojení adminů s Supabase Auth
+- Oprava chybějících `tester_id` a `is_tester` flagů
+
+#### D) Čištění kódu ✅
+- Odstraněno 11 debug logů (`🔵 ✅ ❌`)
+- Odstraněny zbytečné komentáře
+- Ponechány pouze `console.error()` pro error handling
+
+**🔒 RLS Status po opravě**:
+- ✅ `coachpro_materials` - Coach-scoped policies + admin exception
+- ✅ `coachpro_programs` - Coach-scoped policies + admin exception
+- ✅ `coachpro_coaches` - Has `auth_user_id` column + index
+- ✅ Testers vidí JEN svoje materiály/programy
+- ✅ Admini vidí VŠECHNA data
+
+**🧪 Testing**:
+- ✅ OAuth tester: Vidí personalizované jméno, jen svoje materiály
+- ✅ Admin 1 (`lenna@online-byznys.cz`): Vidí všechna data
+- ✅ Admin 2 (`lenkaroubalka@seznam.cz`): Vidí všechna data, zachován tester status
+- ✅ Access code tester: Funguje bez `auth_user_id`
+
+**📁 Soubory změněny**: 7 files (2 SQL migrations, 5 app files)
+
+**📊 Impact**:
+- 🔐 **CRITICAL security vulnerability fixed** - Data leak mezi uživateli opraven
+- 🔓 Multi-admin podpora - Libovolný počet adminů v DB
+- 🧹 Code quality - Čistý kód bez debug logů
+
+**Dokumentace**: `summary9.md` (475 řádků)
+
+---
+
 ### 6.11.2025 - Client Auth Modularity (Večer)
 
 **Branch**: `client-flow-refactor`
@@ -1233,4 +1280,4 @@ if (!data) return null;
 ---
 
 **Konec MASTER_TODO_V4.md**
-**Poslední update**: 6. listopadu 2025, večer
+**Poslední update**: 8. listopadu 2025, odpoledne (Session #9)

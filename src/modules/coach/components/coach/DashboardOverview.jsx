@@ -27,7 +27,17 @@ const DashboardOverview = () => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const currentUser = getCurrentUser();
-  const { profile: testerProfile } = useTesterAuth();
+
+  // Try to get tester profile, but don't crash if provider is missing
+  let testerProfile = null;
+  try {
+    const testerAuth = useTesterAuth();
+    testerProfile = testerAuth?.profile;
+  } catch (error) {
+    // TesterAuthProvider not available (e.g., coach dashboard)
+    testerProfile = null;
+  }
+
   const [materials, setMaterials] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [clients, setClients] = useState([]);

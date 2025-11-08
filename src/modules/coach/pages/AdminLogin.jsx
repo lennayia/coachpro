@@ -20,14 +20,14 @@ import { useNotification } from '@shared/context/NotificationContext';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
 
-const ADMIN_EMAIL = 'lenna@online-byznys.cz';
+const ADMIN_EMAILS = ['lenna@online-byznys.cz', 'lenkaroubalka@seznam.cz'];
 
 const AdminLogin = () => {
   const navigate = useNavigate();
   const { showSuccess, showError } = useNotification();
   const glassCardStyles = useGlassCard('subtle');
 
-  const [email, setEmail] = useState(ADMIN_EMAIL);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -43,8 +43,8 @@ const AdminLogin = () => {
       return;
     }
 
-    if (email.trim() !== ADMIN_EMAIL) {
-      setError('Nesprávný email. Admin = lenna@online-byznys.cz');
+    if (!ADMIN_EMAILS.includes(email.trim())) {
+      setError('Nesprávný email. Povolené admin účty: lenna@online-byznys.cz, lenkaroubalka@seznam.cz');
       showError('Chyba', 'Nesprávný email');
       return;
     }
@@ -69,31 +69,32 @@ const AdminLogin = () => {
         throw new Error('Přihlášení selhalo - žádný uživatel');
       }
 
-      // Debug: Check if session exists
-      console.log('🔵 Auth successful, session:', authData.session);
-      console.log('🔵 User:', authData.user.email);
-
-      // Find existing coach record to get correct ID (data is linked to this ID!)
+      // Find existing coach record to get correct ID
       const { data: existingCoach } = await supabase
         .from('coachpro_coaches')
-        .select('id, name')
-        .eq('email', ADMIN_EMAIL)
+        .select('id, name, is_tester, tester_id')
+        .eq('email', email.trim())
         .single();
 
-      // Create admin user object using existing coach ID (not auth.user.id!)
+      // Check if admin is also a tester
+      const { data: testerProfile } = await supabase
+        .from('testers')
+        .select('id')
+        .eq('email', email.trim())
+        .maybeSingle();
+
       const adminUser = {
-        id: existingCoach?.id || authData.user.id, // Use existing coach ID if found
-        name: existingCoach?.name || 'Lenka Roubalová',
-        email: ADMIN_EMAIL,
+        id: existingCoach?.id || authData.user.id,
+        auth_user_id: authData.user.id,
+        name: existingCoach?.name || 'Admin',
+        email: email.trim(),
         isAdmin: true,
+        isTester: existingCoach?.is_tester || !!testerProfile,
+        testerId: existingCoach?.tester_id || testerProfile?.id || null,
         createdAt: new Date().toISOString(),
       };
 
-      // Save to localStorage (for getCurrentUser())
       setCurrentUser(adminUser);
-
-      // Note: Admin already exists in coachpro_coaches, no need to update on every login
-
       showSuccess('Vítej zpět! 🎉', 'Přihlášena jako admin');
       navigate('/coach/dashboard');
     } catch (err) {
@@ -150,7 +151,7 @@ const AdminLogin = () => {
             </Typography>
 
             <Typography variant="body2" color="text.secondary" align="center">
-              Vítej zpět, Lenko! 👋
+              Vítej zpět! 👋
             </Typography>
           </Box>
 
