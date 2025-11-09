@@ -4,7 +4,7 @@ import { ThemeProvider, CssBaseline } from '@mui/material';
 import { createNatureTheme } from '@shared/themes/natureTheme';
 
 // Pages - budeme vytvářet postupně
-import CoachDashboard from '@modules/coach/pages/CoachDashboard';
+import CoachView from '@modules/coach/pages/CoachView';
 import ClientView from '@modules/coach/pages/ClientView';
 import TesterView from '@modules/coach/pages/TesterView';
 import AdminLogin from '@modules/coach/pages/AdminLogin';
@@ -46,7 +46,7 @@ function App() {
                 <Route path="/" element={<RootRedirect />} />
                 <Route path="/lenna" element={<AdminLogin />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/coach/*" element={<ErrorBoundary><CoachDashboard /></ErrorBoundary>} />
+                <Route path="/coach/*" element={<ErrorBoundary><CoachView /></ErrorBoundary>} />
                 <Route path="/client/*" element={<ErrorBoundary><ClientView /></ErrorBoundary>} />
                 <Route path="/tester/*" element={<ErrorBoundary><TesterView /></ErrorBoundary>} />
                 <Route path="*" element={<Navigate to="/" replace />} />

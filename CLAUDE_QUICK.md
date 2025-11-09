@@ -2,7 +2,7 @@
 
 > **Účel**: Rychlý přehled nejdůležitějších pravidel. Pro detaily viz CLAUDE.md
 
-**Poslední update**: 6. listopadu 2025 (večer)
+**Poslední update**: 8. listopadu 2025 (večer) - Session #10
 **Pro full dokumentaci**: Čti CLAUDE.md (ale JEN když potřebuješ detaily!)
 
 ---
@@ -574,45 +574,257 @@ setName(googleName || existingProfile.name || '');
 
 ---
 
-## 📊 AKTUÁLNÍ STAV (8.11.2025, odpoledne)
+### 19. 🔐 GUARDS NESMÍ MODIFIKOVAT DATABÁZI - KRITICKÉ!
 
-**Session**: RLS Security & Multi-Admin Fix (#9) ✅
+**⚠️ NOVÉ PRAVIDLO (9.11.2025)** - **KLÍČOVÁ LEKCE ZE SESSION #11**
+
+**Problem**: TesterAuthGuard volal `saveCoach()` a **přepisoval databázi** při každém načtení stránky!
+
+**PRAVIDLO - Guards jsou READ-ONLY:**
+
+```javascript
+// ❌ NIKDY zapisovat do databáze v guardu
+useEffect(() => {
+  const coachUser = {
+    isAdmin: false,  // ← Hardcoded! Přepisuje admin status
+    testerId: profile.id,  // ← Google ID místo DB ID
+  };
+  await saveCoach(coachUser);  // ← PŘEPISUJE DATABÁZI! ❌❌❌
+}, [user, profile]);
+
+// ✅ VŽDY jen číst z DB a ukládat do localStorage
+useEffect(() => {
+  const coaches = await getCoaches();  // ✅ READ from DB
+  const existingCoach = coaches.find(c => c.email === profile.email);
+
+  if (existingCoach) {
+    // ✅ Preserve ALL values from database
+    const coachUser = {
+      isAdmin: existingCoach.is_admin,  // ✅ From DB
+      testerId: existingCoach.tester_id,  // ✅ From DB
+      // ... all other fields from DB
+    };
+    setCurrentUser(coachUser);  // ✅ localStorage ONLY!
+  }
+}, [user, profile]);
+```
+
+**Co se stalo v Session #11**:
+1. Po migraci Koučovacích Karet (Session #10) se rozbila autentizace
+2. Admin status se měnil `true` → `false` při každém refreshi
+3. Tester ID se měnil `UUID` → `NULL`
+4. Guard běžel 3x za sebou → 3x přepsal databázi!
+
+**Root cause**: Guard volal `saveCoach()` → UPSERT do Supabase!
+
+**Separation of Concerns**:
+- **Guard** = Kontrola autentizace (READ ONLY)
+- **Context** = Načítání a synchronizace dat (CAN WRITE)
+
+**NIKDY**:
+- ❌ Guard nesmí volat `saveCoach()`, `saveMaterial()`, atd.
+- ❌ Guard nesmí měnit databázová data
+- ❌ Guard nesmí mít side-effects kromě redirectů
+
+**VŽDY**:
+- ✅ Guard jen čte z DB
+- ✅ Guard ukládá do localStorage (session)
+- ✅ Guard redirectuje pokud auth fails
+
+---
+
+### 20. 🏗️ GENERIC COMPONENTS - DRY Principle
+
+**⚠️ NOVÉ PRAVIDLO (9.11.2025)** - **REFACTORING PATTERN ZE SESSION #11**
+
+**Problem**: 95% duplicitní kód mezi TesterAuthContext a ClientAuthContext (462 řádků!)
+
+**PRAVIDLO - Use Factory Pattern pro duplicitní logiku:**
+
+**Before** (462 řádků duplicity):
+```javascript
+// TesterAuthContext.jsx - 145 řádků
+const loadAuth = async () => { /* 70 lines of auth logic */ };
+const refreshProfile = async () => { /* 30 lines */ };
+// ...
+
+// ClientAuthContext.jsx - 115 řádků
+const loadAuth = async () => { /* 70 lines STEJNÝ KÓD! */ };
+const refreshProfile = async () => { /* 30 lines STEJNÝ KÓD! */ };
+// ...
+```
+
+**After** (379 řádků total, včetně generic):
+```javascript
+// GenericAuthContext.jsx - 170 řádků (eliminuje 260 řádků duplikace)
+export function createAuthContext({
+  contextName,      // "TesterAuth" | "ClientAuth"
+  tableName,        // "testers" | "coachpro_client_profiles"
+  allowMissing,     // true = maybeSingle(), false = single()
+  onProfileLoaded   // Optional callback
+}) {
+  // ... shared logic
+  return { AuthContext, useAuth, AuthProvider };
+}
+
+// TesterAuthContext.jsx - 40 řádků (-72%)
+const { useAuth, AuthProvider } = createAuthContext({
+  contextName: 'TesterAuth',
+  tableName: 'testers',
+  allowMissing: true,
+  onProfileLoaded: loadCoachSession  // Special callback for coaches
+});
+
+// ClientAuthContext.jsx - 12 řádků (-90%)
+const { useAuth, AuthProvider } = createAuthContext({
+  contextName: 'ClientAuth',
+  tableName: 'coachpro_client_profiles',
+  allowMissing: false,
+  onProfileLoaded: null
+});
+```
+
+**Benefits**:
+- **-73% kódu** na údržbu (462 → 125 řádků)
+- **1x místo 2x** - změny v auth logice jen na jednom místě
+- **Snadné přidání** nových auth typů (Coach OAuth, Admin OAuth)
+- **DRY principle** dodržen
+
+**Pattern aplikován na**:
+1. ✅ AuthContext (GenericAuthContext.jsx)
+2. ✅ AuthGuard (GenericAuthGuard.jsx)
+
+**Files**:
+- `GenericAuthContext.jsx` - 170 lines (factory)
+- `GenericAuthGuard.jsx` - 87 lines (base component)
+- `TesterAuthContext.jsx` - 40 lines (was 145)
+- `ClientAuthContext.jsx` - 12 lines (was 115)
+- `TesterAuthGuard.jsx` - 35 lines (was 125)
+- `ClientAuthGuard.jsx` - 35 lines (was 77)
+
+---
+
+### 21. ⚡ RACE CONDITIONS - Single useEffect Pattern
+
+**⚠️ NOVÉ PRAVIDLO (9.11.2025)** - **BUG FIX ZE SESSION #11**
+
+**Problem**: 2 useEffects běžící paralelně → data not available when needed
+
+**Before** (race condition):
+```javascript
+// useEffect #1 - Load session (async)
+useEffect(() => {
+  loadCoachSession();  // Asynchronní operace
+}, [user, profile]);
+
+// useEffect #2 - Check auth (sync)
+useEffect(() => {
+  const currentUser = loadFromStorage();  // Běží PŘED dokončením #1!
+  if (!currentUser) navigate('/login');
+}, [loading, user, profile]);
+```
+
+**Problem**: useEffect #2 běží PŘED tím, než useEffect #1 dokončí → `currentUser` je `null`!
+
+**PRAVIDLO - Merge multiple useEffects into one:**
+
+```javascript
+// ✅ SPRÁVNĚ - Single useEffect s proper sequencing
+useEffect(() => {
+  let isMounted = true;  // ← Cleanup flag
+
+  const handleAuth = async () => {
+    if (loading) return;
+
+    // 1. Load session FIRST (async)
+    if (user && profile) {
+      await loadCoachSession();  // ← Wait for completion
+    }
+
+    // 2. Check auth AFTER loading (sync)
+    if (!isMounted) return;  // ← Cleanup check
+
+    const currentUser = loadFromStorage();
+    if (!user && !currentUser) {
+      navigate('/login');
+    }
+  };
+
+  handleAuth();
+
+  return () => {
+    isMounted = false;  // ← Cleanup on unmount
+  };
+}, [loading, user, profile]);
+```
+
+**Key Patterns**:
+1. **`isMounted` flag** - Prevents setState after unmount
+2. **Async wrapper** - `const handleAuth = async () => {}`
+3. **Sequential execution** - await before checks
+4. **Cleanup return** - `return () => { isMounted = false }`
+
+**Benefits**:
+- ✅ No race conditions
+- ✅ Proper data availability
+- ✅ No memory leaks
+- ✅ Predictable execution order
+
+---
+
+## 📊 AKTUÁLNÍ STAV (9.11.2025)
+
+**Session**: Authentication Refactoring & Bug Fixes (#11) 🔐
 **Status**: ✅ COMPLETED
-**Branch**: `fix/rls-security-auth-user-id` (merged to main)
+**Branch**: `fix/client-route-consolidation` (pokračování)
 
-**Dokončeno v této session (#9)**:
-- ✅ **CRITICAL RLS Security Fix** 🔥
-  - Added `auth_user_id` column to coachpro_coaches (Migration #1)
-  - Fixed permissive `USING (true)` RLS policies → coach-scoped filtering (Migration #2)
-  - Coaches now see ONLY their own materials/programs
-  - Admins see ALL data (exception in RLS)
-- ✅ **Multi-Admin Support**
-  - Changed hardcoded `ADMIN_EMAIL` → `ADMIN_EMAILS` array
-  - Dynamic admin check via `auth_user_id` + `is_admin` flag
-  - RootRedirect.jsx uses database, not hardcoded email
-- ✅ **AdminLogin.jsx Bug Fix**
-  - Preserved `isTester` and `testerId` fields (previously overwritten)
-  - Added tester profile check
-- ✅ **DashboardOverview.jsx Context Error Fix**
-  - Added try-catch wrapper for `useTesterAuth()`
-  - Fallback to localStorage when Context unavailable
-- ✅ **TesterAuthGuard.jsx Enhancement**
-  - Creates coach record with `auth_user_id` for OAuth testers
-- ✅ **Code Cleanup**
-  - Removed 11+ debug logs (kept console.error)
-  - Removed unnecessary comments
-- ✅ **Documentation Complete**
-  - summary9.md (475 lines)
-  - MASTER_TODO_V4.md updated (Sprints 2a.1, 2a.2, 2a.3 marked complete)
+**Předchozí session (#10, 8.11.2025)**:
+- ✅ Koučovací Karty System
+- ⚠️ Po migraci se rozbila autentizace!
 
-**Files Modified (7 files)**:
-- `supabase/migrations/20250108_01_add_auth_to_coaches.sql` (NEW)
-- `supabase/migrations/20250108_02_fix_materials_programs_rls.sql` (NEW)
-- `src/modules/coach/components/coach/DashboardOverview.jsx` (try-catch fix)
-- `src/shared/components/TesterAuthGuard.jsx` (auth_user_id linking)
-- `src/modules/coach/utils/storage.js` (auth_user_id field)
-- `src/modules/coach/pages/AdminLogin.jsx` (multi-admin + preserve tester fields)
-- `src/shared/components/RootRedirect.jsx` (dynamic admin check)
+**Dokončeno v této session (#10)** 🎴:
+- ✅ **Database Migration (Supabase)**
+  - Created `coachpro_cards_v2` (18 seed karet - Deck A)
+  - Created `coachpro_card_notes_v2` (poznámky klientek)
+  - RLS policies: Public read (karty), Client-scoped (poznámky)
+  - Safe migration: Staré tabulky zachovány jako backup
+- ✅ **Frontend - Modular Card System**
+  - DeckSelector.jsx - Step 1: Výběr balíčku (A/B/C/D)
+  - MotifSelector.jsx - Step 2: Výběr motivu (Člověk/Příroda/Abstrakt/Mix)
+  - CardGrid.jsx - Step 3: Shuffleable grid s lazy loading
+  - CardFlipView.jsx - Step 4: 3D flip + poznámky
+  - CoachingCardsPage.jsx - Main orchestrator + Supabase integration
+- ✅ **Visual Enhancements**
+  - CSS filtry pro B&W obrázky (sepia, duotone podle motivu)
+  - Watermark system (CoachProApp + © online-byznys.cz)
+  - Glassmorphism efekty + barevné gradienty
+- ✅ **Technical Fixes**
+  - Type mismatch: client_id TEXT → UUID
+  - Deck case sensitivity: 'deck-a' → 'A'
+  - Logo watermark: obrázek → text (čitelnější)
+  - Baseline alignment: flex container pro perfect align
+- ✅ **Documentation**
+  - summary10.md (620+ lines)
+  - SUPABASE_CARDS_CHECKLIST.md (step-by-step guide)
+  - public/images/karty/README.md (WebP upload guide)
+  - MASTER_TODO_priority.md (user's TOP priority)
+
+**Files Created (11 files)**:
+- `supabase/migrations/20251108_03_create_cards_v2_safe.sql` (bezpečná migrace)
+- `src/shared/constants/cardDeckThemes.js` (barevné schémata)
+- `src/shared/constants/cardImageFilters.js` (CSS filtry)
+- `src/shared/components/cards/DeckSelector.jsx`
+- `src/shared/components/cards/MotifSelector.jsx`
+- `src/shared/components/cards/CardGrid.jsx`
+- `src/shared/components/cards/CardFlipView.jsx`
+- `src/modules/coach/pages/CoachingCardsPage.jsx`
+- `SUPABASE_CARDS_CHECKLIST.md`
+- `public/images/karty/README.md`
+- `MASTER_TODO_priority.md`
+
+**Files Modified (2 files)**:
+- `src/modules/coach/pages/CoachDashboard.jsx` (route na CoachingCardsPage)
+- `src/shared/constants/cardDeckThemes.js` (deck values fix)
 
 **Předchozí session (#8, 8.11.2025)**:
 - ✅ DashboardOverview.jsx - Personalized greeting fix
