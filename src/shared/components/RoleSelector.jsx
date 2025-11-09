@@ -6,6 +6,7 @@ import { fadeIn, fadeInUp } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
 import { useTheme } from '@mui/material';
+import { getVocative } from '@shared/utils/czechGrammar';
 
 /**
  * Role Selector - For multi-role users
@@ -117,7 +118,7 @@ const RoleSelector = ({ availableRoles = [], user }) => {
               />
             </Box>
             <Typography variant="h4" fontWeight={600} gutterBottom>
-              Ahoj, {getFirstName()}! 👋
+              Ahoj, {getVocative(getFirstName())}!
             </Typography>
             <Typography variant="body1" color="text.secondary">
               Vyberte roli pro dnešní práci

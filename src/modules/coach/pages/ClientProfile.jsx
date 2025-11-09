@@ -9,6 +9,8 @@ import {
   Grid,
   IconButton,
   CircularProgress,
+  MenuItem,
+  Divider,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -25,6 +27,8 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import cs from 'date-fns/locale/cs';
 import { useClientAuth } from '@shared/context/ClientAuthContext';
 import ClientAuthGuard from '@shared/components/ClientAuthGuard';
+import PhotoUpload from '@shared/components/PhotoUpload';
+import { PHOTO_BUCKETS } from '@shared/utils/photoStorage';
 
 const ClientProfile = () => {
   const navigate = useNavigate();
@@ -43,6 +47,11 @@ const ClientProfile = () => {
   const [dateOfBirth, setDateOfBirth] = useState(null);
   const [goals, setGoals] = useState('');
   const [healthNotes, setHealthNotes] = useState('');
+  const [photoUrl, setPhotoUrl] = useState(null);
+  const [preferredContact, setPreferredContact] = useState('email');
+  const [timezone, setTimezone] = useState('Europe/Prague');
+  const [clientNotes, setClientNotes] = useState('');
+  const [coachInfo, setCoachInfo] = useState(null);
 
   // Load profile from context
   useEffect(() => {
@@ -55,20 +64,62 @@ const ClientProfile = () => {
 
       if (profile) {
         // Load existing profile
+        console.log('[ClientProfile] Loading existing profile:', profile);
+        console.log('[ClientProfile] Profile photo_url from DB:', profile.photo_url);
+        console.log('[ClientProfile] Current photoUrl state:', photoUrl);
+
         setName(googleName || profile.name || '');
         setEmail(profile.email || '');
         setPhone(profile.phone || '');
         setDateOfBirth(profile.date_of_birth ? new Date(profile.date_of_birth) : null);
         setGoals(profile.goals || '');
         setHealthNotes(profile.health_notes || '');
+
+        // Only update photo if profile photo is different (avoid overwriting unsaved changes)
+        if (profile.photo_url !== photoUrl) {
+          console.log('[ClientProfile] Updating photoUrl state from profile');
+          setPhotoUrl(profile.photo_url || null);
+        } else {
+          console.log('[ClientProfile] Skipping photoUrl update (already matches)');
+        }
+
+        setPreferredContact(profile.preferred_contact || 'email');
+        setTimezone(profile.timezone || 'Europe/Prague');
+        setClientNotes(profile.client_notes || '');
+
+        // Load coach info if assigned
+        if (profile.coach_id) {
+          loadCoachInfo(profile.coach_id);
+        }
       } else {
         // New user - pre-fill name from Google
+        console.log('[ClientProfile] New user, no profile yet');
         if (googleName) {
           setName(googleName);
         }
       }
     }
   }, [authLoading, user, profile]);
+
+  // Debug: Track photoUrl changes
+  useEffect(() => {
+    console.log('[ClientProfile] photoUrl state changed to:', photoUrl);
+  }, [photoUrl]);
+
+  const loadCoachInfo = async (coachId) => {
+    try {
+      const { data, error } = await supabase
+        .from('coachpro_coaches')
+        .select('id, name, email, phone')
+        .eq('id', coachId)
+        .single();
+
+      if (error) throw error;
+      setCoachInfo(data);
+    } catch (err) {
+      console.error('Error loading coach info:', err);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -90,18 +141,33 @@ const ClientProfile = () => {
         date_of_birth: dateOfBirth ? dateOfBirth.toISOString().split('T')[0] : null,
         goals: goals.trim(),
         health_notes: healthNotes.trim(),
+        photo_url: photoUrl,
+        preferred_contact: preferredContact,
+        timezone: timezone,
+        client_notes: clientNotes.trim(),
       };
 
-      const { error: upsertError } = await supabase
+      console.log('[ClientProfile] Submitting profile data:', profileData);
+      console.log('[ClientProfile] photoUrl state:', photoUrl);
+
+      const { data: upsertData, error: upsertError } = await supabase
         .from('coachpro_client_profiles')
         .upsert(profileData, {
           onConflict: 'auth_user_id',
-        });
+        })
+        .select();
 
       if (upsertError) throw upsertError;
 
+      console.log('[ClientProfile] Upsert successful, returned data:', upsertData);
+
+      // Small delay to ensure database write completes
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       // Refresh profile in context
+      console.log('[ClientProfile] Refreshing profile from database...');
       await refreshProfile();
+      console.log('[ClientProfile] Profile refreshed');
 
       showSuccess(
         'Profil uložen',
@@ -206,29 +272,16 @@ const ClientProfile = () => {
               transition={{ delay: 0.1 }}
             >
               <Box textAlign="center" mb={4} mt={5}>
-                <Box
-                  sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 80,
-                    height: 80,
-                    borderRadius: '50%',
-                    background: (theme) =>
-                      theme.palette.mode === 'dark'
-                        ? 'linear-gradient(135deg, rgba(139, 188, 143, 0.2) 0%, rgba(85, 107, 47, 0.15) 100%)'
-                        : 'linear-gradient(135deg, rgba(139, 188, 143, 0.2) 0%, rgba(85, 107, 47, 0.1) 100%)',
-                    border: '2px solid',
-                    borderColor: (theme) =>
-                      theme.palette.mode === 'dark'
-                        ? 'rgba(139, 188, 143, 0.3)'
-                        : 'rgba(85, 107, 47, 0.2)',
-                    mb: 2,
-                  }}
-                >
-                  <UserIcon size={40} color={theme.palette.primary.main} />
-                </Box>
-                <Typography variant="h5" fontWeight={600} gutterBottom>
+                {/* Photo Upload */}
+                <PhotoUpload
+                  photoUrl={photoUrl}
+                  onPhotoChange={setPhotoUrl}
+                  userId={user?.id}
+                  bucket={PHOTO_BUCKETS.CLIENT_PHOTOS}
+                  size={120}
+                />
+
+                <Typography variant="h5" fontWeight={600} gutterBottom sx={{ mt: 3 }}>
                   Váš profil
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
@@ -343,6 +396,103 @@ const ClientProfile = () => {
                       }}
                     />
                   </Grid>
+
+                  {/* Divider */}
+                  <Grid item xs={12}>
+                    <Divider sx={{ my: 2 }} />
+                  </Grid>
+
+                  {/* Preferred Contact Method */}
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      select
+                      label="Preferovaný způsob kontaktu"
+                      value={preferredContact}
+                      onChange={(e) => setPreferredContact(e.target.value)}
+                      disabled={saving}
+                      InputProps={{
+                        sx: { borderRadius: BORDER_RADIUS.compact },
+                      }}
+                    >
+                      <MenuItem value="email">Email</MenuItem>
+                      <MenuItem value="phone">Telefon</MenuItem>
+                      <MenuItem value="whatsapp">WhatsApp</MenuItem>
+                    </TextField>
+                  </Grid>
+
+                  {/* Timezone */}
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      select
+                      label="Časová zóna"
+                      value={timezone}
+                      onChange={(e) => setTimezone(e.target.value)}
+                      disabled={saving}
+                      InputProps={{
+                        sx: { borderRadius: BORDER_RADIUS.compact },
+                      }}
+                    >
+                      <MenuItem value="Europe/Prague">Praha (CET/CEST)</MenuItem>
+                      <MenuItem value="Europe/London">Londýn (GMT/BST)</MenuItem>
+                      <MenuItem value="America/New_York">New York (EST/EDT)</MenuItem>
+                      <MenuItem value="America/Los_Angeles">Los Angeles (PST/PDT)</MenuItem>
+                      <MenuItem value="Asia/Tokyo">Tokio (JST)</MenuItem>
+                    </TextField>
+                  </Grid>
+
+                  {/* Client Notes */}
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={3}
+                      label="Moje poznámky"
+                      value={clientNotes}
+                      onChange={(e) => setClientNotes(e.target.value)}
+                      disabled={saving}
+                      placeholder="Soukromé poznámky (vidíte pouze vy)"
+                      InputProps={{
+                        sx: { borderRadius: BORDER_RADIUS.compact },
+                      }}
+                    />
+                  </Grid>
+
+                  {/* Coach Info (if assigned) */}
+                  {coachInfo && (
+                    <Grid item xs={12}>
+                      <Box
+                        sx={{
+                          p: 3,
+                          borderRadius: BORDER_RADIUS.compact,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          bgcolor: (theme) =>
+                            theme.palette.mode === 'dark'
+                              ? 'rgba(139, 188, 143, 0.05)'
+                              : 'rgba(85, 107, 47, 0.03)',
+                        }}
+                      >
+                        <Typography variant="h6" fontWeight={600} gutterBottom>
+                          Vaše koučka
+                        </Typography>
+                        <Typography variant="body1" gutterBottom>
+                          <strong>Jméno:</strong> {coachInfo.name}
+                        </Typography>
+                        {coachInfo.email && (
+                          <Typography variant="body2" color="text.secondary">
+                            <strong>Email:</strong> {coachInfo.email}
+                          </Typography>
+                        )}
+                        {coachInfo.phone && (
+                          <Typography variant="body2" color="text.secondary">
+                            <strong>Telefon:</strong> {coachInfo.phone}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Grid>
+                  )}
 
                   {/* Submit Button */}
                   <Grid item xs={12}>

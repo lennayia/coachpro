@@ -10,6 +10,7 @@ import {
   Grid,
   IconButton,
   InputAdornment,
+  Avatar,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -208,28 +209,24 @@ const ClientWelcome = () => {
               transition={{ delay: 0.1 }}
             >
               <Box textAlign="center" mb={5} mt={4}>
-                <Box
+                <Avatar
+                  src={profile?.photo_url}
                   sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
                     width: 90,
                     height: 90,
-                    borderRadius: '50%',
-                    background: (theme) =>
-                      theme.palette.mode === 'dark'
-                        ? 'linear-gradient(135deg, rgba(139, 188, 143, 0.2) 0%, rgba(85, 107, 47, 0.15) 100%)'
-                        : 'linear-gradient(135deg, rgba(139, 188, 143, 0.2) 0%, rgba(85, 107, 47, 0.1) 100%)',
+                    margin: '0 auto',
+                    mb: 2.5,
+                    bgcolor: 'primary.main',
+                    fontSize: 36,
                     border: '2px solid',
                     borderColor: (theme) =>
                       theme.palette.mode === 'dark'
                         ? 'rgba(139, 188, 143, 0.3)'
                         : 'rgba(85, 107, 47, 0.2)',
-                    mb: 2.5,
                   }}
                 >
-                  <UserIcon size={44} color={theme.palette.primary.main} />
-                </Box>
+                  {!profile?.photo_url && <UserIcon size={44} />}
+                </Avatar>
                 <Typography variant="h4" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
                   Vítejte zpátky, {getVocative(profile?.displayName || '')}!
                 </Typography>

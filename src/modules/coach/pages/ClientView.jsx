@@ -7,6 +7,8 @@ import ClientProfile from './ClientProfile';
 import MaterialEntry from '../components/client/MaterialEntry';
 import DailyView from '../components/client/DailyView';
 import MaterialView from './MaterialView';
+import ClientMaterials from './ClientMaterials';
+import ClientHelp from './ClientHelp';
 import ClientCardDeckEntry from '../components/client/ClientCardDeckEntry';
 import ClientCardDeckView from '../components/client/ClientCardDeckView';
 
@@ -20,7 +22,9 @@ const ClientView = () => {
         <Route path="/profile" element={<ClientProfile />} />
         <Route path="/material-entry" element={<MaterialEntry />} />
         <Route path="/daily" element={<DailyView />} />
+        <Route path="/materials" element={<ClientMaterials />} />
         <Route path="/material/:code" element={<MaterialView />} />
+        <Route path="/help" element={<ClientHelp />} />
         <Route path="/cards" element={<ClientCardDeckEntry />} />
         <Route path="/card-deck/:code" element={<ClientCardDeckView />} />
       </Routes>

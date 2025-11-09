@@ -1,6 +1,6 @@
 import { Box, Typography, Grid, Card, CardContent } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { User as UserIcon, BookOpen, Calendar, FileText } from 'lucide-react';
+import { User as UserIcon, HelpCircle, Calendar, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { fadeIn, fadeInUp } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
@@ -188,9 +188,7 @@ const ClientDashboard = () => {
                         : '0 8px 24px rgba(85, 107, 47, 0.15)',
                   },
                 }}
-                onClick={() => {
-                  // TODO: Materiály page
-                }}
+                onClick={() => navigate('/client/materials')}
               >
                 <CardContent sx={{ p: 3 }}>
                   <Box
@@ -221,7 +219,7 @@ const ClientDashboard = () => {
             </motion.div>
           </Grid>
 
-          {/* Card 4: O koučinku */}
+          {/* Card 4: Nápověda */}
           <Grid item xs={12} sm={6} md={4}>
             <motion.div
               variants={fadeInUp}
@@ -247,7 +245,7 @@ const ClientDashboard = () => {
                         : '0 8px 24px rgba(85, 107, 47, 0.15)',
                   },
                 }}
-                onClick={() => navigate('/coach-types-guide')}
+                onClick={() => navigate('/client/help')}
               >
                 <CardContent sx={{ p: 3 }}>
                   <Box
@@ -265,13 +263,13 @@ const ClientDashboard = () => {
                       mb: 2,
                     }}
                   >
-                    <BookOpen size={28} color={theme.palette.primary.main} />
+                    <HelpCircle size={28} color={theme.palette.primary.main} />
                   </Box>
                   <Typography variant="h6" fontWeight={600} gutterBottom>
-                    O koučinku
+                    Nápověda
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Zjistěte více o různých typech koučinku
+                    Kontakt na koučku a časté otázky
                   </Typography>
                 </CardContent>
               </Card>
