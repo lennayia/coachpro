@@ -64,9 +64,6 @@ const ClientProfile = () => {
 
       if (profile) {
         // Load existing profile
-        console.log('[ClientProfile] Loading existing profile:', profile);
-        console.log('[ClientProfile] Profile photo_url from DB:', profile.photo_url);
-        console.log('[ClientProfile] Current photoUrl state:', photoUrl);
 
         setName(googleName || profile.name || '');
         setEmail(profile.email || '');
@@ -77,10 +74,8 @@ const ClientProfile = () => {
 
         // Only update photo if profile photo is different (avoid overwriting unsaved changes)
         if (profile.photo_url !== photoUrl) {
-          console.log('[ClientProfile] Updating photoUrl state from profile');
           setPhotoUrl(profile.photo_url || null);
         } else {
-          console.log('[ClientProfile] Skipping photoUrl update (already matches)');
         }
 
         setPreferredContact(profile.preferred_contact || 'email');
@@ -93,18 +88,12 @@ const ClientProfile = () => {
         }
       } else {
         // New user - pre-fill name from Google
-        console.log('[ClientProfile] New user, no profile yet');
         if (googleName) {
           setName(googleName);
         }
       }
     }
   }, [authLoading, user, profile]);
-
-  // Debug: Track photoUrl changes
-  useEffect(() => {
-    console.log('[ClientProfile] photoUrl state changed to:', photoUrl);
-  }, [photoUrl]);
 
   const loadCoachInfo = async (coachId) => {
     try {
@@ -147,8 +136,6 @@ const ClientProfile = () => {
         client_notes: clientNotes.trim(),
       };
 
-      console.log('[ClientProfile] Submitting profile data:', profileData);
-      console.log('[ClientProfile] photoUrl state:', photoUrl);
 
       const { data: upsertData, error: upsertError } = await supabase
         .from('coachpro_client_profiles')
@@ -159,15 +146,12 @@ const ClientProfile = () => {
 
       if (upsertError) throw upsertError;
 
-      console.log('[ClientProfile] Upsert successful, returned data:', upsertData);
 
       // Small delay to ensure database write completes
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Refresh profile in context
-      console.log('[ClientProfile] Refreshing profile from database...');
       await refreshProfile();
-      console.log('[ClientProfile] Profile refreshed');
 
       showSuccess(
         'Profil uložen',

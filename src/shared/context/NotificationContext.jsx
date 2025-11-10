@@ -31,19 +31,12 @@ export const NotificationProvider = ({ children }) => {
           const playPromise = audio.play();
 
           if (playPromise !== undefined) {
-            playPromise
-              .then(() => {
-                // Zvuk se přehrál úspěšně
-                console.log('🔊 Notifikační zvuk přehrán');
-              })
-              .catch((error) => {
-                // Autoplay blokován - to je normální při prvním načtení
-                if (error.name === 'NotAllowedError') {
-                  console.log('🔇 Zvuk blokován prohlížečem - klikni někam na stránku pro povolení');
-                } else {
-                  console.error('Chyba při přehrávání zvuku:', error);
-                }
-              });
+            playPromise.catch((error) => {
+              // Autoplay blokován - to je normální, nelogujeme
+              if (error.name !== 'NotAllowedError') {
+                console.error('Notification sound error:', error);
+              }
+            });
           }
         } catch (error) {
           console.error('Chyba při vytváření audio objektu:', error);
