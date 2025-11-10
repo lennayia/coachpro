@@ -2,14 +2,160 @@
 
 > **Účel**: Rychlý přehled nejdůležitějších pravidel. Pro detaily viz CLAUDE.md
 
-**Poslední update**: 8. listopadu 2025 (večer) - Session #10
+**Poslední update**: 9. listopadu 2025 - Session #12
 **Pro full dokumentaci**: Čti CLAUDE.md (ale JEN když potřebuješ detaily!)
 
 ---
 
 ## 🚨 KRITICKÁ PRAVIDLA - VŽDY DODRŽUJ
 
-### 1. ⚠️ SUPABASE FOREIGN KEY CONSTRAINTS
+### 1. 📸 SESSION MANAGEMENT - sessions.js Utils (Session #12)
+
+**⚠️ NOVÉ PRAVIDLO (9.11.2025)** - **MODULAR SESSION SYSTEM**
+
+**PRAVIDLO - VŽDY používej sessions.js utils, NIKDY custom queries:**
+
+```javascript
+// ❌ NIKDY custom queries v pages/components
+const { data } = await supabase
+  .from('coachpro_sessions')
+  .select('*')
+  .eq('client_id', clientId);
+
+// ✅ VŽDY sessions.js utils
+import { getNextSession, getClientSessions, getCoachSessions } from '@shared/utils/sessions';
+
+const session = await getNextSession(clientId);
+const upcoming = await getClientSessions(clientId, { upcoming: true });
+const coachSessions = await getCoachSessions(coachId, { upcoming: true });
+```
+
+**Key Functions**:
+- `getNextSession(clientId)` - Příští sezení
+- `getClientSessions(clientId, { upcoming: true })` - Nadcházející sezení
+- `getClientSessions(clientId, { past: true })` - Minulá sezení
+- `getCoachSessions(coachId, options)` - Koučková sezení
+- `createSession(sessionData)` - Vytvoření sezení
+- `cancelSession(sessionId)` - Zrušení
+- `completeSession(sessionId, summary)` - Dokončení
+- `getTimeUntilSession(date)` - "za 2 dny" (Czech locale)
+- `formatSessionDate(date, format)` - Czech formátování
+- `isSessionNow(session)` - Je právě teď?
+- `getSessionStatusLabel(status)` - { label, color }
+
+**Benefits**:
+- ✅ Single source of truth pro session logiku
+- ✅ Automatické mapování coach/client details
+- ✅ Consistent Czech locale formátování
+- ✅ Reusable pro klientky i koučky
+
+### 2. 📷 PHOTO UPLOAD - Modular Pattern (Session #12)
+
+**⚠️ NOVÉ PRAVIDLO (9.11.2025)** - **3-LAYER PHOTO SYSTEM**
+
+**PRAVIDLO - 3 vrstvy: compression → storage → component:**
+
+```javascript
+// Layer 1: imageCompression.js - WebP compression
+import { compressToWebP, validateImageFile } from '@shared/utils/imageCompression';
+
+const validation = validateImageFile(file, { maxSizeBytes: 2 * 1024 * 1024 });
+if (!validation.valid) return showError(validation.error);
+
+const blob = await compressToWebP(file, {
+  maxWidth: 800,
+  maxHeight: 800,
+  quality: 0.85
+});
+
+// Layer 2: photoStorage.js - Supabase Storage
+import { uploadPhoto, deletePhoto, PHOTO_BUCKETS } from '@shared/utils/photoStorage';
+
+const { url } = await uploadPhoto(compressedFile, {
+  bucket: PHOTO_BUCKETS.CLIENT_PHOTOS,
+  userId: user.id,
+  fileName: 'photo.webp'
+});
+
+// Layer 3: PhotoUpload.jsx - Reusable component
+import PhotoUpload from '@shared/components/PhotoUpload';
+
+<PhotoUpload
+  photoUrl={photoUrl}
+  onPhotoChange={setPhotoUrl}
+  userId={user?.id}
+  bucket={PHOTO_BUCKETS.CLIENT_PHOTOS}
+  size={120}
+  maxSizeMB={2}
+  quality={0.85}
+/>
+```
+
+**Benefits**:
+- ✅ Reusable pro všechny foto uploady (client, coach, materials, programs)
+- ✅ Automatická WebP komprese
+- ✅ Consistent file management
+- ✅ Easy to test each layer independently
+
+### 3. 🚫 NO .single() ON EMPTY TABLES (Session #12)
+
+**⚠️ KRITICKÉ** - `.single()` způsobuje 406 error na prázdné tabulce!
+
+**PRAVIDLO - Array response + check length:**
+
+```javascript
+// ❌ NIKDY .single() na potenciálně prázdné tabulky
+const { data } = await supabase
+  .from('coachpro_sessions')
+  .select('*')
+  .eq('client_id', clientId)
+  .single();  // ❌ 406 error pokud 0 rows!
+
+// ✅ VŽDY array response + check
+const { data } = await supabase
+  .from('coachpro_sessions')
+  .select('*')
+  .eq('client_id', clientId)
+  .limit(1);
+
+if (!data || data.length === 0) return null;
+const session = data[0];
+```
+
+**Exception**: Use `.maybeSingle()` for optional lookups (returns null if 0 rows)
+
+### 4. 🚫 NO EMBEDDED RESOURCES WITH RLS (Session #12)
+
+**⚠️ KRITICKÉ** - Embedded resources (`:` syntax) nefungují správně s RLS!
+
+**PRAVIDLO - Separate queries + client-side mapping:**
+
+```javascript
+// ❌ NIKDY embedded resources
+const { data } = await supabase
+  .from('coachpro_sessions')
+  .select('*, coach:coachpro_coaches(*)');  // ❌ RLS issues!
+
+// ✅ VŽDY separátní queries
+const { data: sessions } = await supabase
+  .from('coachpro_sessions')
+  .select('*')
+  .eq('client_id', clientId);
+
+// Načti coach details separátně
+const coachIds = [...new Set(sessions.map(s => s.coach_id))];
+const { data: coaches } = await supabase
+  .from('coachpro_coaches')
+  .select('*')
+  .in('id', coachIds);
+
+// Map na klientovi
+const coachMap = {};
+coaches.forEach(c => coachMap[c.id] = c);
+sessions.forEach(s => s.coach = coachMap[s.coach_id]);
+```
+
+### 5. ⚠️ SUPABASE FOREIGN KEY CONSTRAINTS
 
 **PŘED každým `saveMaterial()`, `saveProgram()`, `createSharedMaterial()` MUSÍŠ:**
 
@@ -774,9 +920,45 @@ useEffect(() => {
 
 ## 📊 AKTUÁLNÍ STAV (9.11.2025)
 
-**Session**: Authentication Refactoring & Bug Fixes (#11) 🔐
+**Session**: Session Management & Photo Upload (#12) 📸
 **Status**: ✅ COMPLETED
 **Branch**: `fix/client-route-consolidation` (pokračování)
+
+**Dokončeno v této session (#12)** 📸:
+- ✅ **Photo Upload System (Modular)**
+  - imageCompression.js - WebP compression utilities
+  - photoStorage.js - Supabase Storage operations
+  - PhotoUpload.jsx - Reusable component
+  - Storage bucket: client-photos + RLS policies
+- ✅ **Extended Client Profile**
+  - Photo upload v headeru
+  - 7 new fields (timezone, preferred_contact, client_notes, coach_id, etc.)
+  - Coach info display
+  - Vocative case fix v RoleSelector
+- ✅ **Session Management (Fully Modular!)**
+  - sessions.js utils (402 lines, complete CRUD + formatters)
+  - SessionCard component (universal client/coach)
+  - ClientDashboard session widget
+  - ClientSessions page (upcoming/past tabs)
+  - Database: coachpro_sessions table + trigger + indexes
+- ✅ **Security Fixes (3 issues)**
+  - Security Definer → Invoker (client_next_sessions view)
+  - RLS enabled for email_verification_tokens
+  - RLS enabled for password_reset_tokens
+- ✅ **Bug Fixes (5 issues)**
+  - Photo state sync (useEffect fix)
+  - 406 error (.single() → array response)
+  - Embedded resources (separate queries)
+  - Migration constraints (DO blocks)
+  - Token table policies (user_id vs email)
+- ✅ **Documentation**
+  - summary12.md (334 lines)
+  - claude.md updated (495 lines)
+  - MASTER_TODO_V4.md updated
+  - MASTER_TODO_priority.md updated
+
+**Session**: Authentication Refactoring & Bug Fixes (#11) 🔐
+**Status**: ✅ COMPLETED
 
 **Předchozí session (#10, 8.11.2025)**:
 - ✅ Koučovací Karty System

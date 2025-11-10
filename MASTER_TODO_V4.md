@@ -1,11 +1,46 @@
 # MASTER TODO V4 - CoachPro
 
 **Poslední update:** 9. listopadu 2025
-**Status:** Session #11 dokončena ✅
+**Status:** Session #12 dokončena ✅
 
 ---
 
-## 🔥 HOTFIX (Aktuální session #11 - COMPLETED ✅)
+## 🎉 SESSION #12 COMPLETED (9.11.2025) ✅
+
+- [x] **Photo Upload System (Modular)**
+  - WebP compression (imageCompression.js)
+  - Supabase Storage (photoStorage.js)
+  - Reusable PhotoUpload component
+  - Storage bucket + RLS policies
+
+- [x] **Extended Client Profile**
+  - Photo upload in header
+  - 7 new fields (timezone, preferred_contact, client_notes, coach_id, etc.)
+  - Coach info display
+  - Vocative case fix
+
+- [x] **Session Management (Fully Modular)**
+  - sessions.js utils (402 lines, CRUD + formatters)
+  - SessionCard component (universal client/coach)
+  - ClientDashboard widget (next session)
+  - ClientSessions page (upcoming/past tabs)
+  - Database table + trigger + indexes
+
+- [x] **Security Fixes (3 issues)**
+  - Security Definer → Invoker (client_next_sessions view)
+  - RLS enabled for email_verification_tokens
+  - RLS enabled for password_reset_tokens
+
+- [x] **Bug Fixes (5 issues)**
+  - Photo state sync (useEffect fix)
+  - 406 error (.single() → array response)
+  - Embedded resources (separate queries)
+  - Migration constraints (DO blocks)
+  - Token table policies (user_id vs email)
+
+---
+
+## 🔥 HOTFIX (Session #11 - COMPLETED ✅)
 
 - [x] **CRITICAL: Auth bugy po migraci karet**
   - Admin status reset `true` → `false` při refreshi
@@ -15,7 +50,7 @@
   - **FIX**: Preserve DB values, never override
   - **FIX**: Race condition (2 useEffects → 1)
 
-- [x] **REFACTORING: Duplicitní auth kód** 
+- [x] **REFACTORING: Duplicitní auth kód**
   - 462 řádků duplicity (TesterAuth + ClientAuth)
   - **FIX**: GenericAuthContext (factory pattern)
   - **FIX**: GenericAuthGuard (base component)
@@ -30,7 +65,27 @@
 
 ## 📋 TODO LISTS (Prioritizované)
 
-### Sprint 2a: Klientské Rozhraní (HIGH) 🎯
+### Sprint 12a: Coach Session Management (HIGH) 🎯
+- [ ] 12a.1: Coach session creation UI (`/coach/sessions/new`)
+  - Form pro vytvoření sezení
+  - Výběr klientky ze seznamu
+  - Datum/čas picker (date-fns)
+  - Trvání, lokace, notes
+- [ ] 12a.2: Coach session list (`/coach/sessions`)
+  - Upcoming/Past tabs
+  - SessionCard s viewMode="coach"
+  - Bulk operations (cancel multiple)
+- [ ] 12a.3: Assign client to coach
+  - UI pro přiřazení klientky ke koučce
+  - Update client profile coach_id
+- [ ] 12a.4: Session notifications
+  - Email notifikace (24h, 1h před sezením)
+  - In-app notifications
+- [ ] 12a.5: Calendar integration
+  - .ics export
+  - Google Calendar sync (optional)
+
+### Sprint 2a: Klientské Rozhraní (MEDIUM) 🎯
 - [ ] 2a.1: Materials page (`/client/materials`) - zobrazení sdílených materiálů
 - [ ] 2a.2: Coach profil v materials (Lenka R., phone, email)
 - [ ] 2a.3: Help page (`/client/help`) - kontakt na Lenku
@@ -57,6 +112,16 @@
 ---
 
 ## ✅ HOTOVO (Recent)
+
+### Session #12 (9.11.2025) - Session Management & Photo Upload ✅
+- ✅ Modular photo upload (imageCompression.js, photoStorage.js, PhotoUpload.jsx)
+- ✅ Extended client profile (7 new fields, coach assignment)
+- ✅ Full session management system (sessions.js utils, SessionCard component)
+- ✅ Client dashboard session widget + ClientSessions page
+- ✅ Database: coachpro_sessions table + trigger + indexes
+- ✅ Fixed 3 Security Advisor errors (RLS policies, security invoker)
+- ✅ Fixed 5 bugs (photo sync, 406 error, migration constraints)
+- ✅ Documentation (summary12.md, claude.md updated)
 
 ### Session #11 (9.11.2025) - Auth Refactoring ✅
 - ✅ Fixed critical auth bugs (admin reset, tester ID reset)
@@ -94,6 +159,39 @@
 - ⚠️ MaterialCard.jsx NEpoužívá BaseCard (Sprint 18c)
 - ⏳ Button modularity (Sprint 18b - 6-8 hours)
 - ⏳ Large chunks in build (heic2any = 1.3MB, pdf = 439KB)
+
+---
+
+## 📁 FILES CHANGED (Session #12)
+
+**Created (9 files)**:
+- `src/shared/utils/imageCompression.js` - WebP compression utilities
+- `src/shared/utils/photoStorage.js` - Supabase Storage operations
+- `src/shared/utils/sessions.js` - Session CRUD & formatting (402 lines)
+- `src/shared/components/PhotoUpload.jsx` - Reusable photo upload
+- `src/shared/components/SessionCard.jsx` - Universal session card
+- `src/modules/coach/pages/ClientSessions.jsx` - Sessions history page
+- `supabase/migrations/20251109_01_extend_client_profiles_and_add_sessions.sql`
+- `supabase/migrations/20251109_02_fix_sessions_rls.sql`
+- `supabase/migrations/20251109_03_security_fixes.sql`
+
+**Modified (6 files)**:
+- `src/modules/coach/pages/ClientProfile.jsx` - Photo upload, new fields
+- `src/modules/coach/pages/ClientDashboard.jsx` - Next session widget
+- `src/modules/coach/pages/ClientWelcome.jsx` - Avatar with photo
+- `src/modules/coach/pages/ClientView.jsx` - Route /client/sessions
+- `src/shared/components/RoleSelector.jsx` - Vocative case fix
+- `claude.md` - Updated with new patterns (495 lines)
+
+**Statistics**:
+- Added ~2700 lines of code
+- Fixed 5 bugs
+- Resolved 3 security issues
+- 0 Security Advisor errors ✅
+
+---
+
+**Pro detaily**: Viz `summary12.md` (334 lines)
 
 ---
 
