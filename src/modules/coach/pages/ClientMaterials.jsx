@@ -64,8 +64,8 @@ const ClientMaterials = () => {
         const firstMaterial = sharedMaterials[0];
         setCoachInfo({
           name: firstMaterial.coachName || 'Lenka Roubalová',
-          phone: '+420 123 456 789',
-          email: 'lenka@online-byznys.cz',
+          phone: '+420 1733 612 540',
+          email: 'lenna@online-byznys.cz',
           website: 'Online Byznys - koučování',
         });
       }

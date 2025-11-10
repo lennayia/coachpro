@@ -285,7 +285,7 @@ const ClientProfile = () => {
                   Váš profil
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                  Upravte své osobní údaje
+                  Upravte svoje osobní údaje
                 </Typography>
               </Box>
             </motion.div>

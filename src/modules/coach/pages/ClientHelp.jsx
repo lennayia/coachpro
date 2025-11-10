@@ -44,7 +44,7 @@ const ClientHelp = () => {
       answer: 'Vaše koučka s vámi sdílí nové materiály podle vašeho individuálního koučovacího plánu. Pokud máte dotazy ohledně frekvence nebo obsahu materiálů, kontaktujte ji přímo.',
     },
     {
-      question: 'Je má data v bezpečí?',
+      question: 'Jsou moje data v bezpečí?',
       answer: 'Ano, všechna vaše data jsou chráněna pomocí moderních bezpečnostních standardů. Používáme šifrování SSL/TLS a databázové zabezpečení na úrovni řádků (RLS) pro ochranu vašich osobních informací.',
     },
   ];
@@ -90,7 +90,7 @@ const ClientHelp = () => {
             </IconButton>
             <Box>
               <Typography variant="h3" fontWeight={700}>
-                Nápověda a Kontakt
+                Nápověda a kontakt
               </Typography>
               <Typography variant="body1" color="text.secondary">
                 Jak vám můžeme pomoci?
@@ -120,7 +120,7 @@ const ClientHelp = () => {
             >
               <CardContent sx={{ p: 4 }}>
                 <Typography variant="h5" fontWeight={600} gutterBottom>
-                  Kontaktujte svou koučku
+                  Kontaktujte svoji koučku
                 </Typography>
                 <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
                   Máte-li jakékoli dotazy nebo potřebujete pomoc, neváhejte se obrátit přímo na Lenku.
@@ -183,7 +183,7 @@ const ClientHelp = () => {
                           Telefon
                         </Typography>
                         <Typography variant="body1" fontWeight={500}>
-                          +420 123 456 789
+                          +420 733 612 540
                         </Typography>
                       </Box>
                     </Box>
@@ -210,7 +210,7 @@ const ClientHelp = () => {
                           Email
                         </Typography>
                         <Typography variant="body1" fontWeight={500}>
-                          lenka@online-byznys.cz
+                          lenna@online-byznys.cz
                         </Typography>
                       </Box>
                     </Box>

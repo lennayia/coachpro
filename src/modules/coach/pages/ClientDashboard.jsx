@@ -1,4 +1,5 @@
-import { Box, Typography, Grid, Card, CardContent } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { Box, Typography, Grid, Card, CardContent, CircularProgress, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { User as UserIcon, HelpCircle, Calendar, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -8,11 +9,34 @@ import { useTheme } from '@mui/material';
 import { useClientAuth } from '@shared/context/ClientAuthContext';
 import ClientAuthGuard from '@shared/components/ClientAuthGuard';
 import { getVocative } from '@shared/utils/czechGrammar';
+import SessionCard from '@shared/components/SessionCard';
+import { getNextSession } from '@shared/utils/sessions';
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { profile } = useClientAuth();
+  const [nextSession, setNextSession] = useState(null);
+  const [loadingSession, setLoadingSession] = useState(true);
+
+  // Load next session
+  useEffect(() => {
+    const loadNextSession = async () => {
+      if (!profile?.id) return;
+
+      setLoadingSession(true);
+      try {
+        const session = await getNextSession(profile.id);
+        setNextSession(session);
+      } catch (err) {
+        console.error('Error loading next session:', err);
+      } finally {
+        setLoadingSession(false);
+      }
+    };
+
+    loadNextSession();
+  }, [profile?.id]);
 
   return (
     <ClientAuthGuard requireProfile={true}>
@@ -42,9 +66,46 @@ const ClientDashboard = () => {
             Vítejte, {getVocative(profile?.displayName || '')}!
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Vaše osobní koučovací zóna
+            Tohle je Vaše osobní koučovací zóna
           </Typography>
         </Box>
+
+        {/* Next Session Widget */}
+        {loadingSession ? (
+          <Box display="flex" justifyContent="center" py={4} mb={4}>
+            <CircularProgress />
+          </Box>
+        ) : nextSession ? (
+          <motion.div
+            variants={fadeInUp}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.1 }}
+          >
+            <Box mb={4}>
+              <Typography variant="h5" fontWeight={600} mb={2}>
+                Příští sezení
+              </Typography>
+              <SessionCard
+                session={nextSession}
+                viewMode="client"
+                onClick={() => navigate('/client/sessions')}
+                showCountdown={true}
+              />
+            </Box>
+          </motion.div>
+        ) : (
+          <motion.div
+            variants={fadeInUp}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.1 }}
+          >
+            <Alert severity="info" sx={{ mb: 4, borderRadius: BORDER_RADIUS.compact }}>
+              Nemáte naplánované žádné sezení. Vaše koučka vám brzy naplánuje první schůzku.
+            </Alert>
+          </motion.div>
+        )}
 
         {/* Dashboard Cards */}
         <Grid container spacing={3}>
@@ -98,7 +159,7 @@ const ClientDashboard = () => {
                     Můj profil
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Upravte své osobní údaje a nastavení
+                    Upravte svoje osobní údaje a nastavení
                   </Typography>
                 </CardContent>
               </Card>

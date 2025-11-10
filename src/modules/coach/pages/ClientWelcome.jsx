@@ -234,7 +234,7 @@ const ClientWelcome = () => {
                   Těšíme se, že tu jste.
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Připraveni pokračovat ve své cestě k osobnímu růstu?
+                  A že jste připravená pokračovat ve své cestě k osobnímu růstu.
                 </Typography>
               </Box>
             </motion.div>
