@@ -45,7 +45,6 @@ const PhotoUpload = ({
 
   // Sync preview with photoUrl prop changes
   useEffect(() => {
-    console.log('[PhotoUpload] photoUrl prop changed to:', photoUrl);
     setPreview(photoUrl);
   }, [photoUrl]);
 
@@ -53,23 +52,18 @@ const PhotoUpload = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    console.log('[PhotoUpload] File selected:', file.name, file.size, 'bytes');
-    console.log('[PhotoUpload] userId:', userId, 'bucket:', bucket);
-
     // Validate file
     const validation = validateImageFile(file, {
       maxSizeBytes: maxSizeMB * 1024 * 1024,
     });
 
     if (!validation.valid) {
-      console.error('[PhotoUpload] Validation failed:', validation.error);
       showError('Neplatný soubor', validation.error);
       return;
     }
 
     try {
       setUploading(true);
-      console.log('[PhotoUpload] Starting compression...');
 
       // Compress to WebP
       const compressedBlob = await compressToWebP(file, {
@@ -80,7 +74,6 @@ const PhotoUpload = ({
 
       // Get compression stats
       const stats = getCompressionStats(file.size, compressedBlob.size);
-      console.log(`[PhotoUpload] Photo compressed: ${stats.originalKB} KB → ${stats.compressedKB} KB (saved ${stats.savedPercent}%)`);
 
       // Create File from Blob
       const compressedFile = new File(
@@ -89,20 +82,14 @@ const PhotoUpload = ({
         { type: 'image/webp' }
       );
 
-      console.log('[PhotoUpload] Uploading to Supabase Storage...');
-
       // Upload to Supabase Storage
       const { url } = await uploadPhoto(compressedFile, {
         bucket,
         userId,
       });
 
-      console.log('[PhotoUpload] Upload successful! URL:', url);
-
       setPreview(url);
       onPhotoChange(url);
-
-      console.log('[PhotoUpload] onPhotoChange called with:', url);
 
       showSuccess(
         'Fotka nahrána',
@@ -110,7 +97,7 @@ const PhotoUpload = ({
       );
 
     } catch (err) {
-      console.error('[PhotoUpload] Upload error:', err);
+      console.error('PhotoUpload error:', err);
       showError('Chyba nahrávání', err.message || 'Nepodařilo se nahrát fotku');
     } finally {
       setUploading(false);
@@ -135,7 +122,7 @@ const PhotoUpload = ({
       showSuccess('Fotka smazána', 'Fotka byla úspěšně odstraněna');
 
     } catch (err) {
-      console.error('Photo delete error:', err);
+      console.error('PhotoUpload delete error:', err);
       showError('Chyba mazání', err.message || 'Nepodařilo se smazat fotku');
     } finally {
       setUploading(false);

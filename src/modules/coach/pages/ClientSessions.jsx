@@ -43,8 +43,6 @@ const ClientSessions = () => {
 
         setUpcomingSessions(upcoming);
         setPastSessions(past);
-      } catch (err) {
-        console.error('Error loading sessions:', err);
       } finally {
         setLoading(false);
       }

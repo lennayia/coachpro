@@ -28,8 +28,6 @@ const ClientDashboard = () => {
       try {
         const session = await getNextSession(profile.id);
         setNextSession(session);
-      } catch (err) {
-        console.error('Error loading next session:', err);
       } finally {
         setLoadingSession(false);
       }

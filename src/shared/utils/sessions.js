@@ -32,10 +32,7 @@ export const getNextSession = async (clientId) => {
       .order('session_date', { ascending: true })
       .limit(1);
 
-    if (error) {
-      console.error('Error fetching next session:', error);
-      throw error;
-    }
+    if (error) throw error;
 
     // No sessions found
     if (!data || data.length === 0) {
@@ -59,7 +56,7 @@ export const getNextSession = async (clientId) => {
 
     return session;
   } catch (err) {
-    console.error('Error fetching next session:', err);
+    console.error('sessions.getNextSession error:', err);
     return null;
   }
 };
@@ -130,7 +127,7 @@ export const getClientSessions = async (clientId, options = {}) => {
 
     return data;
   } catch (err) {
-    console.error('Error fetching client sessions:', err);
+    console.error('sessions.getClientSessions error:', err);
     return [];
   }
 };
@@ -198,7 +195,7 @@ export const getCoachSessions = async (coachId, options = {}) => {
 
     return data;
   } catch (err) {
-    console.error('Error fetching coach sessions:', err);
+    console.error('sessions.getCoachSessions error:', err);
     return [];
   }
 };
@@ -216,7 +213,7 @@ export const getTimeUntilSession = (sessionDate) => {
       locale: cs,
     });
   } catch (err) {
-    console.error('Error calculating time until session:', err);
+    console.error('sessions.getTimeUntilSession error:', err);
     return '';
   }
 };
@@ -232,7 +229,7 @@ export const formatSessionDate = (sessionDate, formatStr = 'PPPp') => {
   try {
     return format(new Date(sessionDate), formatStr, { locale: cs });
   } catch (err) {
-    console.error('Error formatting session date:', err);
+    console.error('sessions.formatSessionDate error:', err);
     return '';
   }
 };
@@ -328,7 +325,7 @@ export const createSession = async (sessionData) => {
 
     return data;
   } catch (err) {
-    console.error('Error creating session:', err);
+    console.error('sessions.createSession error:', err);
     throw err;
   }
 };
@@ -356,7 +353,7 @@ export const updateSession = async (sessionId, updates) => {
 
     return data;
   } catch (err) {
-    console.error('Error updating session:', err);
+    console.error('sessions.updateSession error:', err);
     throw err;
   }
 };
