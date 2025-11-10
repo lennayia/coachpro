@@ -28,7 +28,7 @@ import { getBetaBadgeInfo } from '../constants/betaInfo';
 import FloatingMenu from './FloatingMenu';
 import NavigationFloatingMenu from './NavigationFloatingMenu';
 
-const Header = ({ onFloatingMenuToggle }) => {
+const Header = ({ onFloatingMenuToggle, userType = 'coach', logoutHandler = null }) => {
   const { mode, toggleTheme } = useThemeMode();
   const currentUser = getCurrentUser();
   const headerStyles = useHeader();
@@ -147,12 +147,15 @@ const Header = ({ onFloatingMenuToggle }) => {
         <NavigationFloatingMenu
           isOpen={navigationMenuOpen}
           onToggle={handleNavigationToggle}
+          userType={userType}
         />
 
         {/* Floating Menu (Right) */}
         <FloatingMenu
           isOpen={settingsMenuOpen}
           onToggle={handleSettingsToggle}
+          userType={userType}
+          logoutHandler={logoutHandler}
         />
       </Toolbar>
 

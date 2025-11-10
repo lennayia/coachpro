@@ -1,14 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, Grid, Card, CardContent, Button, Stack, Chip, IconButton, useTheme } from '@mui/material';
 import { motion } from 'framer-motion';
-import {
-  People as PeopleIcon,
-  LibraryBooks as MaterialsIcon,
-  Assignment as ProgramsIcon,
-  Add as AddIcon,
-  TrendingUp as TrendingUpIcon,
-} from '@mui/icons-material';
-import { HelpCircle } from 'lucide-react';
+import { Add as AddIcon, TrendingUp as TrendingUpIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, getMaterials, getPrograms, getClientsByCoachId } from '../../utils/storage';
 import { formatDate, formatRelativeTime } from '@shared/utils/helpers';
@@ -21,6 +14,7 @@ import HelpDialog from '@shared/components/HelpDialog';
 import QuickTooltip from '@shared/components/AppTooltip';
 import { getBetaConfig } from '@shared/constants/betaInfo';
 import { useTesterAuth } from '@shared/context/TesterAuthContext';
+import { STATS_ICONS, SETTINGS_ICONS } from '@shared/constants/icons';
 
 const DashboardOverview = () => {
   const navigate = useNavigate();
@@ -82,13 +76,19 @@ const DashboardOverview = () => {
            completedDate.getFullYear() === now.getFullYear();
   }).length;
 
+  // Destructure icons from centralized config
+  const ClientsIcon = STATS_ICONS.clients;
+  const MaterialsIcon = STATS_ICONS.materials;
+  const ProgramsIcon = STATS_ICONS.programs;
+  const HelpIcon = SETTINGS_ICONS.help;
+
   // Stats karty
   const stats = [
     {
       id: 'clients',
       label: 'Aktivní klientky',
       value: activeClients,
-      icon: <PeopleIcon sx={{ fontSize: 40 }} />,
+      icon: <ClientsIcon size={40} />,
       color: '#556B2F',
       bgColor: 'rgba(85, 107, 47, 0.1)',
     },
@@ -104,7 +104,7 @@ const DashboardOverview = () => {
       id: 'materials',
       label: 'Celkem materiálů',
       value: materials.length,
-      icon: <MaterialsIcon sx={{ fontSize: 40 }} />,
+      icon: <MaterialsIcon size={40} />,
       color: '#8FBC8F',
       bgColor: 'rgba(143, 188, 143, 0.1)',
     },
@@ -112,7 +112,7 @@ const DashboardOverview = () => {
       id: 'programs',
       label: 'Celkem programů',
       value: programs.length,
-      icon: <ProgramsIcon sx={{ fontSize: 40 }} />,
+      icon: <ProgramsIcon size={40} />,
       color: '#6B8E23',
       bgColor: 'rgba(107, 142, 35, 0.1)',
     },
@@ -186,7 +186,7 @@ const DashboardOverview = () => {
                 },
               }}
             >
-              <HelpCircle size={24} />
+              <HelpIcon size={24} />
             </IconButton>
           </QuickTooltip>
         </Box>

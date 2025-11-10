@@ -1,8 +1,8 @@
 # Claude Code - CoachPro Project Instructions
 
-**Last Updated:** 2025-11-09 (Session 12)
+**Last Updated:** 2025-11-10 (Session 13)
 **Project:** CoachPro - Online Coaching Platform
-**Tech Stack:** React 18 + Vite, Material-UI v6, Supabase, date-fns
+**Tech Stack:** React 18 + Vite, Material-UI v6, Supabase, date-fns, Lucide React (icons)
 
 ---
 
@@ -145,6 +145,89 @@ getCompressionStats(originalSize, compressedSize)
 getVocative(name)          // "Lenka" → "Enko"
 getFirstName(fullName)     // "Lenka Roubalová" → "Lenka"
 ```
+
+### 5. `src/shared/constants/icons.js` (88 řádků) - **NEW Session #13**
+**Centralizovaný systém ikon - Single Source of Truth**
+
+```javascript
+// NAVIGATION_ICONS - Pro NavigationFloatingMenu
+export const NAVIGATION_ICONS = {
+  dashboard: Home,
+  sessions: Calendar,
+  materials: Library,      // Knihovna materiálů
+  programs: Folder,        // Programy
+  cards: Layers,           // Koučovací karty
+  clients: Users,
+  testers: UserCheck,
+};
+
+// SETTINGS_ICONS - Pro FloatingMenu
+export const SETTINGS_ICONS = {
+  profile: User,
+  lightMode: Sun,
+  darkMode: Moon,
+  betaInfo: Info,
+  help: HelpCircle,
+  logout: LogOut,
+  settings: Settings,
+  close: X,
+};
+
+// DASHBOARD_ICONS - Pro dashboard komponenty
+export const DASHBOARD_ICONS = {
+  sessions: Calendar,
+  materials: Library,
+  programs: Folder,
+  cards: Layers,
+  clients: Users,
+  profile: User,
+};
+
+// STATS_ICONS - Pro stats/overview cards
+export const STATS_ICONS = {
+  sessions: Calendar,
+  materials: Library,
+  programs: Folder,
+  cards: Layers,
+  clients: Users,
+};
+
+// Helper function
+export const getFeatureIcon = (feature) => {
+  return DASHBOARD_ICONS[feature] || Home;
+};
+```
+
+**Použití:**
+```javascript
+// Import category
+import { NAVIGATION_ICONS, STATS_ICONS } from '@shared/constants/icons';
+
+// Destructure (optional, for readability)
+const MaterialsIcon = STATS_ICONS.materials;
+const CardsIcon = DASHBOARD_ICONS.cards;
+
+// Render
+<MaterialsIcon size={40} />
+<NAVIGATION_ICONS.dashboard size={20} />
+```
+
+**Benefits:**
+- ✅ **Single source of truth** - změna na 1 místě
+- ✅ **Consistency** - nemožné použít špatnou ikonu
+- ✅ **IntelliSense** - autocomplete pro dostupné ikony
+- ✅ **Maintainability** - 1 soubor místo 5+ souborů
+- ✅ **Scalability** - snadné přidání nových ikon
+- ✅ **Bundle optimization** - lepší tree-shaking
+
+**Ikony použity:**
+- **Library** (Knihovna) - Pro materiály (was FileText)
+- **Folder** - Pro programy
+- **Layers** (Vrstvy) - Pro koučovací karty
+- **Calendar** - Pro sezení
+- **Users** - Pro klientky
+- **Home** - Pro dashboard
+- **User** - Pro profil
 
 ---
 

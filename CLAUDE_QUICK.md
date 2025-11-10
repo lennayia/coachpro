@@ -2,14 +2,93 @@
 
 > **Účel**: Rychlý přehled nejdůležitějších pravidel. Pro detaily viz CLAUDE.md
 
-**Poslední update**: 9. listopadu 2025 - Session #12
+**Poslední update**: 10. listopadu 2025 - Session #13
 **Pro full dokumentaci**: Čti CLAUDE.md (ale JEN když potřebuješ detaily!)
 
 ---
 
 ## 🚨 KRITICKÁ PRAVIDLA - VŽDY DODRŽUJ
 
-### 1. 📸 SESSION MANAGEMENT - sessions.js Utils (Session #12)
+### 1. 🎨 MODULAR ICON SYSTEM - icons.js (Session #13)
+
+**⚠️ NOVÉ PRAVIDLO (10.11.2025)** - **CENTRALIZED ICONS**
+
+**PRAVIDLO - VŽDY používej icons.js, NIKDY direct imports:**
+
+```javascript
+// ❌ NIKDY direct imports v pages/components
+import { Library, Folder, Layers, Calendar } from 'lucide-react';
+
+// ✅ VŽDY centrální konfigurace
+import { NAVIGATION_ICONS, STATS_ICONS, DASHBOARD_ICONS, SETTINGS_ICONS } from '@shared/constants/icons';
+
+// Destructure for readability
+const MaterialsIcon = NAVIGATION_ICONS.materials;  // Library
+const ProgramsIcon = NAVIGATION_ICONS.programs;    // Folder
+const CardsIcon = NAVIGATION_ICONS.cards;          // Layers
+
+// Render
+<MaterialsIcon size={40} />
+<NAVIGATION_ICONS.dashboard size={20} />
+```
+
+**Kategorie ikon:**
+```javascript
+// NAVIGATION_ICONS - NavigationFloatingMenu
+{
+  dashboard: Home,
+  sessions: Calendar,
+  materials: Library,      // Knihovna materiálů
+  programs: Folder,        // Programy
+  cards: Layers,           // Koučovací karty
+  clients: Users,
+  testers: UserCheck,
+}
+
+// SETTINGS_ICONS - FloatingMenu
+{
+  profile: User,
+  lightMode: Sun,
+  darkMode: Moon,
+  betaInfo: Info,
+  help: HelpCircle,
+  logout: LogOut,
+  settings: Settings,
+  close: X,
+}
+
+// DASHBOARD_ICONS - Dashboard components
+{
+  sessions: Calendar,
+  materials: Library,
+  programs: Folder,
+  cards: Layers,
+  clients: Users,
+  profile: User,
+}
+
+// STATS_ICONS - Stats cards
+{
+  sessions: Calendar,
+  materials: Library,
+  programs: Folder,
+  cards: Layers,
+  clients: Users,
+}
+```
+
+**Benefits**:
+- ✅ Single source of truth - změna na 1 místě
+- ✅ 100% konzistence ikon napříč appem
+- ✅ IntelliSense autocomplete
+- ✅ Snadná údržba (1 soubor místo 5+)
+- ✅ Lepší tree-shaking
+
+**Icon Size:**
+- Lucide: `size={40}` prop (NOT MUI's `sx={{ fontSize: 40 }}`)
+- Color: `color` prop or `style={{ color: theme.palette.primary.main }}`
+
+### 2. 📸 SESSION MANAGEMENT - sessions.js Utils (Session #12)
 
 **⚠️ NOVÉ PRAVIDLO (9.11.2025)** - **MODULAR SESSION SYSTEM**
 
@@ -575,6 +654,7 @@ Redirect URLs (jen 2!):
 - `/src/styles/borderRadius.js` - Border-radius systém
 - `/src/shared/styles/modernEffects.js` - Glassmorphism funkce
 - `/src/shared/styles/responsive.js` - Responsive utilities (createTextEllipsis)
+- `/src/shared/constants/icons.js` - 🎨 Icon system (Session #13, 88 lines)
 - `/src/shared/components/cards/BaseCard.jsx` - ⚠️ FOUNDATION pro všechny karty (Program, Material, Client)
 - `/src/shared/components/FloatingMenu.jsx` - Settings menu
 - `/src/shared/components/NavigationFloatingMenu.jsx` - Navigace
@@ -582,6 +662,9 @@ Redirect URLs (jen 2!):
 - `/src/shared/context/ClientAuthContext.jsx` - ⭐ Client auth state (NEW 6.11.2025)
 - `/src/shared/components/ClientAuthGuard.jsx` - ⭐ Route protection (NEW 6.11.2025)
 - `/src/shared/utils/czechGrammar.js` - ⭐ Vocative case utility (NEW 6.11.2025)
+- `/src/shared/utils/sessions.js` - ⭐ Session management (Session #12, 402 lines)
+- `/src/shared/utils/photoStorage.js` - ⭐ Photo operations (Session #12)
+- `/src/shared/utils/imageCompression.js` - ⭐ WebP compression (Session #12)
 - `/src/modules/coach/utils/storage.js` - LocalStorage + Supabase
 - `/src/modules/coach/utils/supabaseStorage.js` - Supabase upload/delete
 - `/src/modules/coach/components/coach/MaterialCardSkeleton.jsx` - 8-row loading pattern
@@ -918,11 +1001,28 @@ useEffect(() => {
 
 ---
 
-## 📊 AKTUÁLNÍ STAV (9.11.2025)
+## 📊 AKTUÁLNÍ STAV (10.11.2025)
+
+**Session**: Modular Icon System & Code Cleanup (#13) 🎨
+**Status**: ✅ COMPLETED
+**Branch**: `fix/client-route-consolidation` (pokračování)
+
+**Dokončeno v této session (#13)** 🎨:
+- ✅ **Modular Icon System**
+  - icons.js - Centralized icon configuration (88 lines)
+  - 4 categories: NAVIGATION, SETTINGS, DASHBOARD, STATS
+  - Updated 5 components to use centralized icons
+  - Icon consistency: Library (materials), Folder (programs), Layers (cards)
+- ✅ **Code Cleanup**
+  - Removed console.error from ClientDashboard.jsx
+  - Fixed 3 icon bugs (wrong icons in cards and pages)
+  - Clean code, production-ready
+- ✅ **Documentation**
+  - summary13.md (complete session documentation)
+  - Updated CLAUDE.md, MASTER_TODO_V4.md, MASTER_TODO_priority.md, CLAUDE_QUICK.md, CONTEXT_QUICK.md
 
 **Session**: Session Management & Photo Upload (#12) 📸
 **Status**: ✅ COMPLETED
-**Branch**: `fix/client-route-consolidation` (pokračování)
 
 **Dokončeno v této session (#12)** 📸:
 - ✅ **Photo Upload System (Modular)**

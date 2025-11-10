@@ -1,16 +1,6 @@
 import { useState } from 'react';
 import { Box, IconButton, Dialog, DialogContent, DialogActions, Button, useTheme } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Settings,
-  User,
-  Sun,
-  Moon,
-  Info,
-  HelpCircle,
-  LogOut,
-  X,
-} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useThemeMode } from '../../App';
 import { getCurrentUser } from '../../modules/coach/utils/storage';
@@ -20,16 +10,19 @@ import HelpDialog from './HelpDialog';
 import { FULL_BETA_INFO } from '../constants/betaInfo';
 import { createBackdrop, createGlassDialog } from '../styles/modernEffects';
 import BORDER_RADIUS from '@styles/borderRadius';
+import { SETTINGS_ICONS } from '../constants/icons';
 
 /**
  * FloatingMenu - Plovoucí menu v pravém horním rohu
  *
  * Inspirováno PaymentsPro designem
  * Defaultně zavřené, otevírá se kliknutím na Settings ikonu
+ * Univerzální pro coach i client
  *
  * @created 4.11.2025
+ * @updated 10.11.2025 - Modulární s userType prop
  */
-const FloatingMenu = ({ isOpen = false, onToggle }) => {
+const FloatingMenu = ({ isOpen = false, onToggle, userType = 'coach', logoutHandler = null }) => {
   const navigate = useNavigate();
   const { mode, toggleTheme } = useThemeMode();
   const theme = useTheme();
@@ -46,7 +39,8 @@ const FloatingMenu = ({ isOpen = false, onToggle }) => {
 
   const handleProfile = () => {
     onToggle?.(false);
-    navigate('/coach/profile');
+    const profilePath = userType === 'client' ? '/client/profile' : '/coach/profile';
+    navigate(profilePath);
   };
 
   const handleThemeToggle = () => {
@@ -64,46 +58,77 @@ const FloatingMenu = ({ isOpen = false, onToggle }) => {
     setHelpDialogOpen(true);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     onToggle?.(false);
-    sessionStorage.removeItem('coachpro_currentUser');
-    localStorage.clear();
+
+    // Use custom logout handler if provided (for client with ClientAuthContext)
+    if (logoutHandler) {
+      await logoutHandler();
+    } else {
+      // Default coach logout
+      sessionStorage.removeItem('coachpro_currentUser');
+      localStorage.clear();
+    }
+
     navigate('/');
   };
 
   // Menu items configuration - Mix primary & secondary jako u hlavní FAB!
-  const menuItems = [
+  const baseMenuItems = [
     {
-      icon: User,
-      label: 'Profil',
+      icon: SETTINGS_ICONS.profile,
+      label: userType === 'client' ? 'Můj profil' : 'Profil',
       onClick: handleProfile,
       gradient: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
     },
     {
-      icon: mode === 'dark' ? Sun : Moon,
+      icon: mode === 'dark' ? SETTINGS_ICONS.lightMode : SETTINGS_ICONS.darkMode,
       label: mode === 'dark' ? 'Světlý režim' : 'Tmavý režim',
       onClick: handleThemeToggle,
       gradient: `linear-gradient(120deg, ${theme.palette.secondary.light} 0%, ${theme.palette.primary.dark} 100%)`,
     },
+  ];
+
+  // Coach-specific items
+  const coachItems = [
     {
-      icon: Info,
+      icon: SETTINGS_ICONS.betaInfo,
       label: 'Beta Info',
       onClick: handleBetaInfo,
       gradient: `linear-gradient(150deg, ${theme.palette.primary.light} 0%, ${theme.palette.secondary.dark} 100%)`,
     },
     {
-      icon: HelpCircle,
+      icon: SETTINGS_ICONS.help,
       label: 'Nápověda',
       onClick: handleHelp,
       gradient: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.primary.main} 100%)`,
     },
+  ];
+
+  // Client-specific items
+  const clientItems = [
     {
-      icon: LogOut,
-      label: 'Odhlásit se',
-      onClick: handleLogout,
-      gradient: `linear-gradient(120deg, ${theme.palette.primary.dark} 0%, ${theme.palette.secondary.light} 100%)`,
+      icon: SETTINGS_ICONS.help,
+      label: 'Nápověda',
+      onClick: () => {
+        onToggle?.(false);
+        navigate('/client/help');
+      },
+      gradient: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.primary.main} 100%)`,
     },
   ];
+
+  const logoutItem = {
+    icon: SETTINGS_ICONS.logout,
+    label: 'Odhlásit se',
+    onClick: handleLogout,
+    gradient: `linear-gradient(120deg, ${theme.palette.primary.dark} 0%, ${theme.palette.secondary.light} 100%)`,
+  };
+
+  // Build menu items based on userType
+  const menuItems = userType === 'coach'
+    ? [...baseMenuItems, ...coachItems, logoutItem]
+    : [...baseMenuItems, ...clientItems, logoutItem];
 
   return (
     <>
@@ -247,7 +272,7 @@ const FloatingMenu = ({ isOpen = false, onToggle }) => {
               animate={{ rotate: isOpen ? 90 : 0 }}
               transition={{ duration: 0.3 }}
             >
-              {isOpen ? <X size={20} /> : <Settings size={20} />}
+              {isOpen ? <SETTINGS_ICONS.close size={20} /> : <SETTINGS_ICONS.settings size={20} />}
             </motion.div>
           </IconButton>
         </QuickTooltip>

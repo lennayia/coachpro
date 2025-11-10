@@ -1,6 +1,6 @@
 # CONTEXT QUICK - Architecture Overview
 
-**Last Updated:** 9. listopadu 2025 (Session #12)
+**Last Updated:** 10. listopadu 2025 (Session #13)
 **Purpose:** Quick architecture reference for Claude Code
 
 ---
@@ -37,6 +37,8 @@ coachpro/
 │   │   │   ├── cards/         # BaseCard, SessionCard
 │   │   │   ├── FloatingMenu.jsx
 │   │   │   └── PhotoUpload.jsx
+│   │   ├── constants/          # Centralized configuration
+│   │   │   └── icons.js       # Icon system (Session #13)
 │   │   ├── context/            # React Context providers
 │   │   │   ├── GenericAuthContext.jsx (factory)
 │   │   │   ├── ClientAuthContext.jsx
@@ -44,10 +46,10 @@ coachpro/
 │   │   ├── hooks/              # Custom hooks
 │   │   ├── styles/             # Theme, animations, effects
 │   │   └── utils/              # ⭐ CRITICAL REUSABLE LOGIC
-│   │       ├── sessions.js     # Session CRUD + formatters (402 lines)
-│   │       ├── photoStorage.js # Supabase Storage ops
-│   │       ├── imageCompression.js # WebP compression
-│   │       └── czechGrammar.js # Vocative case
+│   │       ├── sessions.js     # Session CRUD + formatters (402 lines, #12)
+│   │       ├── photoStorage.js # Supabase Storage ops (#12)
+│   │       ├── imageCompression.js # WebP compression (#12)
+│   │       └── czechGrammar.js # Vocative case (#12)
 │   └── App.jsx
 ├── supabase/
 │   └── migrations/             # SQL migrations (timestamped)
@@ -212,6 +214,58 @@ export function createAuthContext({
 - Guards are READ-ONLY (never modify database!)
 - Contexts can WRITE (sync with DB)
 - Single useEffect (no race conditions)
+
+---
+
+## 🔑 KEY CONFIGURATION (Session #13)
+
+### `icons.js` (88 lines) - Modular Icon System
+**Purpose:** Centralized icon configuration - Single Source of Truth
+
+**Key Exports:**
+```javascript
+// 4 categories
+NAVIGATION_ICONS = {
+  dashboard: Home,
+  sessions: Calendar,
+  materials: Library,      // Knihovna
+  programs: Folder,        // Programy
+  cards: Layers,           // Koučovací karty
+  clients: Users,
+  testers: UserCheck,
+}
+
+SETTINGS_ICONS = {
+  profile: User,
+  lightMode: Sun,
+  darkMode: Moon,
+  betaInfo: Info,
+  help: HelpCircle,
+  logout: LogOut,
+  settings: Settings,
+  close: X,
+}
+
+DASHBOARD_ICONS = { ... }  // Same as NAVIGATION for consistency
+STATS_ICONS = { ... }       // Same as DASHBOARD
+
+getFeatureIcon(feature) // Helper function
+```
+
+**Usage Pattern:**
+```javascript
+import { NAVIGATION_ICONS, STATS_ICONS } from '@shared/constants/icons';
+
+const MaterialsIcon = NAVIGATION_ICONS.materials;
+<MaterialsIcon size={40} />
+```
+
+**Benefits:**
+- ✅ Single source of truth (změna na 1 místě)
+- ✅ 100% icon consistency
+- ✅ IntelliSense autocomplete
+- ✅ Easy maintenance (1 file vs 5+)
+- ✅ Better bundle tree-shaking
 
 ---
 
@@ -481,11 +535,18 @@ const coaches = await supabase.from('coaches').select('*').in('id', coachIds);
 
 ---
 
-## 📊 CURRENT STATUS (9.11.2025)
+## 📊 CURRENT STATUS (10.11.2025)
 
+**Session #13:** Modular Icon System & Code Cleanup ✅
 **Session #12:** Session Management & Photo Upload ✅
 **Session #11:** Auth Refactoring ✅
 **Session #10:** Koučovací Karty ✅
+
+**Completed in Session #13:**
+- Centralized icon system (icons.js, 88 lines)
+- Updated 5 components to use centralized icons
+- Icon consistency across app (Library, Folder, Layers)
+- Code cleanup (removed console logs, fixed 3 icon bugs)
 
 **Next Priority:**
 1. Coach Session Management UI (Sprint 12a)

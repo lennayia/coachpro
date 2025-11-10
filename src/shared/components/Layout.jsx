@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Header from './Header';
 import { PAGE_PADDING } from '../styles/responsive';
 
-const Layout = ({ children }) => {
+const Layout = ({ children, userType = 'coach', logoutHandler = null }) => {
   const [floatingMenuOpen, setFloatingMenuOpen] = useState(false);
 
   return (
@@ -41,7 +41,11 @@ const Layout = ({ children }) => {
         )}
       </AnimatePresence>
 
-      <Header onFloatingMenuToggle={setFloatingMenuOpen} />
+      <Header
+        onFloatingMenuToggle={setFloatingMenuOpen}
+        userType={userType}
+        logoutHandler={logoutHandler}
+      />
 
       {/* Main content */}
       <Box

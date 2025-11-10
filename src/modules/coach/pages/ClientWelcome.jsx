@@ -421,7 +421,7 @@ const ClientWelcome = () => {
                             : '0 8px 24px rgba(85, 107, 47, 0.15)',
                       },
                     }}
-                    onClick={() => navigate('/coaches')}
+                    onClick={() => navigate('/client/select-coach')}
                   >
                     <Box
                       sx={{

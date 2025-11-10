@@ -1,29 +1,22 @@
 import { useState } from 'react';
 import { Box, IconButton, useTheme } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Home,
-  LibraryBig,
-  Users,
-  FolderOpen,
-  Layers,
-  Menu,
-  X,
-  UserCheck,
-} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import QuickTooltip from './AppTooltip';
 import { getCurrentUser } from '../../modules/coach/utils/storage';
+import { NAVIGATION_ICONS, SETTINGS_ICONS } from '../constants/icons';
 
 /**
  * NavigationFloatingMenu - Plovoucí navigační menu v levém horním rohu
  *
  * Logo + hlavní navigace (Dashboard, Materiály, Programy, Klientky)
  * Inspirováno PaymentsPro designem
+ * Univerzální pro coach i client
  *
  * @created 4.11.2025
+ * @updated 10.11.2025 - Modulární s userType prop
  */
-const NavigationFloatingMenu = ({ isOpen = false, onToggle }) => {
+const NavigationFloatingMenu = ({ isOpen = false, onToggle, userType = 'coach' }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -40,52 +33,85 @@ const NavigationFloatingMenu = ({ isOpen = false, onToggle }) => {
     navigate(path);
   };
 
-  // Navigation items - Mix primary & secondary jako u hlavní FAB!
-  const baseMenuItems = [
+  // Coach navigation items
+  const coachMenuItems = [
     {
-      icon: Home,
+      icon: NAVIGATION_ICONS.dashboard,
       label: 'Dashboard',
       onClick: () => handleNavigate('/coach/dashboard'),
       gradient: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
     },
     {
-      icon: LibraryBig,
+      icon: NAVIGATION_ICONS.materials,
       label: 'Knihovna materiálů',
       onClick: () => handleNavigate('/coach/materials'),
       gradient: `linear-gradient(120deg, ${theme.palette.secondary.light} 0%, ${theme.palette.primary.dark} 100%)`,
     },
     {
-      icon: FolderOpen,
+      icon: NAVIGATION_ICONS.programs,
       label: 'Programy',
       onClick: () => handleNavigate('/coach/programs'),
       gradient: `linear-gradient(150deg, ${theme.palette.primary.light} 0%, ${theme.palette.secondary.dark} 100%)`,
     },
     {
-      icon: Layers,
+      icon: NAVIGATION_ICONS.cards,
       label: 'Koučovací karty',
       onClick: () => handleNavigate('/coach/cards'),
       gradient: `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.secondary.light} 100%)`,
     },
     {
-      icon: Users,
+      icon: NAVIGATION_ICONS.clients,
       label: 'Klientky',
       onClick: () => handleNavigate('/coach/clients'),
       gradient: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.primary.main} 100%)`,
     },
   ];
 
-  // Admin-only menu items
+  // Client navigation items
+  const clientMenuItems = [
+    {
+      icon: NAVIGATION_ICONS.dashboard,
+      label: 'Dashboard',
+      onClick: () => handleNavigate('/client/dashboard'),
+      gradient: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+    },
+    {
+      icon: NAVIGATION_ICONS.sessions,
+      label: 'Moje sezení',
+      onClick: () => handleNavigate('/client/sessions'),
+      gradient: `linear-gradient(120deg, ${theme.palette.secondary.light} 0%, ${theme.palette.primary.dark} 100%)`,
+    },
+    {
+      icon: NAVIGATION_ICONS.materials,
+      label: 'Materiály',
+      onClick: () => handleNavigate('/client/materials'),
+      gradient: `linear-gradient(150deg, ${theme.palette.primary.light} 0%, ${theme.palette.secondary.dark} 100%)`,
+    },
+    {
+      icon: NAVIGATION_ICONS.cards,
+      label: 'Koučovací karty',
+      onClick: () => handleNavigate('/client/cards'),
+      gradient: `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.secondary.light} 100%)`,
+    },
+  ];
+
+  // Admin-only menu items (coach only)
   const adminMenuItems = [
     {
-      icon: UserCheck,
+      icon: NAVIGATION_ICONS.testers,
       label: 'Správa testerů',
       onClick: () => handleNavigate('/coach/testers'),
       gradient: `linear-gradient(135deg, ${theme.palette.secondary.dark} 0%, ${theme.palette.primary.light} 100%)`,
     },
   ];
 
-  // Combine menu items based on admin status
-  const menuItems = isAdmin ? [...baseMenuItems, ...adminMenuItems] : baseMenuItems;
+  // Build menu items based on userType
+  let menuItems;
+  if (userType === 'client') {
+    menuItems = clientMenuItems;
+  } else {
+    menuItems = isAdmin ? [...coachMenuItems, ...adminMenuItems] : coachMenuItems;
+  }
 
   return (
     <>
@@ -231,7 +257,7 @@ const NavigationFloatingMenu = ({ isOpen = false, onToggle }) => {
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               {isOpen ? (
-                <X size={20} />
+                <SETTINGS_ICONS.close size={20} />
               ) : (
                 <img
                   src="/coachPro-menu.png"

@@ -145,12 +145,11 @@ const ClientCardDeckEntry = () => {
         {/* Logo */}
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <img
-            src="/logo.png"
+            src="/coachPro.png"
             alt="CoachPro"
             style={{
               height: 60,
               marginBottom: 16,
-              filter: theme.palette.mode === 'dark' ? 'brightness(0) invert(1)' : 'none',
             }}
           />
           <Typography

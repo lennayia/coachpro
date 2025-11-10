@@ -1,7 +1,27 @@
 # MASTER TODO V4 - CoachPro
 
-**Poslední update:** 9. listopadu 2025
-**Status:** Session #12 dokončena ✅
+**Poslední update:** 10. listopadu 2025
+**Status:** Session #13 dokončena ✅
+
+---
+
+## 🎉 SESSION #13 COMPLETED (10.11.2025) ✅
+
+- [x] **Modular Icon System (Centralized)**
+  - Created `/src/shared/constants/icons.js` (88 lines)
+  - 4 categories: NAVIGATION_ICONS, SETTINGS_ICONS, DASHBOARD_ICONS, STATS_ICONS
+  - Updated 5 components to use centralized icons
+  - Icon consistency: Library (materials), Folder (programs), Layers (cards)
+
+- [x] **Code Cleanup**
+  - Removed console.error from ClientDashboard.jsx
+  - Fixed wrong icon in "Koučovací karty" card (ProgramsIcon → CardsIcon)
+  - Fixed outdated icon in ClientMaterials (FileText → Library)
+
+- [x] **Documentation**
+  - summary13.md (complete session documentation)
+  - Updated CLAUDE.md (added icon system section)
+  - Updated all TODO files
 
 ---
 

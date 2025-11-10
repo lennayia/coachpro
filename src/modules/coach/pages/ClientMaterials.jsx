@@ -15,7 +15,8 @@ import {
   Tabs,
   Tab,
 } from '@mui/material';
-import { FileText, Heart, ArrowLeft, Phone, Mail, Globe } from 'lucide-react';
+import { Heart, ArrowLeft, Phone, Mail, Globe } from 'lucide-react';
+import { NAVIGATION_ICONS } from '@shared/constants/icons';
 import { motion } from 'framer-motion';
 import { fadeIn, fadeInUp } from '@shared/styles/animations';
 import BORDER_RADIUS from '@styles/borderRadius';
@@ -59,9 +60,21 @@ const ClientMaterials = () => {
       // V budoucnu můžeme filtrovat podle client_id pokud chceme
       const sharedMaterials = await getSharedMaterials();
 
+      // Deduplicate by material_id - keep only the latest share of each material
+      const uniqueMaterials = [];
+      const seenMaterialIds = new Set();
+
+      sharedMaterials.forEach((sharedMaterial) => {
+        const materialId = sharedMaterial.materialId || sharedMaterial.material?.id;
+        if (materialId && !seenMaterialIds.has(materialId)) {
+          seenMaterialIds.add(materialId);
+          uniqueMaterials.push(sharedMaterial);
+        }
+      });
+
       // Extrahuj informace o koučce z prvního materiálu
-      if (sharedMaterials.length > 0) {
-        const firstMaterial = sharedMaterials[0];
+      if (uniqueMaterials.length > 0) {
+        const firstMaterial = uniqueMaterials[0];
         setCoachInfo({
           name: firstMaterial.coachName || 'Lenka Roubalová',
           phone: '+420 1733 612 540',
@@ -70,8 +83,8 @@ const ClientMaterials = () => {
         });
       }
 
-      setMaterials(sharedMaterials);
-      setFilteredMaterials(sharedMaterials);
+      setMaterials(uniqueMaterials);
+      setFilteredMaterials(uniqueMaterials);
       setLoading(false);
     } catch (err) {
       console.error('Error loading materials:', err);
@@ -266,7 +279,7 @@ const ClientMaterials = () => {
           {/* Materials Grid */}
           {filteredMaterials.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 8 }}>
-              <FileText size={64} color={theme.palette.text.disabled} />
+              <NAVIGATION_ICONS.materials size={64} color={theme.palette.text.disabled} />
               <Typography variant="h6" color="text.secondary" sx={{ mt: 2 }}>
                 {filter === 'favorites'
                   ? 'Nemáte žádné oblíbené materiály'

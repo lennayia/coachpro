@@ -344,7 +344,7 @@ const ClientHelp = () => {
                   }}
                   onClick={() => {
                     // TODO: Link to privacy policy
-                    window.open('https://www.online-byznys.cz/privacy-policy', '_blank');
+                    window.open('https://www.online-byznys.cz/gdpr', '_blank');
                   }}
                 >
                   Zobrazit zásady ochrany osobních údajů

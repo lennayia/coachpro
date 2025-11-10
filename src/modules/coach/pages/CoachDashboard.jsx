@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from '@shared/components/Layout';
 import TesterAuthGuard from '@shared/components/TesterAuthGuard';
+import { useTesterAuth } from '@shared/context/TesterAuthContext';
 
 // Pages - budeme vytvářet postupně
 import DashboardOverview from '../components/coach/DashboardOverview';
@@ -12,9 +13,11 @@ import CoachingCardsPage from './CoachingCardsPage';
 import TesterManagement from '../components/coach/TesterManagement';
 
 const CoachDashboard = () => {
+  const { logout } = useTesterAuth();
+
   return (
     <TesterAuthGuard requireProfile={true}>
-      <Layout>
+      <Layout userType="coach" logoutHandler={logout}>
         <Routes>
           <Route path="/" element={<Navigate to="/coach/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardOverview />} />
