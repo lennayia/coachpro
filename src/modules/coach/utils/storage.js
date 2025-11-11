@@ -82,7 +82,9 @@ export const saveCoach = async (coach) => {
       name: coach.name,
       email: coach.email,
       phone: coach.phone || null,
-      is_admin: coach.isAdmin || false,
+      // SECURITY: Only update is_admin if explicitly provided
+      // This prevents accidentally removing admin rights
+      ...(coach.isAdmin !== undefined && { is_admin: coach.isAdmin }),
       is_tester: coach.isTester || false,
       tester_id: coach.testerId || null,
       access_code: coach.accessCode || null,
@@ -879,6 +881,98 @@ export const deleteSharedMaterial = async (id) => {
     const sharedMaterials = loadFromStorage(STORAGE_KEYS.SHARED_MATERIALS, []);
     const filtered = sharedMaterials.filter(sm => sm.id !== id);
     return saveToStorage(STORAGE_KEYS.SHARED_MATERIALS, filtered);
+  }
+};
+
+// =====================
+// SHARED PROGRAMS (Public sharing)
+// =====================
+
+const convertSharedProgramFromDB = (dbSharedProgram) => {
+  if (!dbSharedProgram) return null;
+  return {
+    id: dbSharedProgram.id,
+    programId: dbSharedProgram.program_id,
+    program: dbSharedProgram.program,
+    shareCode: dbSharedProgram.share_code,
+    qrCode: dbSharedProgram.qr_code,
+    coachId: dbSharedProgram.coach_id,
+    coachName: dbSharedProgram.coach_name,
+    createdAt: dbSharedProgram.created_at,
+    accessStartDate: dbSharedProgram.access_start_date,
+    accessEndDate: dbSharedProgram.access_end_date,
+  };
+};
+
+export const createSharedProgram = async (sharedProgramData) => {
+  try {
+    const { data, error } = await supabase
+      .from('coachpro_shared_programs')
+      .insert([{
+        program_id: sharedProgramData.programId,
+        coach_id: sharedProgramData.coachId,
+        coach_name: sharedProgramData.coachName,
+        share_code: sharedProgramData.shareCode,
+        qr_code: sharedProgramData.qrCode,
+        access_start_date: sharedProgramData.accessStartDate,
+        access_end_date: sharedProgramData.accessEndDate,
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return convertSharedProgramFromDB(data);
+  } catch (error) {
+    console.error('Error creating shared program in Supabase:', error);
+    throw error;
+  }
+};
+
+export const getSharedProgramByCode = async (shareCode) => {
+  try {
+    const { data, error } = await supabase
+      .from('coachpro_shared_programs')
+      .select('*')
+      .eq('share_code', shareCode.toUpperCase())
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return null;
+    return convertSharedProgramFromDB(data);
+  } catch (error) {
+    console.error('Error fetching shared program by code:', error);
+    return null;
+  }
+};
+
+export const getSharedProgramsByCoach = async (coachId) => {
+  try {
+    const { data, error } = await supabase
+      .from('coachpro_shared_programs')
+      .select('*')
+      .eq('coach_id', coachId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []).map(convertSharedProgramFromDB);
+  } catch (error) {
+    console.error('Error fetching shared programs by coach:', error);
+    return [];
+  }
+};
+
+export const deleteSharedProgram = async (id) => {
+  try {
+    const { error } = await supabase
+      .from('coachpro_shared_programs')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error deleting shared program:', error);
+    throw error;
   }
 };
 

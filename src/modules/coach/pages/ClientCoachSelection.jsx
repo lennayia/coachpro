@@ -13,6 +13,11 @@ import {
   CircularProgress,
   Alert,
   Container,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from '@mui/material';
 import { ArrowLeft, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -20,16 +25,21 @@ import { fadeIn, fadeInUp } from '@shared/styles/animations';
 import { useTheme } from '@mui/material';
 import ClientAuthGuard from '@shared/components/ClientAuthGuard';
 import CoachCard from '@shared/components/CoachCard';
-import { getActiveCoaches } from '@shared/utils/coaches';
+import { getActiveCoaches, updateClientCoach } from '@shared/utils/coaches';
 import { useNotification } from '@shared/context/NotificationContext';
+import { useClientAuth } from '@shared/context/ClientAuthContext';
 
 const ClientCoachSelection = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const { showError } = useNotification();
+  const { showError, showSuccess } = useNotification();
+  const { profile, refreshProfile } = useClientAuth();
 
   const [coaches, setCoaches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCoach, setSelectedCoach] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
     loadCoaches();
@@ -38,7 +48,7 @@ const ClientCoachSelection = () => {
   const loadCoaches = async () => {
     setLoading(true);
     try {
-      const data = await getActiveCoaches({ excludeTesters: true });
+      const data = await getActiveCoaches({ excludeTesters: false });
       setCoaches(data);
     } catch (error) {
       console.error('Error loading coaches:', error);
@@ -49,9 +59,44 @@ const ClientCoachSelection = () => {
   };
 
   const handleCoachSelect = (coach) => {
-    // For now, just show contact info
-    // In future, could navigate to coach profile or booking page
-    console.log('Selected coach:', coach);
+    setSelectedCoach(coach);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmAssignment = async () => {
+    if (!profile?.id || !selectedCoach?.id) return;
+
+    setAssigning(true);
+    try {
+      await updateClientCoach(profile.id, selectedCoach.id);
+
+      // Refresh profile to get updated coach_id
+      await refreshProfile();
+
+      showSuccess(
+        'Koučka přiřazena',
+        `Vaší koučkou je nyní ${selectedCoach.name}. Brzy vás bude kontaktovat.`
+      );
+
+      // Navigate to dashboard
+      setTimeout(() => {
+        navigate('/client/dashboard');
+      }, 1500);
+    } catch (error) {
+      console.error('Error assigning coach:', error);
+      showError(
+        'Chyba při přiřazení',
+        'Nepodařilo se přiřadit koučku. Zkuste to prosím znovu.'
+      );
+    } finally {
+      setAssigning(false);
+      setConfirmOpen(false);
+    }
+  };
+
+  const handleCancelAssignment = () => {
+    setConfirmOpen(false);
+    setSelectedCoach(null);
   };
 
   return (
@@ -188,6 +233,62 @@ const ClientCoachSelection = () => {
             )}
           </motion.div>
         </Container>
+
+        {/* Confirmation Dialog */}
+        <Dialog
+          open={confirmOpen}
+          onClose={handleCancelAssignment}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: '16px',
+              background: (theme) =>
+                theme.palette.mode === 'dark'
+                  ? 'rgba(26, 36, 16, 0.95)'
+                  : 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(10px)',
+            },
+          }}
+        >
+          <DialogTitle sx={{ fontWeight: 700, fontSize: '1.5rem' }}>
+            Potvrdit výběr koučky
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body1" color="text.secondary" paragraph>
+              Opravdu chcete jako svou koučku vybrat{' '}
+              <strong>{selectedCoach?.name}</strong>?
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Po potvrzení vás koučka bude moci kontaktovat a plánovat s vámi koučovací sezení.
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 3, pt: 0 }}>
+            <Button
+              onClick={handleCancelAssignment}
+              disabled={assigning}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                color: 'text.secondary',
+              }}
+            >
+              Zrušit
+            </Button>
+            <Button
+              onClick={handleConfirmAssignment}
+              variant="contained"
+              disabled={assigning}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                minWidth: 120,
+              }}
+            >
+              {assigning ? 'Přiřazuji...' : 'Potvrdit'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </ClientAuthGuard>
   );

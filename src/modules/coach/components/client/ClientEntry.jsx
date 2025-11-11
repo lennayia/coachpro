@@ -28,6 +28,8 @@ import {
   saveClient,
   setCurrentClient,
   getPrograms,
+  getSharedProgramByCode,
+  getProgramById,
 } from '../../utils/storage';
 import { generateUUID, isValidShareCode } from '../../utils/generateCode';
 import { formatDate } from '@shared/utils/helpers';
@@ -35,6 +37,7 @@ import { useNotification } from '@shared/context/NotificationContext';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
 import { useTheme } from '@mui/material';
 import { supabase } from '@shared/config/supabase';
+import { autoAssignCoachIfNeeded } from '@shared/utils/coaches';
 
 const ClientEntry = () => {
   const navigate = useNavigate();
@@ -103,12 +106,27 @@ const ClientEntry = () => {
 
       setLookupLoading(true);
       try {
+        // Try OLD system first (personalized codes in clients table) - this is production
         const program = await getProgramByCode(code);
         if (program) {
-          setPreviewProgram(program);
-        } else {
-          setPreviewProgram(null);
+          setPreviewProgram({ ...program, isShared: false });
+          setLookupLoading(false);
+          return;
         }
+
+        // Fallback to NEW system (shared programs - public) if OLD system returns nothing
+        const sharedProgram = await getSharedProgramByCode(code);
+        if (sharedProgram && sharedProgram.programId) {
+          const publicProgram = await getProgramById(sharedProgram.programId);
+          if (publicProgram) {
+            setPreviewProgram({ ...publicProgram, isShared: true, sharedData: sharedProgram });
+            setLookupLoading(false);
+            return;
+          }
+        }
+
+        // Nothing found in either system
+        setPreviewProgram(null);
       } catch (err) {
         setPreviewProgram(null);
       } finally {
@@ -152,8 +170,26 @@ const ClientEntry = () => {
         throw new Error(errorMsg);
       }
 
-      // Najdi program podle kódu
-      const program = await getProgramByCode(code);
+      // Najdi program podle kódu (OLD system = personalized, NEW system = shared public)
+      let program = null;
+      let isSharedProgram = false;
+      let sharedProgramData = null;
+
+      // Try OLD system first (personalized codes) - this is production
+      program = await getProgramByCode(code);
+
+      // Fallback to NEW system (shared programs - public) if OLD system returns nothing
+      if (!program) {
+        const sharedProgram = await getSharedProgramByCode(code);
+        if (sharedProgram && sharedProgram.programId) {
+          program = await getProgramById(sharedProgram.programId);
+          if (program) {
+            isSharedProgram = true;
+            sharedProgramData = sharedProgram;
+          }
+        }
+      }
+
       if (!program) {
         const errorMsg = 'Program s tímto kódem neexistuje. Zkontrolujte ho a zkuste znovu.';
         showError('Program nenalezen', errorMsg);
@@ -201,21 +237,46 @@ const ClientEntry = () => {
       // ⏰ Kontrola časového omezení přístupu
       const now = new Date();
 
-      if (client.accessStartDate) {
-        const startDate = new Date(client.accessStartDate);
+      // For shared programs, use access dates from sharedProgramData
+      // For personalized programs, use access dates from client
+      const accessStartDate = isSharedProgram ? sharedProgramData?.accessStartDate : client.accessStartDate;
+      const accessEndDate = isSharedProgram ? sharedProgramData?.accessEndDate : client.accessEndDate;
+
+      if (accessStartDate) {
+        const startDate = new Date(accessStartDate);
         if (now < startDate) {
-          const errorMsg = `Přístup k tomuto programu je možný od ${formatDate(client.accessStartDate, { day: 'numeric', month: 'numeric', year: 'numeric' })}`;
+          const errorMsg = `Přístup k tomuto programu je možný od ${formatDate(accessStartDate, { day: 'numeric', month: 'numeric', year: 'numeric' })}`;
           showError('Přístup zatím není možný', errorMsg);
           throw new Error(errorMsg);
         }
       }
 
-      if (client.accessEndDate) {
-        const endDate = new Date(client.accessEndDate);
+      if (accessEndDate) {
+        const endDate = new Date(accessEndDate);
         if (now > endDate) {
-          const errorMsg = `Přístup k tomuto programu skončil ${formatDate(client.accessEndDate, { day: 'numeric', month: 'numeric', year: 'numeric' })}`;
+          const errorMsg = `Přístup k tomuto programu skončil ${formatDate(accessEndDate, { day: 'numeric', month: 'numeric', year: 'numeric' })}`;
           showError('Přístup vypršel', errorMsg);
           throw new Error(errorMsg);
+        }
+      }
+
+      // Auto-assign coach if client has OAuth profile and doesn't have a coach yet
+      const coachId = isSharedProgram ? sharedProgramData?.coachId : program.coachId;
+      if (authUser?.id && coachId) {
+        try {
+          // Get client profile
+          const { data: clientProfile } = await supabase
+            .from('coachpro_client_profiles')
+            .select('id')
+            .eq('auth_user_id', authUser.id)
+            .limit(1);
+
+          if (clientProfile && clientProfile.length > 0) {
+            await autoAssignCoachIfNeeded(clientProfile[0].id, coachId);
+          }
+        } catch (err) {
+          console.error('Error auto-assigning coach:', err);
+          // Non-critical error, continue with program access
         }
       }
 

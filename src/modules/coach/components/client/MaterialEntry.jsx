@@ -20,12 +20,15 @@ import { isValidShareCode } from '../../utils/generateCode';
 import { useNotification } from '@shared/context/NotificationContext';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
 import { useTheme } from '@mui/material';
+import { autoAssignCoachIfNeeded } from '@shared/utils/coaches';
+import { useClientAuth } from '@shared/context/ClientAuthContext';
 
 const MaterialEntry = () => {
   const navigate = useNavigate();
   const { showError } = useNotification();
   const theme = useTheme();
   const glassCardStyles = useGlassCard('subtle');
+  const { profile, refreshProfile } = useClientAuth();
 
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -90,6 +93,15 @@ const MaterialEntry = () => {
         const errorMsg = 'Materiál s tímto kódem neexistuje. Zkontroluj ho a zkus znovu.';
         showError('Materiál nenalezen', errorMsg);
         throw new Error(errorMsg);
+      }
+
+      // Auto-assign coach if client doesn't have one yet
+      if (profile?.id && sharedMaterial.coachId) {
+        const wasAssigned = await autoAssignCoachIfNeeded(profile.id, sharedMaterial.coachId);
+        if (wasAssigned) {
+          // Refresh profile to show updated coach
+          await refreshProfile();
+        }
       }
 
       // Přesměruj na MaterialView

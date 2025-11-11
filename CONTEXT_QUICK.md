@@ -1,7 +1,13 @@
 # CONTEXT QUICK - Architecture Overview
 
-**Last Updated:** 10. listopadu 2025 (Session #13)
+**Last Updated:** 11. listopadu 2025 (Session #13)
 **Purpose:** Quick architecture reference for Claude Code
+
+**⚠️ KRITICKÉ PRO NOVOU SESSION:**
+- **AUTH PROBLÉM:** 90% testerů nemá `auth_user_id` → RLS blokuje materiály (403 Forbidden)
+- **Řešení:** VARIANTA A - auto-create auth účty při registraci
+- **Dokumentace:** `docs/TROUBLESHOOTING_AUTH.md` (350+ lines)
+- **Session detaily:** `docs/summary13.md`
 
 ---
 
@@ -535,41 +541,52 @@ const coaches = await supabase.from('coaches').select('*').in('id', coachIds);
 
 ---
 
-## 📊 CURRENT STATUS (10.11.2025)
+## 📊 CURRENT STATUS (11.11.2025)
 
-**Session #13:** Modular Icon System & Code Cleanup ✅
+**Session #13:** Authentication Analysis & Troubleshooting 🔐
 **Session #12:** Session Management & Photo Upload ✅
 **Session #11:** Auth Refactoring ✅
 **Session #10:** Koučovací Karty ✅
 
 **Completed in Session #13:**
-- Centralized icon system (icons.js, 88 lines)
-- Updated 5 components to use centralized icons
-- Icon consistency across app (Library, Folder, Layers)
-- Code cleanup (removed console logs, fixed 3 icon bugs)
+- Auth system analysis (3 types: OAuth, Email+Password, Access Code)
+- Identified root cause: Access code users have NO auth_user_id
+- Created `docs/TROUBLESHOOTING_AUTH.md` (350+ lines)
+- 5-step diagnostic process + SQL queries
+- Planned VARIANTA A (auto-create auth accounts)
+- Updated CLAUDE.md with auth warnings
 
-**Next Priority:**
-1. Coach Session Management UI (Sprint 12a)
-2. Client Materials/Help pages (Sprint 2a)
+**🚨 NEXT PRIORITY (CRITICAL):**
+1. **VARIANTA A: Auto-create auth accounts** (4-6h)
+   - Find TesterSignup.jsx
+   - Implement auth.users creation during registration
+   - Test + migrate existing testers
+   - **Impact:** Fixes 90% of "can't see materials" issues
+
+**HIGH Priority:**
+2. Sharing system (email fields + validation)
+3. Coach Session Management UI (Sprint 12a)
 
 **Tech Debt:**
+- 🚨 CRITICAL: Access code testers bez auth_user_id (affects 90%)
 - MaterialCard.jsx doesn't use BaseCard (Sprint 18c)
 - Button modularity system (Sprint 18b)
 
 **Security:**
-- ✅ 0 Security Advisor errors
-- ✅ RLS enabled on all critical tables
+- ⚠️ RLS politiky blokují uživatele bez auth_user_id
+- ✅ Admins a OAuth users mají správný auth_user_id
 - ✅ Token tables protected
 
 ---
 
 ## 🔗 QUICK LINKS
 
-- **Full Docs:** `claude.md` (495 lines)
+- **Full Docs:** `CLAUDE.md` (aktualizováno Session #13)
 - **Quick Rules:** `CLAUDE_QUICK.md` (1100+ lines)
-- **Session Summary:** `summary12.md` (334 lines)
-- **Master TODO:** `MASTER_TODO_V4.md`
-- **Priorities:** `MASTER_TODO_priority.md`
+- **Session #13 Summary:** `docs/summary13.md` (NOVÝ!)
+- **Auth Troubleshooting:** `docs/TROUBLESHOOTING_AUTH.md` (350+ lines, NOVÝ!)
+- **Master TODO:** `MASTER_TODO_V4.md` (aktualizováno)
+- **Priorities:** `MASTER_TODO_priority.md` (aktualizováno)
 
 ---
 

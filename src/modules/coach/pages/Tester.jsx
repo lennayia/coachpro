@@ -24,7 +24,7 @@ import { useGlassCard } from '@shared/hooks/useModernEffects';
 import { useTheme } from '@mui/material';
 import GoogleSignInButton from '@shared/components/GoogleSignInButton';
 import { useTesterAuth } from '@shared/context/TesterAuthContext';
-import { setCurrentUser, saveCoach } from '../utils/storage';
+import { setCurrentUser, saveCoach, getCoachById } from '../utils/storage';
 
 const Tester = () => {
   const navigate = useNavigate();
@@ -102,15 +102,31 @@ const Tester = () => {
         return;
       }
 
+      // Check if coach already exists in DB (to preserve is_admin and auth_user_id)
+      const existingCoach = await getCoachById(`tester-${tester.id}`);
+
+      // Check if tester has an auth account by email
+      let authUserId = existingCoach?.auth_user_id || null;
+      if (!authUserId && tester.email) {
+        const { data: authUser } = await supabase
+          .from('auth.users')
+          .select('id')
+          .eq('email', tester.email)
+          .maybeSingle();
+        authUserId = authUser?.id || null;
+      }
+
       // Create coach session
       const coachUser = {
         id: `tester-${tester.id}`,
+        auth_user_id: authUserId,
         name: tester.name,
         email: tester.email,
         isTester: true,
         testerId: tester.id,
-        isAdmin: false,
-        createdAt: new Date().toISOString(),
+        // SECURITY: Preserve is_admin if coach already exists
+        isAdmin: existingCoach?.is_admin || false,
+        createdAt: existingCoach?.created_at || new Date().toISOString(),
       };
 
       // Save coach to Supabase

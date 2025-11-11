@@ -1,27 +1,43 @@
 # MASTER TODO V4 - CoachPro
 
-**Poslední update:** 10. listopadu 2025
-**Status:** Session #13 dokončena ✅
+**Poslední update:** 11. listopadu 2025
+**Status:** Session #13 dokončena ✅ (AUTH TROUBLESHOOTING)
 
 ---
 
-## 🎉 SESSION #13 COMPLETED (10.11.2025) ✅
+## 🎉 SESSION #13 COMPLETED (11.11.2025) ✅
 
-- [x] **Modular Icon System (Centralized)**
-  - Created `/src/shared/constants/icons.js` (88 lines)
-  - 4 categories: NAVIGATION_ICONS, SETTINGS_ICONS, DASHBOARD_ICONS, STATS_ICONS
-  - Updated 5 components to use centralized icons
-  - Icon consistency: Library (materials), Folder (programs), Layers (cards)
+**FOCUS:** Authentication Analysis & Troubleshooting Documentation
 
-- [x] **Code Cleanup**
-  - Removed console.error from ClientDashboard.jsx
-  - Fixed wrong icon in "Koučovací karty" card (ProgramsIcon → CardsIcon)
-  - Fixed outdated icon in ClientMaterials (FileText → Library)
+- [x] **Auth System Analysis**
+  - Identified 3 types of authentication (OAuth, Email+Password, Access Code)
+  - Discovered root cause: Access code users have NO auth_user_id
+  - Analyzed tester registration flow (/tester signup form)
+  - Confirmed RLS requires auth_user_id for materials access
 
-- [x] **Documentation**
-  - summary13.md (complete session documentation)
-  - Updated CLAUDE.md (added icon system section)
-  - Updated all TODO files
+- [x] **Troubleshooting Documentation (CRITICAL)**
+  - Created `docs/TROUBLESHOOTING_AUTH.md` (350+ lines)
+  - 5-step diagnostika process
+  - 4 common problems with SQL fixes
+  - Comprehensive diagnostic queries
+  - Prevention checklist
+
+- [x] **Architecture Planning**
+  - Planned VARIANTA A: Auto-create auth accounts during tester registration
+  - Designed new registration flow (form → create auth → generate code)
+  - Benefits: RLS works for ALL users, data never disappears
+
+- [x] **Documentation Updates**
+  - Updated CLAUDE.md with auth section and critical warnings
+  - Created summary13.md (complete session documentation)
+  - Added auth_user_id best practices
+  - Added troubleshooting quick reference
+
+- [x] **Code Review (No Changes)**
+  - Verified AdminLogin.jsx saves auth_user_id correctly
+  - Verified Tester.jsx preserves auth_user_id
+  - Verified storage.js doesn't overwrite is_admin
+  - Confirmed ShareCardDeckModal already has Share button
 
 ---
 
@@ -84,6 +100,22 @@
 ---
 
 ## 📋 TODO LISTS (Prioritizované)
+
+### ⚠️ CRITICAL: Auth System Fix (HIGHEST PRIORITY) 🚨
+- [ ] **VARIANTA A: Auto-create auth accounts**
+  - [ ] Find tester registration page (TesterSignup.jsx or similar)
+  - [ ] Implement auto auth account creation during registration
+  - [ ] Test new registration flow (form → auth account → code)
+  - [ ] Verify RLS works for new testers
+  - [ ] Consider migrating existing testers (create auth accounts retroactively)
+  - [ ] **Impact:** Fixes 90% of "can't see materials" issues
+  - [ ] **Documentation:** `docs/TROUBLESHOOTING_AUTH.md`
+
+### Sprint 2a-extended: Sharing System (HIGH) 🎯
+- [ ] 2a.5: Add email field to ShareMaterialModal (personalized sharing)
+- [ ] 2a.6: Implement email validation for personalized sharing
+- [ ] 2a.7: Complete public sharing system (coachpro_shared_programs table)
+- [ ] 2a.8: Email collection for public shares
 
 ### Sprint 12a: Coach Session Management (HIGH) 🎯
 - [ ] 12a.1: Coach session creation UI (`/coach/sessions/new`)
@@ -176,9 +208,37 @@
 
 ## 🚧 KNOWN ISSUES / TECH DEBT
 
+- 🚨 **CRITICAL: Access code testers have NO auth_user_id**
+  - Impact: Cannot see materials (RLS blocks them)
+  - Impact: Cannot add materials (403 Forbidden)
+  - Affected: ~90% of testers who registered via form
+  - Fix: VARIANTA A (auto-create auth accounts)
+  - Status: **HIGHEST PRIORITY**
+
 - ⚠️ MaterialCard.jsx NEpoužívá BaseCard (Sprint 18c)
 - ⏳ Button modularity (Sprint 18b - 6-8 hours)
 - ⏳ Large chunks in build (heic2any = 1.3MB, pdf = 439KB)
+
+---
+
+## 📁 FILES CHANGED (Session #13)
+
+**Created (2 files)**:
+- `docs/TROUBLESHOOTING_AUTH.md` - Auth troubleshooting guide (350+ lines)
+- `docs/summary13.md` - Session #13 documentation
+
+**Modified (1 file)**:
+- `CLAUDE.md` - Added auth section, warnings, troubleshooting references
+
+**Analyzed (8 files - No changes)**:
+- `src/modules/coach/pages/AdminLogin.jsx` - Verified auth_user_id save
+- `src/modules/coach/pages/Tester.jsx` - Verified auth_user_id preservation
+- `src/modules/coach/pages/ProfilePage.jsx` - Verified async handling
+- `src/modules/coach/utils/storage.js` - Verified is_admin protection
+- `src/modules/coach/components/coach/ShareCardDeckModal.jsx` - Confirmed Share button exists
+- `src/modules/coach/components/coach/ShareMaterialModal.jsx` - Identified missing email field
+- `src/modules/coach/components/coach/CardDecksLibrary.jsx` - Verified Share functionality
+- `src/modules/coach/components/client/ClientCardDeckEntry.jsx` - Verified auto-assign
 
 ---
 

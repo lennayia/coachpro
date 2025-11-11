@@ -15,7 +15,7 @@ import {
 import { Shield, Eye, EyeOff, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@shared/config/supabase';
-import { setCurrentUser } from '../utils/storage';
+import { setCurrentUser, saveCoach } from '../utils/storage';
 import { useNotification } from '@shared/context/NotificationContext';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
@@ -93,6 +93,9 @@ const AdminLogin = () => {
         testerId: existingCoach?.tester_id || testerProfile?.id || null,
         createdAt: new Date().toISOString(),
       };
+
+      // IMPORTANT: Save to Supabase to update auth_user_id
+      await saveCoach(adminUser);
 
       setCurrentUser(adminUser);
       showSuccess('Vítej zpět! 🎉', 'Přihlášena jako admin');

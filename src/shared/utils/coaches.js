@@ -110,3 +110,70 @@ export function getCoachInitials(name) {
 
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 }
+
+/**
+ * Update client's assigned coach
+ * @param {string} clientId - Client profile ID
+ * @param {string} coachId - Coach ID to assign
+ * @returns {Promise<Object>} Updated client profile
+ */
+export async function updateClientCoach(clientId, coachId) {
+  try {
+    const { data, error } = await supabase
+      .from('coachpro_client_profiles')
+      .update({ coach_id: coachId })
+      .eq('id', clientId)
+      .select('*')
+      .limit(1);
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      throw new Error('Nepodařilo se aktualizovat profil klientky');
+    }
+
+    return data[0];
+  } catch (error) {
+    console.error('Error updating client coach:', error);
+    throw error;
+  }
+}
+
+/**
+ * Auto-assign coach to client if they don't have one yet
+ * Called when client uses a share code (material/program/cards)
+ * @param {string} clientId - Client profile ID
+ * @param {string} coachId - Coach ID from the shared content
+ * @returns {Promise<boolean>} True if assigned, false if already had a coach
+ */
+export async function autoAssignCoachIfNeeded(clientId, coachId) {
+  if (!clientId || !coachId) return false;
+
+  try {
+    // Check if client already has a coach
+    const { data: profile, error: fetchError } = await supabase
+      .from('coachpro_client_profiles')
+      .select('coach_id')
+      .eq('id', clientId)
+      .limit(1);
+
+    if (fetchError) throw fetchError;
+
+    if (!profile || profile.length === 0) {
+      console.warn('Client profile not found:', clientId);
+      return false;
+    }
+
+    // If client already has a coach, don't override
+    if (profile[0].coach_id) {
+      return false;
+    }
+
+    // Assign coach
+    await updateClientCoach(clientId, coachId);
+    return true;
+  } catch (error) {
+    console.error('Error auto-assigning coach:', error);
+    return false;
+  }
+}

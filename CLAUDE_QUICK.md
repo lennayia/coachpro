@@ -2,12 +2,27 @@
 
 > **Účel**: Rychlý přehled nejdůležitějších pravidel. Pro detaily viz CLAUDE.md
 
-**Poslední update**: 10. listopadu 2025 - Session #13
+**Poslední update**: 11. listopadu 2025 - Session #13
 **Pro full dokumentaci**: Čti CLAUDE.md (ale JEN když potřebuješ detaily!)
+
+**🚨 KRITICKÉ - AUTH TROUBLESHOOTING:**
+- Nová dokumentace: `docs/TROUBLESHOOTING_AUTH.md` (350+ lines)
+- **VŽDY** čti ji při problémech s autentizací nebo materiály!
 
 ---
 
 ## 🚨 KRITICKÁ PRAVIDLA - VŽDY DODRŽUJ
+
+### 0. 🔐 AUTH_USER_ID - KRITICKÉ! (Session #13)
+
+**⚠️ NOVÉ PRAVIDLO (11.11.2025)** - **NEJVYŠŠÍ PRIORITA**
+
+**Problem**: 90% testerů nemá `auth_user_id` → RLS blokuje přístup k materiálům
+
+**PRAVIDLO - NIKDY nepřepisuj auth_user_id bez kontroly:**
+
+```javascript
+// ❌ storage.js - NIKDY neru
 
 ### 1. 🎨 MODULAR ICON SYSTEM - icons.js (Session #13)
 

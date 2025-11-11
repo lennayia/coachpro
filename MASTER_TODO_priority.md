@@ -1,18 +1,20 @@
 # 🎯 MASTER TODO - PRIORITY
 
 **TOP PRIORITY podle uživatelky**
-**Poslední update:** 10. listopadu 2025 (Session #13)
+**Poslední update:** 11. listopadu 2025 (Session #13)
 
 ---
 
 ## ✅ HOTOVO (Session #13)
 
-**Modular Icon System** 🎨
-- [x] Centralized icon configuration (icons.js) → **DONE**
-- [x] Updated 5 components to use centralized icons → **DONE**
-- [x] Icon consistency across app (Library, Folder, Layers) → **DONE**
-- [x] Code cleanup (removed console logs) → **DONE**
-- [x] Fixed 3 icon bugs → **FIXED ✅**
+**Authentication Analysis & Troubleshooting** 🔐
+- [x] Analyzed 3 types of authentication (OAuth, Email+Password, Access Code) → **DONE**
+- [x] Identified root cause: Access code users have NO auth_user_id → **IDENTIFIED**
+- [x] Created TROUBLESHOOTING_AUTH.md (350+ lines) → **DONE**
+- [x] Documented 5-step diagnostic process → **DONE**
+- [x] SQL queries for 4 common problems → **DONE**
+- [x] Planned VARIANTA A (auto-create auth accounts) → **PLANNED**
+- [x] Updated CLAUDE.md with auth warnings → **DONE**
 
 ## ✅ HOTOVO (Session #12)
 
@@ -35,6 +37,46 @@
 - [x] Race conditions v guards → **FIXED**
 - [x] Refactoring duplicitního kódu (73% redukce) → **DONE**
 - [x] Production build test → **PASSED ✅**
+
+---
+
+## 🚨 CRITICAL PRIORITY
+
+### 0. Authentication System Fix (VARIANTA A) 🚨
+
+**Status:** CRITICAL - Affects 90% of testers
+**Issue:** Testers who registered via form have `auth_user_id = NULL` → RLS blocks materials access
+
+**Impact:**
+- Cannot see materials (RLS blocks SELECT)
+- Cannot add materials (403 Forbidden on INSERT)
+- Data appears "lost" but is actually just inaccessible
+
+**Solution (VARIANTA A):**
+- [ ] **Find tester registration page** (`TesterSignup.jsx` or similar)
+  - Located at `/tester` → "Zaregistruj se" button
+  - Form: Jméno, Příjmení, Email, Telefon (opt), Motivace (opt)
+
+- [ ] **Implement auto auth account creation**
+  - Create auth.users account during registration
+  - Use random generated password (20 chars)
+  - Save auth_user_id to both `testers` and `coachpro_coaches` tables
+  - Display access code on screen after registration
+
+- [ ] **Test new registration flow**
+  - Register new tester → verify auth account created
+  - Login with access code → verify auth session exists
+  - Add material → verify INSERT succeeds (no 403)
+  - View materials → verify SELECT succeeds
+
+- [ ] **Consider migration for existing testers** (OPTIONAL)
+  - Create auth accounts for existing `auth_user_id = NULL` testers
+  - Generate random passwords
+  - Send access codes via email
+
+**Odhad:** 4-6 hodin
+**Priorita:** 🚨 CRITICAL
+**Documentation:** `docs/TROUBLESHOOTING_AUTH.md`
 
 ---
 
@@ -143,8 +185,10 @@
 
 | Sprint | Status | Priority | Est. Time | Completion |
 |--------|--------|----------|-----------|------------|
+| Session #13 (Auth Troubleshooting) | ✅ DONE | 🔥 HIGH | 2h | 100% |
 | Session #12 (Sessions) | ✅ DONE | 🔥 HIGH | 4h | 100% |
 | Session #11 (Auth) | ✅ DONE | 🔥 CRITICAL | 6h | 100% |
+| **Auth Fix (VARIANTA A)** | ⏳ Pending | 🚨 **CRITICAL** | 4-6h | 0% |
 | Sprint 12a (Coach Sessions) | ⏳ Pending | 🔥 HIGH | 6-8h | 0% |
 | Sprint 2a (Client UI) | ⏳ Pending | 🔥 HIGH | 4-6h | 0% |
 | Sprint 6a (Client Cards) | ⏳ Pending | 🟡 MEDIUM | 6-8h | 0% |
@@ -153,5 +197,6 @@
 
 ---
 
-**Next Session:** Sprint 12a (Coach Session Management) 🎯
-**Alternative:** Sprint 2a (Client Materials/Help) - depends on user priority
+**Next Session:** 🚨 Auth Fix (VARIANTA A) - CRITICAL PRIORITY
+**Why Critical:** 90% of testers cannot see/add materials due to missing auth_user_id
+**Alternative:** Sprint 12a or 2a (if auth is postponed)

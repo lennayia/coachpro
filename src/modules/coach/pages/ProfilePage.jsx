@@ -26,10 +26,10 @@ import { FULL_BETA_INFO, getBetaConfig } from '@shared/constants/betaInfo';
  * @created 4.11.2025
  */
 const ProfilePage = () => {
-  const currentUser = getCurrentUser();
   const { showSuccess, showError } = useNotification();
   const betaConfig = getBetaConfig();
 
+  const [currentUser, setCurrentUser] = useState(getCurrentUser());
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(currentUser?.name || '');
   const [email, setEmail] = useState(currentUser?.email || '');
@@ -48,7 +48,7 @@ const ProfilePage = () => {
     setEmail(currentUser?.email || '');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name.trim()) {
       showError('Chyba', 'Vyplň prosím jméno');
       return;
@@ -58,18 +58,36 @@ const ProfilePage = () => {
       return;
     }
 
-    const updatedUser = {
-      ...currentUser,
-      name: name.trim(),
-      email: email.trim(),
-    };
+    try {
+      const updatedUser = {
+        ...currentUser,
+        name: name.trim(),
+        email: email.trim(),
+      };
 
-    // Uložit do localStorage
-    saveCoach(updatedUser);
-    sessionStorage.setItem('coachpro_currentUser', JSON.stringify(updatedUser));
+      // Uložit do Supabase
+      const result = await saveCoach(updatedUser);
 
-    setIsEditing(false);
-    showSuccess('Hotovo!', 'Profil byl úspěšně aktualizován');
+      // Update sessionStorage with fresh data from DB
+      const freshUser = {
+        ...updatedUser,
+        isAdmin: result.is_admin,
+        isTester: result.is_tester,
+        testerId: result.tester_id,
+      };
+      sessionStorage.setItem('coachpro_currentUser', JSON.stringify(freshUser));
+
+      // Update local state to show changes immediately
+      setCurrentUser(freshUser);
+      setName(freshUser.name);
+      setEmail(freshUser.email);
+
+      setIsEditing(false);
+      showSuccess('Hotovo!', 'Profil byl úspěšně aktualizován');
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      showError('Chyba', `Nepodařilo se uložit profil: ${error.message}`);
+    }
   };
 
   return (
