@@ -45,7 +45,8 @@ const FloatingMenu = ({ isOpen = false, onToggle, userType = 'coach', logoutHand
 
   const handleWelcome = () => {
     onToggle?.(false);
-    navigate('/tester/welcome');
+    const welcomePath = userType === 'client' ? '/client/welcome' : '/tester/welcome';
+    navigate(welcomePath);
   };
 
   const handleThemeToggle = () => {
@@ -120,6 +121,12 @@ const FloatingMenu = ({ isOpen = false, onToggle, userType = 'coach', logoutHand
 
   // Client-specific items
   const clientItems = [
+    {
+      icon: SETTINGS_ICONS.welcome,
+      label: 'Rozcestník',
+      onClick: handleWelcome,
+      gradient: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.primary.light} 100%)`,
+    },
     {
       icon: SETTINGS_ICONS.help,
       label: 'Nápověda',

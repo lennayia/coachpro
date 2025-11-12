@@ -3,6 +3,7 @@ import { ClientAuthProvider, useClientAuth } from '@shared/context/ClientAuthCon
 import Layout from '@shared/components/Layout';
 import Client from './Client';
 import ClientWelcome from './ClientWelcome';
+import ClientWelcomeEnhanced from './ClientWelcomeEnhanced';
 import ClientDashboard from './ClientDashboard';
 import ClientProfile from './ClientProfile';
 import MaterialEntry from '../components/client/MaterialEntry';
@@ -32,11 +33,23 @@ const ClientViewContent = () => {
     );
   }
 
+  // Check if it's welcome pages (no layout needed)
+  const isWelcomePage = location.pathname === '/client/welcome' || location.pathname === '/client/welcome-enhanced';
+
+  // Welcome pages without layout
+  if (isWelcomePage) {
+    return (
+      <Routes>
+        <Route path="/welcome" element={<ClientWelcome />} />
+        <Route path="/welcome-enhanced" element={<ClientWelcomeEnhanced />} />
+      </Routes>
+    );
+  }
+
   // For all other pages, use universal Layout with userType="client"
   return (
     <Layout userType="client" logoutHandler={logout}>
       <Routes>
-        <Route path="/welcome" element={<ClientWelcome />} />
         <Route path="/dashboard" element={<ClientDashboard />} />
         <Route path="/profile" element={<ClientProfile />} />
         <Route path="/sessions" element={<ClientSessions />} />

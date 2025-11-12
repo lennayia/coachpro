@@ -254,6 +254,7 @@ const ClientWelcome = () => {
     {
       title: 'Vstup do klientské zóny',
       subtitle: 'Pokračujte ve svém programu a prohlížejte materiály',
+      backTitle: 'Klientská zóna',
       icon: <LogInIcon size={24} />,
       onClick: () => navigate('/client/dashboard'),
       gradient:
@@ -264,6 +265,7 @@ const ClientWelcome = () => {
     {
       title: 'Vyberte si koučku',
       subtitle: 'Prozkoumejte naše kouče a vyberte si toho pravého pro vaši cestu',
+      backTitle: 'Naše koučky',
       icon: <UsersIcon size={24} />,
       onClick: () => navigate('/client/select-coach'),
       gradient:
@@ -274,6 +276,7 @@ const ClientWelcome = () => {
     {
       title: 'O koučinku',
       subtitle: 'Zjistěte více o různých typech koučinku a metodách',
+      backTitle: 'Průvodce koučinkem',
       icon: <BookOpenIcon size={24} />,
       onClick: () => navigate('/coach-types-guide'),
       gradient:

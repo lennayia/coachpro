@@ -90,6 +90,86 @@ export const triggerConfetti = () => {
   }
 };
 
+// 3D Card flip animation
+export const cardFlip = {
+  front: {
+    rotateY: 0,
+    transition: { duration: 0.6, ease: 'easeInOut' }
+  },
+  back: {
+    rotateY: 180,
+    transition: { duration: 0.6, ease: 'easeInOut' }
+  }
+};
+
+// Pulse animation (for attention)
+export const pulse = {
+  scale: [1, 1.05, 1],
+  transition: {
+    duration: 2,
+    repeat: Infinity,
+    ease: 'easeInOut'
+  }
+};
+
+// Shimmer effect (loading state)
+export const shimmer = {
+  backgroundPosition: ['0% 0%', '100% 0%'],
+  transition: {
+    duration: 1.5,
+    repeat: Infinity,
+    ease: 'linear'
+  }
+};
+
+// Float animation (subtle up/down)
+export const float = {
+  y: [0, -10, 0],
+  transition: {
+    duration: 3,
+    repeat: Infinity,
+    ease: 'easeInOut'
+  }
+};
+
+// Glow animation (for highlights)
+export const glow = {
+  boxShadow: [
+    '0 0 5px rgba(139, 188, 143, 0.3)',
+    '0 0 20px rgba(139, 188, 143, 0.6)',
+    '0 0 5px rgba(139, 188, 143, 0.3)',
+  ],
+  transition: {
+    duration: 2,
+    repeat: Infinity,
+    ease: 'easeInOut'
+  }
+};
+
+// Bounce in animation
+export const bounceIn = {
+  hidden: { opacity: 0, scale: 0.3 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      type: 'spring',
+      stiffness: 300,
+      damping: 15
+    }
+  }
+};
+
+// Rotate animation
+export const rotate = {
+  rotate: [0, 360],
+  transition: {
+    duration: 2,
+    repeat: Infinity,
+    ease: 'linear'
+  }
+};
+
 export default {
   fadeIn,
   fadeInUp,
@@ -98,5 +178,12 @@ export default {
   scaleUp,
   slideInRight,
   cardHover,
-  triggerConfetti
+  triggerConfetti,
+  cardFlip,
+  pulse,
+  shimmer,
+  float,
+  glow,
+  bounceIn,
+  rotate,
 };

@@ -24,6 +24,7 @@ import {
   HelpCircle,
   LogOut,
   X,
+  Signpost,
 } from 'lucide-react';
 
 /**
@@ -44,7 +45,7 @@ export const NAVIGATION_ICONS = {
  */
 export const SETTINGS_ICONS = {
   profile: User,
-  welcome: Home,
+  welcome: Signpost,
   lightMode: Sun,
   darkMode: Moon,
   betaInfo: Info,
