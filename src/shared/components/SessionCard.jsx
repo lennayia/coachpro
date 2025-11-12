@@ -99,13 +99,17 @@ const SessionCard = ({
           <Box display="flex" alignItems="center" gap={2} mb={2}>
             <Avatar
               src={person?.photo_url}
+              imgProps={{
+                referrerPolicy: 'no-referrer',
+                loading: 'eager'
+              }}
               sx={{
                 width: compact ? 48 : 56,
                 height: compact ? 48 : 56,
                 bgcolor: 'primary.main',
               }}
             >
-              {person?.name?.charAt(0) || '?'}
+              {!person?.photo_url && (person?.name?.charAt(0) || '?')}
             </Avatar>
 
             <Box flex={1}>

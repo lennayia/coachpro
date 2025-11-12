@@ -17,9 +17,11 @@ import { uploadPhoto, deletePhoto } from '@shared/utils/photoStorage';
  * - Auto-compress to WebP
  * - Preview with delete option
  * - Loading states
+ * - Google photo fallback
  *
  * Props:
- * - photoUrl: string - Current photo URL
+ * - photoUrl: string - Current photo URL (custom uploaded)
+ * - googlePhotoUrl: string - Google profile photo URL (fallback)
  * - onPhotoChange: (url: string|null) => void - Callback when photo changes
  * - userId: string - User ID for storage path
  * - bucket: string - Storage bucket name
@@ -30,6 +32,7 @@ import { uploadPhoto, deletePhoto } from '@shared/utils/photoStorage';
  */
 const PhotoUpload = ({
   photoUrl,
+  googlePhotoUrl,
   onPhotoChange,
   userId,
   bucket,
@@ -42,6 +45,9 @@ const PhotoUpload = ({
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(photoUrl);
   const fileInputRef = useRef(null);
+
+  // Display photo: custom upload (photoUrl) → Google photo (googlePhotoUrl) → placeholder
+  const displayPhotoUrl = photoUrl || googlePhotoUrl;
 
   // Sync preview with photoUrl prop changes
   useEffect(() => {
@@ -134,7 +140,11 @@ const PhotoUpload = ({
       {/* Avatar with photo or placeholder */}
       <Box sx={{ position: 'relative' }}>
         <Avatar
-          src={preview}
+          src={preview || displayPhotoUrl}
+          imgProps={{
+            referrerPolicy: 'no-referrer',
+            loading: 'eager'
+          }}
           sx={{
             width: size,
             height: size,
@@ -148,7 +158,7 @@ const PhotoUpload = ({
           }}
           onClick={() => !uploading && fileInputRef.current?.click()}
         >
-          {!preview && <Camera size={size / 2} />}
+          {!(preview || displayPhotoUrl) && <Camera size={size / 2} />}
         </Avatar>
 
         {/* Loading spinner */}
@@ -171,8 +181,8 @@ const PhotoUpload = ({
           </Box>
         )}
 
-        {/* Delete button */}
-        {preview && !uploading && (
+        {/* Delete button - only show for custom uploaded photos */}
+        {photoUrl && !uploading && (
           <IconButton
             onClick={handleDelete}
             sx={{

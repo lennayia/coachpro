@@ -1,5 +1,7 @@
+import { Routes, Route } from 'react-router-dom';
 import { TesterAuthProvider } from '@shared/context/TesterAuthContext';
 import CoachDashboard from './CoachDashboard';
+import CoachLogin from './CoachLogin';
 
 /**
  * CoachView - Wrapper for Coach routes with TesterAuthProvider
@@ -10,7 +12,10 @@ import CoachDashboard from './CoachDashboard';
 const CoachView = () => {
   return (
     <TesterAuthProvider>
-      <CoachDashboard />
+      <Routes>
+        <Route path="/login" element={<CoachLogin />} />
+        <Route path="/*" element={<CoachDashboard />} />
+      </Routes>
     </TesterAuthProvider>
   );
 };

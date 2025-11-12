@@ -69,16 +69,12 @@ const TesterProfileSimple = () => {
     setError('');
 
     try {
-      // OAuth testers don't get access codes (only form signup testers do)
-      const accessCode = profile?.access_code || null;
-
       const profileData = {
         auth_user_id: user.id,
         name: name.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim() || null,
         reason: reason.trim() || null,
-        access_code: accessCode, // null for OAuth testers
         terms_accepted: true,
         terms_accepted_date: new Date().toISOString(),
       };

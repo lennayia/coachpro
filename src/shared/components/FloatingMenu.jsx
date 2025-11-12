@@ -43,6 +43,11 @@ const FloatingMenu = ({ isOpen = false, onToggle, userType = 'coach', logoutHand
     navigate(profilePath);
   };
 
+  const handleWelcome = () => {
+    onToggle?.(false);
+    navigate('/tester/welcome');
+  };
+
   const handleThemeToggle = () => {
     toggleTheme();
     // Menu zůstává otevřené pro další akce
@@ -89,6 +94,14 @@ const FloatingMenu = ({ isOpen = false, onToggle, userType = 'coach', logoutHand
     },
   ];
 
+  // Tester-specific welcome page
+  const testerWelcomeItem = currentUser?.isTester ? {
+    icon: SETTINGS_ICONS.welcome,
+    label: 'Rozcestník',
+    onClick: handleWelcome,
+    gradient: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.primary.light} 100%)`,
+  } : null;
+
   // Coach-specific items
   const coachItems = [
     {
@@ -127,7 +140,7 @@ const FloatingMenu = ({ isOpen = false, onToggle, userType = 'coach', logoutHand
 
   // Build menu items based on userType
   const menuItems = userType === 'coach'
-    ? [...baseMenuItems, ...coachItems, logoutItem]
+    ? [...baseMenuItems, ...(testerWelcomeItem ? [testerWelcomeItem] : []), ...coachItems, logoutItem]
     : [...baseMenuItems, ...clientItems, logoutItem];
 
   return (

@@ -9,11 +9,15 @@ import { Phone, Mail } from 'lucide-react';
 import { useTheme } from '@mui/material';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { formatPhoneNumber, getCoachInitials } from '@shared/utils/coaches';
+import { getUserPhotoUrl } from '@shared/utils/avatarHelper';
 
 const CoachCard = ({ coach, onClick, compact = false }) => {
   const theme = useTheme();
 
   if (!coach) return null;
+
+  // Get photo URL (custom uploaded or fallback to initials)
+  const photoUrl = coach?.photo_url;
 
   return (
     <Card
@@ -45,6 +49,11 @@ const CoachCard = ({ coach, onClick, compact = false }) => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           {/* Avatar */}
           <Avatar
+            src={photoUrl}
+            imgProps={{
+              referrerPolicy: 'no-referrer',
+              loading: 'eager'
+            }}
             sx={{
               width: compact ? 56 : 72,
               height: compact ? 56 : 72,
@@ -58,7 +67,7 @@ const CoachCard = ({ coach, onClick, compact = false }) => {
                   : 'rgba(85, 107, 47, 0.2)',
             }}
           >
-            {getCoachInitials(coach.name)}
+            {!photoUrl && getCoachInitials(coach.name)}
           </Avatar>
 
           {/* Info */}

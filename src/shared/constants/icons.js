@@ -44,6 +44,7 @@ export const NAVIGATION_ICONS = {
  */
 export const SETTINGS_ICONS = {
   profile: User,
+  welcome: Home,
   lightMode: Sun,
   darkMode: Moon,
   betaInfo: Info,
