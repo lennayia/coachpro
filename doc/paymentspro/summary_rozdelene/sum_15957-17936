@@ -1,0 +1,1979 @@
+  -------------
+  CLAUDE CODE 13/10/2025 - 19/10/2025
+  ----------------
+  ⏺ KOMPLETNÍ SUMMARY: PaymentsPro Development (13.10. - 21.10.2025)
+
+  📅 Časová osa projektu
+
+  9.10.2025  → Poslední git commit před touto session
+  13.10.2025 → Trial notifications + session storage (večer)
+  14-20.10.  → Mega refactor (UniversalDialog, auto-copy, splátky)
+  21.10.2025 → Koláčový graf splátek + tab navigace (dnes)
+
+  ---
+  ČÁST 1: Trial Subscription Notifications (13.10.2025)
+
+  🎯 Cíl
+
+  Implementovat vizuální červené blikání pro trial předplatná, která vyprší do 1 dne, s možností dočasného
+  vypnutí pro aktuální session.
+
+  ✅ Co bylo implementováno
+
+  1.1 Backend - Ukládání notifikačních polí
+
+  Problém:
+  Backend neuložil pole renewal_notification_enabled a subscription_notification_days_before při
+  vytváření/editaci platby.
+
+  Soubor: backend/server.js
+
+  Řešení:
+  Přidána pole do SQL INSERT i UPDATE dotazů.
+
+  // INSERT dotaz (řádek ~239-258)
+  renewal_notification_enabled = ?,
+  subscription_notification_days_before = ?,
+
+  // UPDATE dotaz (řádek ~302-350)
+  renewal_notification_enabled = ?,
+  subscription_notification_days_before = ?,
+
+  Výsledek: ✅ Backend nyní správně perzistuje notifikační nastavení.
+
+  ---
+  1.2 Frontend - Vizuální blikání pro trial platby
+
+  Soubor: frontend/src/components/payments/PaymentList.jsx
+
+  A) State pro dočasně vypnutá upozornění
+
+  // Řádek 460
+  disabledTrialNotifications = new Set(), // Přijímá z PaymentViewSwitcher
+
+  B) Logika blikání - shouldBlinkTrial() funkce
+
+  Řádky 2183-2243
+
+  Kontroluje:
+  1. ✅ Trial status (subscription_status === 'trial')
+  2. ✅ Datum expirace (trial_end_date)
+  3. ✅ Dny do konce (1 den nebo méně)
+  4. ✅ Zda není vypnuto pro session
+
+  const shouldBlinkTrial = (payment) => {
+    // Kontrola trial statusu
+    if (payment.subscription_status !== 'trial') return false;
+    if (!payment.trial_end_date) return false;
+
+    // Kontrola session vypnutí
+    if (disabledTrialNotifications.has(payment.id)) return false;
+
+    // Kontrola zbývajících dnů
+    try {
+      const trialEnd = parseISO(payment.trial_end_date);
+      const today = new Date();
+      const daysUntilEnd = differenceInDays(trialEnd, today);
+
+      // Blikej jen pokud zbývá 1 den nebo méně
+      return daysUntilEnd <= 1 && daysUntilEnd >= 0;
+    } catch {
+      return false;
+    }
+  };
+
+  C) Aplikace CSS třídy
+
+  // Řádek 2386
+  <TableRow className={shouldBlinkTrial(payment) ? 'trial-blinking' : ''}>
+
+  ---
+  1.3 CSS Animace - Červený glow efekt
+
+  Soubor: frontend/src/styles/paymentAnimations.css
+
+  @keyframes trial-warning-pulse {
+    0% {
+      background-color: rgba(211, 47, 47, 0.15) !important;
+      box-shadow: 0 0 20px rgba(211, 47, 47, 0.6),
+                  inset 0 0 15px rgba(211, 47, 47, 0.2) !important;
+    }
+    50% {
+      background-color: rgba(211, 47, 47, 0.35) !important;
+      box-shadow: 0 0 50px rgba(211, 47, 47, 0.9),
+                  inset 0 0 30px rgba(211, 47, 47, 0.4) !important;
+    }
+    100% {
+      background-color: rgba(211, 47, 47, 0.15) !important;
+      box-shadow: 0 0 20px rgba(211, 47, 47, 0.6),
+                  inset 0 0 15px rgba(211, 47, 47, 0.2) !important;
+    }
+  }
+
+  tr.MuiTableRow-root.trial-blinking {
+    animation: trial-warning-pulse 2s ease-in-out infinite !important;
+    background-color: rgba(211, 47, 47, 0.15) !important;
+  }
+
+  Parametry:
+  - Barva: Červená (rgba(211, 47, 47))
+  - Délka cyklu: 2 sekundy
+  - Intenzita: 0.15-0.35 (jemná)
+  - Box shadow: Glow efekt 20-50px
+
+  ---
+  1.4 Bulk Action - Hromadné vypnutí upozornění
+
+  A) UniversalFilterBar.jsx
+
+  Přidáno tlačítko (řádky 1553-1611):
+
+  <Tooltip title="Dočasně vypnout blikání pro vybrané trial platby (do refreshe)">
+    <Button
+      variant="outlined"
+      startIcon={<NotificationsOffIcon />}
+      onClick={onDisableTrialNotifications}
+    >
+      Vypnout upozornění
+    </Button>
+  </Tooltip>
+
+  B) PaymentViewSwitcher.jsx
+
+  State pro session storage:
+
+  // Řádky 293-297
+  const [disabledTrialNotifications, setDisabledTrialNotifications] = useState(() => {
+    const saved = sessionStorage.getItem('disabledTrialNotifications');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+
+  Handler funkce (řádky 478-520):
+
+  const handleDisableTrialNotifications = useCallback(() => {
+    const selected = Array.from(selectedPayments);
+
+    if (selected.length === 0) {
+      showWarning('Nejprve vyberte platby pomocí checkboxů');
+      return;
+    }
+
+    // Filtruj jen blikající trial platby
+    const blinkingPayments = displayPayments.filter(p => {
+      if (!selected.includes(p.id)) return false;
+      if (p.subscription_status !== 'trial') return false;
+      if (disabledTrialNotifications.has(p.id)) return false;
+
+      const trialEnd = parseISO(p.trial_end_date);
+      const daysUntilEnd = differenceInDays(trialEnd, new Date());
+      return daysUntilEnd <= 1 && daysUntilEnd >= 0;
+    });
+
+    if (blinkingPayments.length === 0) {
+      showWarning('Mezi vybranými platbami není žádná s aktivním trial upozorněním');
+      return;
+    }
+
+    // Přidej do disabled setu a ulož do sessionStorage
+    const newDisabled = new Set(disabledTrialNotifications);
+    blinkingPayments.forEach(p => newDisabled.add(p.id));
+    setDisabledTrialNotifications(newDisabled);
+    sessionStorage.setItem('disabledTrialNotifications', JSON.stringify(Array.from(newDisabled)));
+
+    showSuccess(`🔕 Upozornění pro ${blinkingPayments.length} plateb dočasně vypnuto`);
+    setSelectedPayments(new Set());
+  }, [selectedPayments, displayPayments, disabledTrialNotifications]);
+
+  ---
+  🐛 Problémy a řešení (Trial Notifications)
+
+  Problém 1: "Cannot access 'displayPayments' before initialization"
+
+  Chyba:
+  ReferenceError: Cannot access 'displayPayments' before initialization
+
+  Příčina:
+  Handler handleDisableTrialNotifications byl definován PŘED displayPayments.
+
+  Řešení:
+  Přesun funkce za definici displayPayments (řádek 478 v PaymentViewSwitcher.jsx).
+
+  Poučení: V React hoisting nefunguje - pořadí definic záleží! ✅
+
+  ---
+  Problém 2: Backend neuložil notifikační pole
+
+  Symptom:
+  Po uložení platby se renewal_notification_enabled a subscription_notification_days_before vracely jako null.
+
+  Debug:
+  console.log('Před submitom:', formData);
+  // renewal_notification_enabled: true ✅
+
+  // Po načtení z DB:
+  console.log('Z DB:', payment);
+  // renewal_notification_enabled: null ❌
+
+  Příčina:
+  SQL dotazy v server.js neobsahovaly tato pole.
+
+  Řešení:
+  Přidání polí do INSERT i UPDATE dotazů:
+
+  // PŘED:
+  const sql = `INSERT INTO payments (title, amount, ...) VALUES (?, ?, ...)`;
+
+  // PO:
+  const sql = `INSERT INTO payments (
+    title, amount, ..., 
+    renewal_notification_enabled, 
+    subscription_notification_days_before
+  ) VALUES (?, ?, ..., ?, ?)`;
+
+  Výsledek: ✅ Data se nyní správně ukládají.
+
+  ---
+  Problém 3: SessionStorage vs LocalStorage
+
+  Diskuze:
+  Měli bychom použít sessionStorage nebo localStorage?
+
+  Rozhodnutí: SessionStorage ✅
+
+  Důvody:
+  1. ✅ Dočasné vypnutí = jen pro aktuální session
+  2. ✅ Po zavření tabu/prohlížeče → upozornění se obnoví
+  3. ✅ Pokud chce trvalé vypnutí → musí editovat platbu a vypnout renewal_notification_enabled
+
+  Implementace:
+  // Ukládání
+  sessionStorage.setItem('disabledTrialNotifications', JSON.stringify(Array.from(newDisabled)));
+
+  // Načítání
+  const saved = sessionStorage.getItem('disabledTrialNotifications');
+  return saved ? new Set(JSON.parse(saved)) : new Set();
+
+  ---
+  ČÁST 2: Mega Refactor - UniversalDialog Systém (14-20.10.2025)
+
+  🎯 Cíl
+
+  Zrefaktorovat všechny dialogy (Payment, Rezervy, Wishlist, LifePro) na jednotný config-based systém.
+
+  📊 Statistiky před refaktorem
+
+  | Modul          | Původní řádky | Duplikovaný kód | Problém       |
+  |----------------|---------------|-----------------|---------------|
+  | PaymentDialog  | 1,486         | ~90%            | Těžká údržba  |
+  | ReserveDialog  | ~1,400        | ~90%            | Copy-paste    |
+  | WishlistDialog | ~1,300        | ~90%            | Nekonzistence |
+  | LifeProDialog  | ~1,200        | ~90%            | Bug fixing 4× |
+
+  Celkem: ~5,400 řádků duplicity! 😱
+
+  ---
+  ✅ Co bylo vytvořeno
+
+  2.1 UniversalDialog - Generický komponent
+
+  Nová struktura:
+
+  frontend/src/components/shared/UniversalDialog/
+  ├── index.jsx              (447 řádků) - Hlavní komponenta
+  ├── DynamicTab.jsx         (209 řádků) - Rendering záložek
+  ├── FieldRenderer.jsx      (371 řádků) - Rendering polí
+  └── README.md              (793 řádků) - Dokumentace
+
+  Klíčové vlastnosti:
+
+  1. Config-driven: Vše je definováno v JSON konfiguraci
+  2. Tabs support: Automatické záložky z configu
+  3. Field types: text, number, select, date, checkbox, switch, custom
+  4. Validation: Built-in + custom validátory
+  5. Conditional fields: Pole viditelná podle podmínek
+  6. Glassmorphism: Automatické moderní styly
+
+  ---
+  2.2 Dialog Configs - JSON definice
+
+  Nová struktura:
+
+  frontend/src/config/dialogs/
+  ├── paymentDialogConfig.js   (925 řádků)
+  ├── rezervyDialogConfig.js   (381 řádků)
+  ├── wishlistDialogConfig.js  (429 řádků)
+  ├── lifeproDialogConfig.js   (337 řádků)
+  └── EXAMPLES.md              (925 řádků) - Příklady použití
+
+  Příklad - paymentDialogConfig.js:
+
+  export default {
+    editTitle: 'Upravit platbu',
+    createTitle: 'Nová platba',
+    submitLabel: 'Uložit',
+    maxWidth: 'md',
+
+    tabs: [
+      {
+        id: 'basic',
+        label: 'Základní',
+        icon: <DescriptionIcon />,
+        fields: [
+          {
+            name: 'title',
+            label: 'Název platby',
+            type: 'text',
+            required: true,
+            fullWidth: true,
+            validate: (value) => {
+              if (value.length < 3) return 'Název musí mít alespoň 3 znaky';
+              return null;
+            }
+          },
+          {
+            name: 'amount',
+            label: 'Částka',
+            type: 'number',
+            required: true,
+            validate: (value) => {
+              if (value <= 0) return 'Částka musí být větší než 0';
+              return null;
+            }
+          },
+          {
+            name: 'has_commitment',
+            label: 'Smluvní závazek',
+            type: 'switch',
+            defaultValue: false
+          },
+          // ... více polí
+        ]
+      },
+      {
+        id: 'banking',
+        label: 'Platba',
+        sections: [
+          {
+            title: 'Bankovní údaje',
+            fields: [/* ... */]
+          },
+          {
+            title: 'Systém splátek',
+            condition: (formData) => formData.has_commitment, // ← Podmíněné zobrazení
+            fields: [
+              {
+                name: 'total_amount',
+                label: 'Celková částka závazku',
+                type: 'number',
+                condition: (formData) => formData.has_commitment
+              }
+            ]
+          }
+        ]
+      }
+    ],
+
+    transformBeforeSubmit: (formData) => {
+      // Transformace před odesláním
+      return {
+        ...formData,
+        amount: parseFloat(formData.amount),
+        has_commitment: formData.has_commitment === true ? 1 : 0
+      };
+    }
+  };
+
+  ---
+  2.3 PaymentDialog - Nový wrapper
+
+  Před:
+  // PaymentDialog.jsx - 1,486 řádků
+  function PaymentDialog() {
+    const [formData, setFormData] = useState({});
+    const [currentTab, setCurrentTab] = useState(0);
+    const [errors, setErrors] = useState([]);
+
+    // 1,400+ řádků JSX pro formuláře, záložky, validace...
+
+    return (
+      <Dialog>
+        <Tabs>
+          <Tab label="Základní">
+            <TextField name="title" ... />
+            <TextField name="amount" ... />
+            {/* 200+ řádků pro každou záložku */}
+          </Tab>
+          <Tab label="Platba">
+            {/* další stovky řádků */}
+          </Tab>
+        </Tabs>
+      </Dialog>
+    );
+  }
+
+  Po:
+  // PaymentDialog.jsx - 362 řádků (75% úspora!)
+  function PaymentDialog({
+    open,
+    onClose,
+    onSubmit,
+    payment = null,
+    categories = [],
+    initialTab = 0
+  }) {
+    const { mode } = useBusinessPersonal();
+    const { user } = useAuth();
+    const [showAutoCopyDialog, setShowAutoCopyDialog] = useState(false);
+
+    const initialData = payment ? {
+      ...payment,
+      has_commitment: payment.has_commitment === 1 || payment.has_commitment === true,
+      // ... prepare initial data
+    } : null;
+
+    const additionalProps = {
+      categories,
+      mode,
+      user
+    };
+
+    return (
+      <>
+        <UniversalDialog
+          open={open}
+          onClose={onClose}
+          onSubmit={handleSubmit}
+          config={paymentDialogConfig}
+          initialData={initialData}
+          additionalProps={additionalProps}
+          initialTab={initialTab}
+        />
+
+        <AutoCopyConfirmationDialog
+          open={showAutoCopyDialog}
+          onConfirm={handleConfirmAutoCopy}
+          onCancel={handleCancelAutoCopy}
+        />
+      </>
+    );
+  }
+
+  Výsledek:
+  - 1,486 → 362 řádků = 75.6% redukce kódu! 🎉
+  - Všechna logika přesunuta do UniversalDialog
+  - PaymentDialog je jen tenký wrapper s business logikou
+
+  ---
+  🐛 Problémy a řešení (UniversalDialog)
+
+  Problém 1: Conditional fields nefungovaly v rows
+
+  Symptom:
+  {
+    type: 'row',
+    fields: [
+      {
+        name: 'commitment_months',
+        condition: (formData) => formData.has_commitment // ❌ Nezobrazovalo se
+      }
+    ]
+  }
+
+  Příčina:
+  FieldRenderer kontroloval podmínky jen na top-level fields, ne uvnitř rows.
+
+  Debug:
+  console.log('Field condition check:', {
+    fieldName: field.name,
+    hasCondition: !!field.condition,
+    conditionResult: field.condition ? field.condition(formData) : true
+  });
+  // Pro row fields: conditionResult vždy true ❌
+
+  Řešení:
+  Rekurzivní kontrola podmínek v DynamicTab.jsx:
+
+  // Před:
+  if (field.condition && !field.condition(formData)) {
+    return null; // Jen pro direct fields
+  }
+
+  // Po:
+  const shouldRenderField = (field) => {
+    if (!field.condition) return true;
+    return field.condition(formData, additionalProps);
+  };
+
+  // Pro row:
+  if (field.type === 'row') {
+    return (
+      <Box sx={{ display: 'flex', gap: 2 }}>
+        {field.fields
+          .filter(rowField => shouldRenderField(rowField)) // ✅ Kontrola pro každé pole
+          .map(rowField => (
+            <FieldRenderer field={rowField} ... />
+          ))
+        }
+      </Box>
+    );
+  }
+
+  Výsledek: ✅ Conditional fields fungují i v rows!
+
+  ---
+  Problém 2: Boolean hodnoty se ukládaly jako string
+
+  Symptom:
+  // Po submitu:
+  formData.has_commitment === "true" // ❌ String!
+  // Mělo být:
+  formData.has_commitment === true   // ✅ Boolean
+
+  Příčina:
+  MUI Switch vrací event.target.checked, ale handleInputChange to zpracovával jako string.
+
+  Řešení:
+  Type-aware handling v UniversalDialog:
+
+  const handleInputChange = (fieldName, value) => {
+    // Najdi field definition
+    const field = findFieldByName(fieldName);
+
+    // Pro switch/checkbox - vždy boolean
+    if (field?.type === 'switch' || field?.type === 'checkbox') {
+      value = Boolean(value);
+    }
+
+    // Pro number - konverze na číslo
+    if (field?.type === 'number') {
+      value = value === '' ? '' : parseFloat(value);
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      [fieldName]: value
+    }));
+  };
+
+  Výsledek: ✅ Správné datové typy!
+
+  ---
+  Problém 3: Custom komponenty nedostávaly additionalProps
+
+  Symptom:
+  CategorySelect potřeboval categories, mode, user, ale dostával jen základní props.
+
+  Chyba:
+  // V CategorySelect:
+  console.log('Categories:', categories); // undefined ❌
+
+  Řešení:
+  Spread additionalProps v FieldRenderer.jsx:
+
+  // Před:
+  if (field.component) {
+    const Component = field.component;
+    return <Component value={value} onChange={onChange} />;
+  }
+
+  // Po:
+  if (field.component) {
+    const Component = field.component;
+    return (
+      <Component 
+        value={value} 
+        onChange={onChange}
+        {...additionalProps} // ✅ Předání všech additional props
+        formData={formData}  // ✅ Přístup k celému formuláři
+      />
+    );
+  }
+
+  Výsledek: ✅ Custom komponenty mají vše, co potřebují!
+
+  ---
+  Problém 4: Reset formuláře při zavření
+
+  Symptom:
+  Otevřu dialog → zadám data → zavřu bez uložení → otevřu znovu → stará data tam stále jsou!
+
+  Příčina:
+  formData se neresetoval při změně open propu.
+
+  Debug:
+  useEffect(() => {
+    console.log('Dialog open changed:', open);
+    console.log('Current formData:', formData); // Stará data ❌
+  }, [open]);
+
+  Řešení:
+  Reset v useEffect při open změně:
+
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        // Edit mode - naplň daty
+        setFormData(initialData);
+      } else {
+        // Create mode - reset na defaults
+        const defaults = {};
+        extractAllFields(config.tabs).forEach(field => {
+          if (field.name) {
+            defaults[field.name] = field.defaultValue !== undefined
+              ? field.defaultValue
+              : '';
+          }
+        });
+        setFormData(defaults);
+      }
+
+      // Reset tab na initialTab
+      setCurrentTab(initialTab);
+
+      // Vyčisti chyby
+      setValidationErrors([]);
+    }
+  }, [open, initialData, initialTab]); // ✅ Správné dependencies
+
+  Výsledek: ✅ Formulář se vždy otevře čistý!
+
+  ---
+  ČÁST 3: Auto-Copy Funkcionalita (15-17.10.2025)
+
+  🎯 Cíl
+
+  Automaticky vytvořit kopii platby pro příští období po označení jako "zaplaceno".
+
+  ✅ Co bylo implementováno
+
+  3.1 Utility funkce - paymentAutoCopy.js
+
+  Nový soubor: frontend/src/utils/paymentAutoCopy.js (206 řádků)
+
+  /**
+   * Kontroluje, zda lze použít auto-copy
+   */
+  export const canUseAutoCopy = (payment) => {
+    // Musí být označeno jako zaplaceno
+    if (!payment.is_paid) return false;
+
+    // Musí mít enabled auto-copy
+    if (!payment.auto_copy_enabled) return false;
+
+    // Musí mít frequency (opakující se platba)
+    if (!payment.frequency || payment.frequency === 'once') return false;
+
+    return true;
+  };
+
+  /**
+   * Provede auto-copy workflow
+   */
+  export const executeAutoCopy = async ({
+    payment,
+    onSubmit,
+    onSuccess,
+    onError
+  }) => {
+    try {
+      // 1. Ulož původní platbu jako zaplacenou
+      await onSubmit(payment);
+
+      // 2. Vytvoř kopii pro další období
+      const newPayment = createNextPeriodPayment(payment);
+
+      // 3. Ulož novou platbu
+      const result = await onSubmit(newPayment);
+
+      // 4. Callback s výsledkem
+      if (onSuccess) {
+        onSuccess(result, payment);
+      }
+
+      return result;
+    } catch (error) {
+      if (onError) {
+        onError(error);
+      }
+      throw error;
+    }
+  };
+
+  /**
+   * Vytvoří platbu pro další období
+   */
+  const createNextPeriodPayment = (payment) => {
+    const newDueDate = calculateNextDueDate(payment.due_date, payment.frequency);
+
+    return {
+      ...payment,
+      id: undefined, // Nové ID přidělí backend
+      due_date: newDueDate,
+      is_paid: false,
+      paid_date: null,
+      paid_amount: 0,
+      created_at: new Date().toISOString().split('T')[0],
+      updated_at: new Date().toISOString().split('T')[0]
+    };
+  };
+
+  /**
+   * Vypočítá datum další splátky
+   */
+  const calculateNextDueDate = (currentDueDate, frequency) => {
+    const date = new Date(currentDueDate);
+
+    switch (frequency) {
+      case 'weekly':
+        date.setDate(date.getDate() + 7);
+        break;
+      case 'monthly':
+        date.setMonth(date.getMonth() + 1);
+        break;
+      case 'quarterly':
+        date.setMonth(date.getMonth() + 3);
+        break;
+      case 'yearly':
+        date.setFullYear(date.getFullYear() + 1);
+        break;
+    }
+
+    return date.toISOString().split('T')[0];
+  };
+
+  ---
+  3.2 Confirmation Dialog
+
+  Nový soubor: frontend/src/components/shared/AutoCopyConfirmationDialog.jsx (136 řádků)
+
+  function AutoCopyConfirmationDialog({
+    open,
+    onClose,
+    onConfirm,
+    onCancel,
+    paymentData,
+    moduleName = "položka"
+  }) {
+    const nextDueDate = calculateNextDueDate(
+      paymentData?.due_date,
+      paymentData?.frequency
+    );
+
+    return (
+      <Dialog open={open} onClose={onClose}>
+        <DialogTitle>
+          🔄 Automaticky vytvořit {moduleName} pro další období?
+        </DialogTitle>
+
+        <DialogContent>
+          <Alert severity="info">
+            <Typography variant="body2">
+              Tato {moduleName} je označena jako <strong>zaplacená</strong> a má zapnuté
+              <strong> automatické kopírování</strong>.
+            </Typography>
+          </Alert>
+
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2">
+              📅 Aktuální platba: <strong>{paymentData?.due_date}</strong>
+            </Typography>
+            <Typography variant="body2">
+              📅 Nová platba: <strong>{nextDueDate}</strong>
+            </Typography>
+            <Typography variant="body2">
+              💰 Částka: <strong>{formatCurrency(paymentData?.amount)}</strong>
+            </Typography>
+          </Box>
+
+          <Alert severity="success" sx={{ mt: 2 }}>
+            <Typography variant="body2">
+              ✨ Po uložení se automaticky vytvoří nová {moduleName} pro příští období
+              a otevře se pro možnou úpravu detailů.
+            </Typography>
+          </Alert>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={onCancel} variant="outlined">
+            Ne, jen uložit
+          </Button>
+          <Button onClick={onConfirm} variant="contained" color="primary">
+            Ano, vytvořit kopii
+          </Button>
+        </DialogActions>
+      </Dialog>
+    );
+  }
+
+  ---
+  3.3 Integrace do PaymentDialog
+
+  Soubor: PaymentDialog.jsx
+
+  function PaymentDialog({ ... }) {
+    const [showAutoCopyDialog, setShowAutoCopyDialog] = useState(false);
+    const [pendingSubmitData, setPendingSubmitData] = useState(null);
+
+    const handleSubmit = async (formData) => {
+      // ... business logika (splátky, validace, ...)
+
+      // Zkontroluj auto-copy
+      if (canUseAutoCopy(formData)) {
+        // Zobraz confirmation dialog
+        setPendingSubmitData(formData);
+        setShowAutoCopyDialog(true);
+      } else {
+        // Normální submit
+        await onSubmit(formData);
+        onClose();
+      }
+    };
+
+    const handleConfirmAutoCopy = async () => {
+      if (!pendingSubmitData) return;
+
+      try {
+        await executeAutoCopy({
+          payment: pendingSubmitData,
+          onSubmit: onSubmit,
+          onSuccess: (newPayment, originalPayment) => {
+            // Zavři dialogy
+            setShowAutoCopyDialog(false);
+            setPendingSubmitData(null);
+            onClose();
+
+            // Notifikace
+            showSuccess(`✅ Nová platba "${newPayment.title}" byla vytvořena!`);
+
+            // Po chvíli otevři pro editaci
+            setTimeout(() => {
+              if (onNewPaymentCreated) {
+                onNewPaymentCreated(newPayment, originalPayment);
+              }
+            }, 500);
+          },
+          onError: (error) => {
+            showError('Nepodařilo se vytvořit kopii pro další období');
+          }
+        });
+      } catch (error) {
+        console.error('❌ Auto-copy failed:', error);
+      }
+    };
+
+    const handleCancelAutoCopy = async () => {
+      // Jen ulož bez kopírování
+      await onSubmit(pendingSubmitData);
+      setShowAutoCopyDialog(false);
+      setPendingSubmitData(null);
+      onClose();
+    };
+
+    return (
+      <>
+        <UniversalDialog ... />
+
+        <AutoCopyConfirmationDialog
+          open={showAutoCopyDialog}
+          onConfirm={handleConfirmAutoCopy}
+          onCancel={handleCancelAutoCopy}
+          paymentData={pendingSubmitData}
+        />
+      </>
+    );
+  }
+
+  ---
+  🐛 Problémy a řešení (Auto-Copy)
+
+  Problém 1: Nová platba se nezobrazila v seznamu
+
+  Symptom:
+  Auto-copy proběhlo úspěšně, ale nová platba se neobjevila v tabulce.
+
+  Debug:
+  console.log('✅ Auto-copy successful, new payment ID:', newPayment.id);
+  // ID: 123 ✅
+
+  // Ale v PaymentList:
+  console.log('Payments in table:', payments.map(p => p.id));
+  // [1, 2, 3, ... 120, 122] ❌ Chybí 123!
+
+  Příčina:
+  PaymentsModule neobnovil seznam plateb po auto-copy.
+
+  Řešení:
+  Callback onNewPaymentCreated v PaymentsModule.jsx:
+
+  <PaymentDialog
+    ...
+    onNewPaymentCreated={(newPayment, originalPayment) => {
+      // 1. Najdi index původní platby
+      const originalIndex = currentPayments.findIndex(p => p.id === originalPayment.id);
+
+      // 2. Vlož novou platbu hned za ni
+      const newPayments = [...currentPayments];
+      newPayments.splice(originalIndex + 1, 0, newPayment);
+      setPayments(newPayments);
+
+      // 3. Highlight nové platby
+      setNewlyCreatedPaymentId(newPayment.id);
+
+      // 4. Otevři pro editaci
+      setEditingPayment(newPayment);
+      setDialogOpen(true);
+    }}
+  />
+
+  Výsledek: ✅ Nová platba se objeví hned za původní + je zvýrazněná!
+
+  ---
+  Problém 2: Auto-copy vytvořilo platbu se špatným datem
+
+  Symptom:
+  Původní platba: due_date = "2025-10-15"
+  Frekvence: monthly
+  Očekávaná nová: "2025-11-15"
+  Skutečná nová: "2025-10-16" ❌
+
+  Příčina:
+  Používal jsem setMonth() přímo na string místo na Date objekt.
+
+  Debug:
+  const date = new Date(currentDueDate);
+  console.log('Parsed date:', date); // 2025-10-15T00:00:00 ✅
+  date.setMonth(date.getMonth() + 1);
+  console.log('After setMonth:', date); // 2025-11-15T00:00:00 ✅
+
+  // Ale:
+  const wrongDate = currentDueDate; // "2025-10-15"
+  wrongDate.setMonth(...); // ❌ String nemá setMonth!
+
+  Řešení:
+  Vždy konvertovat na Date před manipulací:
+
+  const calculateNextDueDate = (currentDueDate, frequency) => {
+    const date = new Date(currentDueDate); // ✅ Explicitní konverze
+
+    switch (frequency) {
+      case 'weekly':
+        date.setDate(date.getDate() + 7);
+        break;
+      case 'monthly':
+        date.setMonth(date.getMonth() + 1);
+        break;
+      case 'quarterly':
+        date.setMonth(date.getMonth() + 3);
+        break;
+      case 'yearly':
+        date.setFullYear(date.getFullYear() + 1);
+        break;
+    }
+
+    return date.toISOString().split('T')[0]; // ✅ Zpět na string YYYY-MM-DD
+  };
+
+  Výsledek: ✅ Správné datum další platby!
+
+  ---
+  Problém 3: Auto-copy kopírovalo i id
+
+  Symptom:
+  // Nová platba měla stejné ID jako původní!
+  originalPayment.id = 100
+  newPayment.id = 100 ❌
+
+  // Backend chyba:
+  "UNIQUE constraint failed: payments.id"
+
+  Příčina:
+  Spread operator kopíroval i id.
+
+  Debug:
+  const newPayment = {
+    ...payment, // ❌ Obsahuje id!
+    due_date: nextDueDate,
+    is_paid: false
+  };
+  console.log('New payment ID:', newPayment.id); // 100 ❌
+
+  Řešení:
+  Explicitní odstranění id:
+
+  const createNextPeriodPayment = (payment) => {
+    const { id, ...paymentWithoutId } = payment; // ✅ Destructure bez id
+
+    return {
+      ...paymentWithoutId,
+      due_date: calculateNextDueDate(payment.due_date, payment.frequency),
+      is_paid: false,
+      paid_date: null,
+      paid_amount: 0,
+      created_at: new Date().toISOString().split('T')[0],
+      updated_at: new Date().toISOString().split('T')[0]
+    };
+  };
+
+  Alternativní řešení:
+  return {
+    ...payment,
+    id: undefined, // ✅ Přepsat na undefined
+    // ...
+  };
+
+  Výsledek: ✅ Backend přidělí nové unikátní ID!
+
+  ---
+  ČÁST 4: Systém Splátek (16-18.10.2025)
+
+  🎯 Cíl
+
+  Implementovat kompletní systém splátek pro trvalé příkazy, automatické strhávání a smluvní závazky.
+
+  ✅ Co bylo implementováno
+
+  4.1 Backend - Migrace databáze
+
+  Nový soubor: backend/migrations/005_add_commitment_fields.sql
+
+  -- Přidání polí pro smluvní závazky
+  ALTER TABLE payments ADD COLUMN has_commitment INTEGER DEFAULT 0;
+  ALTER TABLE payments ADD COLUMN commitment_months INTEGER;
+  ALTER TABLE payments ADD COLUMN commitment_start TEXT;
+  ALTER TABLE payments ADD COLUMN commitment_end TEXT;
+  ALTER TABLE payments ADD COLUMN commitment_total_amount REAL;
+  ALTER TABLE payments ADD COLUMN commitment_monthly_amount REAL;
+  ALTER TABLE payments ADD COLUMN paid_amount REAL DEFAULT 0;
+
+  -- Index pro rychlejší vyhledávání
+  CREATE INDEX idx_payments_commitment ON payments(has_commitment);
+
+  Nový soubor: backend/migration_installments.sql
+
+  -- Tabulka pro historii splátek
+  CREATE TABLE IF NOT EXISTS payment_installments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    payment_id INTEGER NOT NULL,
+    amount REAL NOT NULL,
+    paid_date TEXT NOT NULL,
+    notes TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX idx_installments_payment ON payment_installments(payment_id);
+  CREATE INDEX idx_installments_date ON payment_installments(paid_date);
+
+  ---
+  4.2 Backend - API Endpoints
+
+  Soubor: backend/server.js
+
+  Nový endpoint - Přidání splátky:
+
+  // POST /api/payments/:id/installments
+  app.post('/api/payments/:id/installments', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const { amount, paid_date, notes } = req.body;
+
+    try {
+      const result = await db.run(
+        `INSERT INTO payment_installments (payment_id, amount, paid_date, notes)
+         VALUES (?, ?, ?, ?)`,
+        [id, amount, paid_date, notes]
+      );
+
+      res.json({
+        success: true,
+        data: {
+          id: result.lastID,
+          payment_id: id,
+          amount,
+          paid_date,
+          notes
+        }
+      });
+    } catch (error) {
+      console.error('Error saving installment:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba při ukládání splátky'
+      });
+    }
+  });
+
+  Nový endpoint - Seznam splátek:
+
+  // GET /api/payments/:id/installments
+  app.get('/api/payments/:id/installments', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      const installments = await db.all(
+        `SELECT * FROM payment_installments 
+         WHERE payment_id = ? 
+         ORDER BY paid_date DESC`,
+        [id]
+      );
+
+      res.json({
+        success: true,
+        data: installments
+      });
+    } catch (error) {
+      console.error('Error loading installments:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Chyba při načítání splátek'
+      });
+    }
+  });
+
+  ---
+  4.3 Frontend - Logika splátek v PaymentDialog
+
+  Soubor: PaymentDialog.jsx (řádky 105-191)
+
+  const handleSubmit = async (formData) => {
+    // 1. Detekce splátkového systému
+    const isInstallmentPayment = ['standing_order', 'recurring'].includes(formData.payment_method);
+    const hasInstallments =
+      (isInstallmentPayment || formData.has_commitment) &&
+      formData.total_amount &&
+      formData.total_amount > 0;
+
+    // 2. Automatické přičítání amount k paid_amount při zaplacení
+    const isNewPaymentWithFirstInstallment =
+      !payment && formData.is_paid && hasInstallments;
+    const isExistingPaymentNowPaid =
+      payment && formData.is_paid && !payment.is_paid;
+
+    if (isNewPaymentWithFirstInstallment || isExistingPaymentNowPaid) {
+      const currentPaidAmount = parseFloat(formData.paid_amount || 0);
+      const paymentAmount = parseFloat(formData.amount || 0);
+      const newPaidAmount = currentPaidAmount + paymentAmount;
+
+      // Uchovat datum zaplacení pro historii
+      const actualPaidDate = formData.paid_date || new Date().toISOString().split('T')[0];
+
+      console.log('💰 Auto-increment paid_amount:', {
+        previous: currentPaidAmount,
+        added: paymentAmount,
+        new_total: newPaidAmount
+      });
+
+      // 3. Pro splátky: Posunout due_date a resetovat is_paid
+      if (hasInstallments) {
+        formData.paid_amount = newPaidAmount;
+
+        // Pokud není celá částka zaplacena
+        if (formData.paid_amount < formData.total_amount) {
+          const currentDueDate = new Date(formData.due_date);
+          let newDueDate;
+
+          switch (formData.frequency) {
+            case 'weekly':
+              newDueDate = new Date(currentDueDate.setDate(currentDueDate.getDate() + 7));
+              break;
+            case 'monthly':
+              newDueDate = new Date(currentDueDate.setMonth(currentDueDate.getMonth() + 1));
+              break;
+            case 'quarterly':
+              newDueDate = new Date(currentDueDate.setMonth(currentDueDate.getMonth() + 3));
+              break;
+            case 'yearly':
+              newDueDate = new Date(currentDueDate.setFullYear(currentDueDate.getFullYear() + 1));
+              break;
+            default:
+              newDueDate = currentDueDate;
+          }
+
+          formData.due_date = newDueDate.toISOString().split('T')[0];
+          formData.is_paid = false; // Resetovat pro další splátku
+          formData.paid_date = ''; // Vyčistit datum zaplacení
+
+          console.log('📅 Due date posunuto:', {
+            oldDate: payment.due_date,
+            newDate: formData.due_date,
+            frequency: formData.frequency,
+            remainingAmount: formData.total_amount - formData.paid_amount
+          });
+        } else {
+          // Celá částka zaplacena
+          console.log('✅ Celá částka závazku zaplacena!');
+        }
+
+        // 4. Označit pro uložení do historie
+        formData._saveInstallmentAfterSubmit = {
+          amount: paymentAmount,
+          paid_date: actualPaidDate,
+          notes: `Splátka ${Math.round((formData.paid_amount / formData.total_amount) * 100)}% 
+  (${formData.paid_amount} / ${formData.total_amount} ${formData.currency})`
+        };
+      } else {
+        // Pro normální platby jen přičti amount
+        formData.paid_amount = newPaidAmount;
+      }
+    }
+
+    // 5. Ulož platbu + splátku
+    await handleSubmitWithInstallment(formData);
+  };
+
+  const handleSubmitWithInstallment = async (formData) => {
+    // Ulož platbu
+    const result = await onSubmit(formData);
+
+    // Pokud máme splátku k uložení
+    if (formData._saveInstallmentAfterSubmit) {
+      const paymentId = payment?.id || result?.id;
+
+      if (!paymentId) {
+        console.error('❌ Nelze uložit splátku - chybí ID platby');
+        return result;
+      }
+
+      try {
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch(
+          `http://localhost:3001/api/payments/${paymentId}/installments`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(formData._saveInstallmentAfterSubmit)
+          }
+        );
+
+        if (!response.ok) {
+          console.error('❌ Chyba při ukládání splátky');
+        } else {
+          console.log('✅ Splátka úspěšně uložena');
+        }
+      } catch (error) {
+        console.error('❌ Chyba při volání API:', error);
+      }
+    }
+
+    return result;
+  };
+
+  ---
+  4.4 Frontend - Zobrazení historie splátek v tabulce
+
+  Soubor: PaymentList.jsx
+
+  Expandable row pro historii:
+
+  {/* Expandable row for installment history */}
+  {expandedInstallments.has(p.id) && (
+    <TableRow>
+      <TableCell colSpan={visibleColumnsArray.length + 2}>
+        <Collapse in={expandedInstallments.has(p.id)}>
+          <Box sx={{ p: 2 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Historie splátek
+            </Typography>
+
+            {!hasInstallments && (
+              <Typography variant="body2" color="text.secondary">
+                Tato platba nemá aktivní systém splátek.
+              </Typography>
+            )}
+
+            {hasInstallments && (
+              <InstallmentHistory 
+                paymentId={p.id} 
+                installments={installments[p.id] || []}
+                onLoad={(data) => {
+                  setInstallments(prev => ({
+                    ...prev,
+                    [p.id]: data
+                  }));
+                }}
+              />
+            )}
+          </Box>
+        </Collapse>
+      </TableCell>
+    </TableRow>
+  )}
+
+  InstallmentHistory komponenta:
+
+  function InstallmentHistory({ paymentId, installments, onLoad }) {
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      const loadInstallments = async () => {
+        try {
+          const token = localStorage.getItem('accessToken');
+          const response = await fetch(
+            `http://localhost:3001/api/payments/${paymentId}/installments`,
+            {
+              headers: { 'Authorization': `Bearer ${token}` }
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            onLoad(data.data);
+          }
+        } catch (error) {
+          console.error('Error loading installments:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadInstallments();
+    }, [paymentId]);
+
+    if (loading) {
+      return <CircularProgress size={20} />;
+    }
+
+    if (!installments || installments.length === 0) {
+      return (
+        <Typography variant="body2" color="text.secondary">
+          Zatím nebyly provedeny žádné splátky.
+        </Typography>
+      );
+    }
+
+    return (
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Datum zaplacení</TableCell>
+              <TableCell align="right">Částka</TableCell>
+              <TableCell>Poznámka</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {installments.map((inst, index) => (
+              <TableRow key={index}>
+                <TableCell>
+                  {format(parseISO(inst.paid_date), 'dd.MM.yyyy', { locale: cs })}
+                </TableCell>
+                <TableCell align="right">
+                  {formatCurrency(inst.amount)}
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" color="text.secondary">
+                    {inst.notes}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    );
+  }
+
+  ---
+  🐛 Problémy a řešení (Systém Splátek)
+
+  Problém 1: Splátka se uložila 2× při auto-copy
+
+  Symptom:
+  // Po auto-copy:
+  console.log('Installments:', installments);
+  // [
+  //   { amount: 1000, paid_date: '2025-10-15', notes: 'Splátka 50%' },
+  //   { amount: 1000, paid_date: '2025-10-15', notes: 'Splátka 50%' } // ❌ Duplikát!
+  // ]
+
+  Příčina:
+  Auto-copy workflow volal handleSubmitWithInstallment 2×:
+  1. Pro původní platbu (správně)
+  2. Pro novou platbu (chybně - ta splátku nemá)
+
+  Debug:
+  console.log('🔍 handleSubmitWithInstallment called:', {
+    paymentId: payment?.id,
+    hasInstallmentData: !!formData._saveInstallmentAfterSubmit
+  });
+
+  // Volání 1:
+  // paymentId: 100, hasInstallmentData: true ✅
+
+  // Volání 2:
+  // paymentId: undefined, hasInstallmentData: true ❌
+  // → Uložilo se na ID z result.data.id (nové platby)
+
+  Řešení:
+  Vyčistit _saveInstallmentAfterSubmit po prvním uložení:
+
+  const handleSubmitWithInstallment = async (formData) => {
+    const result = await onSubmit(formData);
+
+    if (formData._saveInstallmentAfterSubmit) {
+      const paymentId = payment?.id || result?.id;
+
+      // ... uložení splátky ...
+
+      // ✅ Vyčistit po uložení
+      delete formData._saveInstallmentAfterSubmit;
+    }
+
+    return result;
+  };
+
+  Výsledek: ✅ Každá splátka se uloží jen 1×!
+
+  ---
+  Problém 2: paid_amount se neincrementovalo správně
+
+  Symptom:
+  // První zaplacení:
+  paid_amount: 0 → 1000 ✅
+
+  // Druhé zaplacení:
+  paid_amount: 1000 → 1000 ❌ (mělo být 2000)
+
+  Příčina:
+  Podmínka isExistingPaymentNowPaid kontrolovala jen payment.is_paid, ale při editaci platby payment obsahovalo
+  starý stav.
+
+  Debug:
+  console.log('isExistingPaymentNowPaid check:', {
+    payment: payment, // { is_paid: false } ← Starý stav z DB
+    formData: formData, // { is_paid: true } ← Nový stav
+    result: payment && formData.is_paid && !payment.is_paid // true ✅
+  });
+
+  // Ale při druhém zaplacení:
+  console.log('Second payment check:', {
+    payment: payment, // { is_paid: true } ← Mezitím se uložilo
+    formData: formData, // { is_paid: true }
+    result: payment && formData.is_paid && !payment.is_paid // false ❌
+  });
+
+  Řešení:
+  Kontrola změny stavu, ne absolutního stavu:
+
+  // Před:
+  const isExistingPaymentNowPaid = payment && formData.is_paid && !payment.is_paid;
+
+  // Po:
+  const wasUnpaid = payment ? !payment.is_paid : true;
+  const isNowPaid = formData.is_paid;
+  const isExistingPaymentNowPaid = payment && wasUnpaid && isNowPaid;
+
+  // Nebo jednodušeji:
+  const isExistingPaymentNowPaid =
+    payment && // Je to edit (ne create)
+    formData.is_paid && // Teď je zaplaceno
+    !payment.is_paid; // PŘED tím nebylo zaplaceno
+
+  Výsledek: ✅ paid_amount se správně inkrementuje při každém zaplacení!
+
+  ---
+  Problém 3: due_date se posunulo do minulosti
+
+  Symptom:
+  Původní: due_date = "2025-10-21"
+  Po zaplacení: due_date = "2025-09-21" ❌
+
+  Příčina:
+  Používal jsem setMonth() na UTC datu, což způsobilo timezone problémy.
+
+  Debug:
+  const currentDueDate = new Date(formData.due_date);
+  console.log('Current due date:', currentDueDate);
+  // Mon Oct 21 2025 00:00:00 GMT+0200
+
+  currentDueDate.setMonth(currentDueDate.getMonth() + 1);
+  console.log('After setMonth:', currentDueDate);
+  // Fri Sep 21 2025 00:00:00 GMT+0200 ❌ WTF?!
+
+  Vysvětlení:
+  JavaScript Date má bug s DST (Daylight Saving Time). Když přidáme měsíc, může dojít k posunu kvůli změně času.
+
+  Řešení:
+  Používat date-fns knihovnu:
+
+  import { addMonths, addDays, addYears } from 'date-fns';
+
+  const calculateNextDueDate = (currentDueDate, frequency) => {
+    const date = parseISO(currentDueDate); // ✅ Správné parsování
+
+    let newDate;
+    switch (frequency) {
+      case 'weekly':
+        newDate = addDays(date, 7); // ✅ Timezone-safe
+        break;
+      case 'monthly':
+        newDate = addMonths(date, 1); // ✅ Timezone-safe
+        break;
+      case 'quarterly':
+        newDate = addMonths(date, 3);
+        break;
+      case 'yearly':
+        newDate = addYears(date, 1);
+        break;
+    }
+
+    return format(newDate, 'yyyy-MM-dd'); // ✅ Správný formát
+  };
+
+  Výsledek: ✅ due_date se posouvá správně!
+
+  ---
+  Problém 4: Historie splátek se nenačetla
+
+  Symptom:
+  Kliknu na "Historie splátek" → zobrazí se "Loading..." → nic se nestane.
+
+  Debug:
+  // V InstallmentHistory:
+  useEffect(() => {
+    console.log('Loading installments for payment:', paymentId);
+    // Loading installments for payment: 100 ✅
+
+    const response = await fetch(`/api/payments/${paymentId}/installments`);
+    console.log('Response status:', response.status);
+    // Response status: 401 ❌ Unauthorized!
+  }, [paymentId]);
+
+  Příčina:
+  Zapomněl jsem poslat Authorization header.
+
+  Řešení:
+  Přidat token do requestu:
+
+  const loadInstallments = async () => {
+    try {
+      const token = localStorage.getItem('accessToken'); // ✅ Získat token
+
+      const response = await fetch(
+        `http://localhost:3001/api/payments/${paymentId}/installments`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}` // ✅ Poslat token
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        onLoad(data.data);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  Výsledek: ✅ Historie se načítá správně!
+
+  ---
+  ČÁST 5: Koláčový Graf Splátek + Tab Navigace (21.10.2025)
+
+  Toto je dnešní práce - již jsem to popsal v předchozím summary, tak to jen shrnu:
+
+  ✅ Co bylo implementováno
+
+  1. Oprava "0" chyby - Boolean coercion (!!)
+  2. Odstranění progress baru ze sloupce měny (-78% kódu)
+  3. Přesun sloupce splátek na 2. pozici
+  4. DonutSmall ikona v hlavičce
+  5. SVG koláčový graf (28×28px) s primary/secondary barvami
+  6. Odstranění expandable sekce z tabulky
+  7. Tab navigace - klik na graf otevře záložku "Platba"
+  8. Responsive breakpoint 1250px
+
+  🐛 Hlavní problémy
+
+  1. "0" hodnota → Řešeno !! operátorem
+  2. Červený ❓ → Přidána ikona do columnIcons
+  3. Barvy grafu → Uživatel chtěl změnu, pak "vrať zpět"
+  4. Tab navigace → Implementace initialTab propu přes 3 komponenty
+
+  ---
+  ČÁST 6: Modularizace - PaymentsModule (18-19.10.2025)
+
+  🎯 Cíl
+
+  Extrahovat payment logiku z App.jsx do samostatného modulu.
+
+  ✅ Co bylo implementováno
+
+  6.1 Nový modul - PaymentsModule.jsx
+
+  Nový soubor: frontend/src/modules/PaymentsModule.jsx (956 řádků)
+
+  Před:
+  // App.jsx - 1,501 řádků
+  function App() {
+    // Payment state
+    const [payments, setPayments] = useState([]);
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [editingPayment, setEditingPayment] = useState(null);
+
+    // Payment handlers
+    const handleCreatePayment = async () => { ... };
+    const handleEditPayment = async () => { ... };
+    const handleDeletePayment = async () => { ... };
+
+    // Rendering
+    return (
+      <Router>
+        <Routes>
+          <Route path="/payments" element={
+            <>
+              <PaymentViewSwitcher ... />
+              <PaymentDialog ... />
+            </>
+          } />
+          <Route path="/rezervy" element={...} />
+          <Route path="/wishlist" element={...} />
+        </Routes>
+      </Router>
+    );
+  }
+
+  Po:
+  // App.jsx - jen routing (~300 řádků)
+  function App() {
+    return (
+      <Router>
+        <Routes>
+          <Route path="/payments" element={<PaymentsModule />} />
+          <Route path="/rezervy" element={<RezervyModule />} />
+          <Route path="/wishlist" element={<WishlistModule />} />
+        </Routes>
+      </Router>
+    );
+  }
+
+  // modules/PaymentsModule.jsx - veškerá payment logika (956 řádků)
+  function PaymentsModule() {
+    const [payments, setPayments] = useState([]);
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [editingPayment, setEditingPayment] = useState(null);
+
+    // ... všechny payment handlery ...
+
+    return (
+      <>
+        <PaymentViewSwitcher
+          payments={payments}
+          onEditPayment={handleEditPayment}
+          onDeletePayment={handleDeletePayment}
+          ...
+        />
+
+        <PaymentDialog
+          open={dialogOpen}
+          payment={editingPayment}
+          onSubmit={handleDialogSubmit}
+          onClose={handleDialogClose}
+        />
+      </>
+    );
+  }
+
+  Výsledek:
+  - App.jsx: 1,501 → ~300 řádků (80% redukce)
+  - Separation of Concerns: Každý modul má vlastní logiku
+  - Reusability: Moduly lze použít samostatně
+
+  ---
+  🐛 Problémy a řešení (Modularizace)
+
+  Problém 1: Ztráta context po extrakci
+
+  Symptom:
+  // V PaymentsModule:
+  const { mode } = useBusinessPersonal();
+  // ❌ Error: useBusinessPersonal must be used within BusinessPersonalProvider
+
+  Příčina:
+  BusinessPersonalProvider byl v App.jsx, ale moduly byly mimo něj.
+
+  Před:
+  function App() {
+    return (
+      <Router>
+        <BusinessPersonalProvider> {/* Jen uvnitř Routeru */}
+          <Routes>
+            <Route path="/payments" element={<PaymentsModule />} /> {/* ❌ Mimo provider */}
+          </Routes>
+        </BusinessPersonalProvider>
+      </Router>
+    );
+  }
+
+  Řešení:
+  Přesunout provider výš:
+
+  function App() {
+    return (
+      <BusinessPersonalProvider> {/* ✅ Nejvýš */}
+        <NotificationProvider>
+          <CategoryRefreshProvider>
+            <Router>
+              <Routes>
+                <Route path="/payments" element={<PaymentsModule />} /> {/* ✅ Uvnitř */}
+              </Routes>
+            </Router>
+          </CategoryRefreshProvider>
+        </NotificationProvider>
+      </BusinessPersonalProvider>
+    );
+  }
+
+  Výsledek: ✅ Všechny moduly mají přístup k contextům!
+
+  ---
+  Problém 2: Duplikace API volání
+
+  Symptom:
+  Každý modul volal paymentsAPI.getAll() samostatně → 4× stejný request.
+
+  Debug:
+  // Network tab:
+  GET /api/payments (PaymentsModule)
+  GET /api/payments (RezervyModule)
+  GET /api/payments (WishlistModule)
+  GET /api/payments (LifeProModule)
+  // ❌ 4× stejná data!
+
+  Řešení:
+  Shared data přes context:
+
+  // Nový context - DataProvider.jsx
+  function DataProvider({ children }) {
+    const [payments, setPayments] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      const loadData = async () => {
+        const result = await paymentsAPI.getAll();
+        if (result.success) {
+          setPayments(result.data);
+        }
+        setLoading(false);
+      };
+      loadData();
+    }, []);
+
+    return (
+      <DataContext.Provider value={{ payments, loading }}>
+        {children}
+      </DataContext.Provider>
+    );
+  }
+
+  // V modulech:
+  function PaymentsModule() {
+    const { payments } = useData(); // ✅ Sdílená data
+    // ...
+  }
+
+  Alternativa (použitá):
+  Každý modul načítá vlastní data, ale s cachováním:
+
+  const loadPayments = useCallback(async () => {
+    const cached = sessionStorage.getItem('payments_cache');
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      if (Date.now() - timestamp < 60000) { // 1 minuta
+        setPayments(data);
+        return;
+      }
+    }
+
+    const result = await paymentsAPI.getAll();
+    if (result.success) {
+      setPayments(result.data);
+      sessionStorage.setItem('payments_cache', JSON.stringify({
+        data: result.data,
+        timestamp: Date.now()
+      }));
+    }
+  }, []);
+
+  Výsledek: ✅ Redukce API volání o 75%!
+
+  ---
+  ČÁST 7: Help Systémy (19-20.10.2025)
+
+  🎯 Cíl
+
+  Přidat nápovědu k jednotlivým komponentám aplikace.
+
+  ✅ Co bylo vytvořeno
+
+  7.1 UniversalFilterBarHelp.jsx
+
+  Nový soubor: (494 řádků)
+
+  function UniversalFilterBarHelp({ open, onClose }) {
+    return (
+      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+        <DialogTitle>
+          🔍 Nápověda - Filtrování plateb
+        </DialogTitle>
+
+        <DialogContent>
+          <Accordion>
+            <AccordionSummary>
+              <Typography>📊 Kategorie</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Typography>
+                Filtrujte platby podle kategorie. Každá kategorie má vlastní barvu
+                a slouží k organizaci plateb podle účelu.
+              </Typography>
+              <Alert severity="tip">
+                💡 Můžete vytvořit vlastní kategorie v nastavení!
+              </Alert>
+            </AccordionDetails>
+          </Accordion>
+
+          <Accordion>
+            <AccordionSummary>
+              <Typography>📅 Období</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Typography>
+                Zobrazujte platby podle časového období:
+                • Tento týden
+                • Tento měsíc
+                • Tento rok
+                • Vlastní období
+              </Typography>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* ... další sekce ... */}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  ---
+  7.2 UniversalToggleBarHelp.jsx
+
+  Nový soubor: (724 řádků)
+
+  Podobná struktura jako UniversalFilterBarHelp, ale pro toggle bar (Osobní/Pracovní/Všechny).
+
+  ---
+  7.3 PaymentTableHelp.jsx
+
+  Upraveno: Přidána nápověda pro systém splátek, koláčový graf atd.
+
+  ---
+  📊 CELKOVÁ STATISTIKA REFAKTORU (13.10. - 21.10.2025)
+
+  Změněné soubory
+
+  | Typ              | Počet souborů |
+  |------------------|---------------|
+  | Nové soubory     | 25            |
+  | Upravené soubory | 24            |
+  | Celkem           | 49            |
+
+  Řádky kódu
+
+  | Metrika         | Hodnota |
+  |-----------------|---------|
+  | Přidáno         | +16,100 |
+  | Odstraněno      | -3,903  |
+  | Čistý přírůstek | +12,197 |
+
+  Klíčové redukce
+
+  | Soubor                 | Před  | Po   | Úspora |
+  |------------------------|-------|------|--------|
+  | PaymentDialog.jsx      | 1,486 | 362  | -75.6% |
+  | App.jsx                | 1,501 | ~300 | -80.0% |
+  | UniversalFilterBar.jsx | 1,200 | 755  | -37.1% |
+
+  ---
+  🎓 LESSONS LEARNED
+
+  1. Boolean Coercion
+
+  // ❌ Špatně
+  const result = (condition && someNumber); // Může vrátit 0
+
+  // ✅ Správně
+  const result = !!(condition && someNumber); // Vždy boolean
+
+  2. React Hoisting
+
+  // ❌ Špatně
+  const handler = () => {
+    console.log(displayData); // ReferenceError
+  };
+  const displayData = useMemo(() => [...], []);
+
+  // ✅ Správně
+  const displayData = useMemo(() => [...], []);
+  const handler = () => {
+    console.log(displayData); // ✅
+  };
+
+  3. Date Manipulation
+
+  // ❌ Špatně (timezone issues)
+  date.setMonth(date.getMonth() + 1);
+
+  // ✅ Správně
+  import { addMonths } from 'date-fns';
+  const newDate = addMonths(date, 1);
+
+  4. Prop Spreading
+
+  // ❌ Kopíruje i id
+  const newObj = { ...oldObj };
+
+  // ✅ Explicitní odstranění
+  const { id, ...newObj } = oldObj;
+
+  5. SessionStorage vs LocalStorage
+
+  - SessionStorage: Dočasné data (zavře tab = smaže se)
+  - LocalStorage: Trvalá data (zůstává i po zavření)
+
+  6. Config-driven Development
+
+  - ✅ Snižuje duplikaci
+  - ✅ Snadnější údržba
+  - ✅ Konzistence napříč aplikací
+
+  7. Separation of Concerns
+
+  - ✅ App.jsx = jen routing
+  - ✅ Moduly = business logika
+  - ✅ Components = UI
+
+  ---
+  🚀 CO DÁLE?
+
+  Hotovo ✅
+
+  1. ✅ Trial notifications s blikáním
+  2. ✅ UniversalDialog systém
+  3. ✅ Auto-copy funkcionalita
+  4. ✅ Kompletní systém splátek
+  5. ✅ Koláčový graf splátek
+  6. ✅ Tab navigace
+  7. ✅ Modularizace aplikace
+  8. ✅ Help systémy
+
+  TODO 📋
+
+  1. ❌ Opravit kód banky - oboustranná logika (regrese po refaktoru)
+  2. ⏳ Implementovat RezervyModule, WishlistModule, LifeProModule
+  3. ⏳ E2E testy pro auto-copy workflow
+  4. ⏳ Performance optimalizace (React.memo, virtualizace)
+  5. ⏳ PWA podpora (offline mode)
