@@ -337,7 +337,7 @@ const CoachLogin = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       disabled={loading}
-                      autoComplete="current-password"
+                      inputProps={{ autoComplete: 'current-password' }}
                       sx={{
                         mb: 3,
                         '& .MuiOutlinedInput-root': {

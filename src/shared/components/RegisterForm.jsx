@@ -226,6 +226,7 @@ const RegisterForm = ({ onSuccess, userType = 'coach', redirectTo = '/coach/dash
           onChange={(e) => setPassword(e.target.value)}
           disabled={loading}
           helperText="Minimálně 6 znaků"
+          inputProps={{ autoComplete: 'new-password' }}
           sx={{
             mb: 2,
             '& .MuiOutlinedInput-root': {
@@ -241,6 +242,7 @@ const RegisterForm = ({ onSuccess, userType = 'coach', redirectTo = '/coach/dash
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           disabled={loading}
+          inputProps={{ autoComplete: 'new-password' }}
           sx={{
             mb: 2,
             '& .MuiOutlinedInput-root': {
