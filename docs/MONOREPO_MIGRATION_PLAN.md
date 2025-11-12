@@ -9,13 +9,13 @@
 ## 📋 EXECUTIVE SUMMARY
 
 ### Current State
-- **4 separate projects:** CoachPro, PaymentsPro, DigiPro, LifePro
+- **5 separate projects:** CoachPro, PaymentsPro, DigiPro, LifePro, ContentPro
 - **3 tech stacks:** React+Vite, React+Vite+Express, Next.js
 - **3 databases:** Supabase (CoachPro), SQLite (PaymentsPro), SQLite (DigiPro)
 - **Duplication:** ~85% code duplication in UI, auth, utils
 
 ### Target State
-- **1 monorepo:** `pro-app` with 5 apps (ProApp + 4 modules)
+- **1 monorepo:** `pro-app` with 6 apps (ProApp + 5 modules)
 - **1 tech stack:** React + Vite + Supabase (unified)
 - **1 database:** Shared Supabase PostgreSQL
 - **Shared packages:** 73-85% code reduction via `@pro/*` packages
@@ -78,12 +78,22 @@ pro-app/                              # Turborepo monorepo
 │   │   │   └── App.jsx
 │   │   └── package.json
 │   │
-│   └── lifepro/                      # MODULE 4 (change from Next.js)
-│       ├── src/                      # React + Vite (NOT Next.js!)
+│   ├── lifepro/                      # MODULE 4 (change from Next.js)
+│   │   ├── src/                      # React + Vite (NOT Next.js!)
+│   │   │   ├── pages/
+│   │   │   │   ├── Questionnaire/
+│   │   │   │   ├── Results/
+│   │   │   │   └── AIAnalysis/
+│   │   │   └── App.jsx
+│   │   └── package.json
+│   │
+│   └── contentpro/                   # MODULE 5 (NEW! - Social Media Management)
+│       ├── src/                      # React + Vite
 │       │   ├── pages/
-│       │   │   ├── Questionnaire/
-│       │   │   ├── Results/
-│       │   │   └── AIAnalysis/
+│       │   │   ├── ContentCalendar/  # Visual calendar for scheduled posts
+│       │   │   ├── PostComposer/     # Multi-platform post editor
+│       │   │   ├── Analytics/        # Social media insights
+│       │   │   └── MediaLibrary/     # Asset management
 │       │   └── App.jsx
 │       └── package.json
 │
@@ -139,8 +149,13 @@ pro-app/                              # Turborepo monorepo
 │   │   │   └── stripe.js            # From PaymentsPro + ProApp subscriptions
 │   │   ├── courses/
 │   │   │   └── kajabi.js
+│   │   ├── social/                  # ⭐ NEW - For ContentPro
+│   │   │   ├── meta.js              # Facebook + Instagram Graph API
+│   │   │   ├── linkedin.js          # LinkedIn API
+│   │   │   ├── twitter.js           # X (Twitter) API
+│   │   │   └── youtube.js           # YouTube Data API
 │   │   └── ai/
-│   │       └── claude.js            # For LifePro AI analysis
+│   │       └── claude.js            # For LifePro AI analysis + ContentPro text generation
 │   │
 │   ├── @pro/notifications/           # Toast + Email
 │   │   ├── NotificationContext.jsx  # From CoachPro (toast)
@@ -159,11 +174,14 @@ pro-app/                              # Turborepo monorepo
 │   │   ├── 002_coachpro.sql        # CoachPro tables (existing)
 │   │   ├── 003_paymentspro.sql     # PaymentsPro (migrate from SQLite)
 │   │   ├── 004_digipro.sql         # DigiPro (migrate from SQLite)
-│   │   └── 005_lifepro.sql         # LifePro tables
+│   │   ├── 005_lifepro.sql         # LifePro tables
+│   │   └── 006_contentpro.sql      # ContentPro tables (NEW!)
 │   ├── functions/                   # Edge Functions (serverless!)
 │   │   ├── claude-analysis/        # LifePro AI (Claude API)
 │   │   ├── pdf-export/             # LifePro PDF generation
-│   │   └── stripe-webhook/         # ProApp subscription webhooks
+│   │   ├── stripe-webhook/         # ProApp subscription webhooks
+│   │   ├── social-post-scheduler/  # ContentPro scheduling (NEW!)
+│   │   └── ai-content-generator/   # ContentPro AI text generation (NEW!)
 │   └── seed/
 │       ├── test_users.sql
 │       └── demo_data.sql
@@ -233,7 +251,7 @@ CREATE TABLE subscriptions (
 -- Module Access Control
 CREATE TABLE module_access (
   user_id uuid REFERENCES users(id) ON DELETE CASCADE,
-  module_name text NOT NULL, -- 'coachpro', 'paymentspro', 'digipro', 'lifepro'
+  module_name text NOT NULL, -- 'coachpro', 'paymentspro', 'digipro', 'lifepro', 'contentpro'
   has_access boolean DEFAULT false,
   granted_at timestamptz DEFAULT now(),
   PRIMARY KEY (user_id, module_name)
@@ -535,7 +553,27 @@ export default function Dashboard() {
       icon: '💰',
       url: 'https://paymentspro.vercel.app'
     },
-    // ... etc
+    {
+      name: 'digipro',
+      title: 'DigiPro',
+      description: 'Digital products & funnels',
+      icon: '📦',
+      url: 'https://digipro.vercel.app'
+    },
+    {
+      name: 'lifepro',
+      title: 'LifePro',
+      description: 'Life purpose discovery',
+      icon: '🎯',
+      url: 'https://lifepro.vercel.app'
+    },
+    {
+      name: 'contentpro',
+      title: 'ContentPro',
+      description: 'Social media management',
+      icon: '📱',
+      url: 'https://contentpro.vercel.app'
+    }
   ];
 
   return (
@@ -1109,7 +1147,8 @@ vercel --prod
 | **Phase 2** | Build ProApp (auth hub) | 5-7 days | Week 2 |
 | **Phase 3** | Migrate PaymentsPro + DigiPro | 10-14 days | Weeks 3-4 |
 | **Phase 4** | Integrate CoachPro + Build LifePro | 10-14 days | Weeks 5-6 |
-| **TOTAL** | **Complete migration** | **30-42 days** | **6-8 weeks** |
+| **Phase 5** | Build ContentPro (social media) | 10-14 days | Weeks 7-9 |
+| **TOTAL** | **Complete migration** | **40-56 days** | **8-11 weeks** |
 
 ---
 
@@ -1227,8 +1266,276 @@ During migration, create these docs:
 
 ---
 
+---
+
+## 📱 CONTENTPRO MODULE - DETAILED SPEC
+
+### **Overview**
+ContentPro (Social Media Management) - Plan, create, schedule, and analyze content across multiple social platforms.
+
+### **Core Features**
+
+**1. Content Calendar** 📅
+- Visual monthly/weekly/daily view
+- Drag-and-drop post scheduling
+- Multi-platform post previews
+- Color-coded by platform (FB=blue, IG=pink, X=black, LinkedIn=blue)
+- Timezone support (Czech = Europe/Prague)
+
+**2. Post Composer** ✍️
+- Multi-platform editor (single compose → post to all)
+- Character limits per platform (X=280, LinkedIn=3000)
+- Image/video upload with preview
+- Hashtag suggestions
+- AI text generation (Claude API): "Přepiš to profesionálně", "Zkrať na tweet"
+- Emoji picker
+- Link shortening
+
+**3. Media Library** 🖼️
+- Upload images/videos
+- Organize by folders/tags
+- Automatic WebP compression (reuse from CoachPro!)
+- Quick insert into posts
+
+**4. Analytics** 📊
+- Post performance (likes, shares, comments, reach)
+- Best posting times
+- Engagement rate trends
+- Platform comparison
+- Export reports (PDF)
+
+**5. Social Accounts** 🔗
+- Connect multiple accounts per platform
+- OAuth for FB, IG, LinkedIn, X
+- Account switching
+- Profile info display
+
+### **Database Schema**
+
+```sql
+-- supabase/migrations/006_contentpro.sql
+
+-- Social Accounts
+CREATE TABLE contentpro_accounts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  platform text NOT NULL, -- 'facebook', 'instagram', 'linkedin', 'twitter', 'youtube'
+  account_name text NOT NULL,
+  account_id text NOT NULL, -- Platform's account ID
+  access_token text NOT NULL, -- Encrypted!
+  refresh_token text,
+  token_expires_at timestamptz,
+  profile_picture_url text,
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Posts
+CREATE TABLE contentpro_posts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  content text NOT NULL,
+  scheduled_at timestamptz NOT NULL,
+  status text NOT NULL, -- 'draft', 'scheduled', 'published', 'failed'
+  platforms jsonb NOT NULL, -- ['facebook', 'instagram', 'linkedin']
+  media_urls jsonb, -- Array of image/video URLs
+  hashtags text[],
+  link_url text,
+  published_at timestamptz,
+  error_message text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Post Analytics
+CREATE TABLE contentpro_analytics (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id uuid REFERENCES contentpro_posts(id) ON DELETE CASCADE,
+  platform text NOT NULL,
+  platform_post_id text, -- ID from platform API
+  likes int DEFAULT 0,
+  comments int DEFAULT 0,
+  shares int DEFAULT 0,
+  reach int DEFAULT 0,
+  engagement_rate numeric,
+  fetched_at timestamptz DEFAULT now()
+);
+
+-- Media Library
+CREATE TABLE contentpro_media (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  file_name text NOT NULL,
+  file_url text NOT NULL,
+  file_type text NOT NULL, -- 'image', 'video'
+  file_size bigint,
+  width int,
+  height int,
+  folder text,
+  tags text[],
+  created_at timestamptz DEFAULT now()
+);
+
+-- RLS Policies
+ALTER TABLE contentpro_accounts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contentpro_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contentpro_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contentpro_media ENABLE ROW LEVEL SECURITY;
+
+-- Users can view/edit own data + check module access
+CREATE POLICY "Users with ContentPro access - accounts" ON contentpro_accounts
+  FOR ALL USING (
+    user_id = auth.uid() AND
+    EXISTS (
+      SELECT 1 FROM module_access
+      WHERE user_id = auth.uid()
+      AND module_name = 'contentpro'
+      AND has_access = true
+    )
+  );
+
+CREATE POLICY "Users with ContentPro access - posts" ON contentpro_posts
+  FOR ALL USING (
+    user_id = auth.uid() AND
+    EXISTS (
+      SELECT 1 FROM module_access
+      WHERE user_id = auth.uid()
+      AND module_name = 'contentpro'
+      AND has_access = true
+    )
+  );
+
+-- Same for analytics and media
+```
+
+### **Edge Functions**
+
+**1. social-post-scheduler** (Cron job)
+```typescript
+// Runs every 5 minutes
+// Checks for posts scheduled_at <= NOW and status = 'scheduled'
+// Publishes to platforms via APIs
+
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+
+serve(async (req) => {
+  // 1. Fetch posts to publish
+  const { data: posts } = await supabase
+    .from('contentpro_posts')
+    .select('*, account:contentpro_accounts(*)')
+    .lte('scheduled_at', new Date().toISOString())
+    .eq('status', 'scheduled');
+
+  for (const post of posts) {
+    for (const platform of post.platforms) {
+      try {
+        // 2. Publish to platform
+        if (platform === 'facebook') {
+          await publishToFacebook(post, post.account);
+        } else if (platform === 'instagram') {
+          await publishToInstagram(post, post.account);
+        }
+        // ... etc
+
+        // 3. Update status
+        await supabase
+          .from('contentpro_posts')
+          .update({ status: 'published', published_at: new Date() })
+          .eq('id', post.id);
+      } catch (error) {
+        // Mark as failed
+        await supabase
+          .from('contentpro_posts')
+          .update({ status: 'failed', error_message: error.message })
+          .eq('id', post.id);
+      }
+    }
+  }
+
+  return new Response('OK');
+});
+```
+
+**2. ai-content-generator** (On-demand)
+```typescript
+// Claude API for content suggestions
+
+serve(async (req) => {
+  const { prompt, platform, tone } = await req.json();
+
+  const anthropic = new Anthropic({
+    apiKey: Deno.env.get('ANTHROPIC_API_KEY')
+  });
+
+  const systemPrompt = `You are a social media expert. Generate content for ${platform}.
+Tone: ${tone} (professional/casual/funny)
+Character limit: ${platform === 'twitter' ? 280 : 3000}
+Include 3-5 relevant hashtags.`;
+
+  const message = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 500,
+    messages: [{ role: 'user', content: prompt }],
+    system: systemPrompt
+  });
+
+  return new Response(JSON.stringify({
+    content: message.content[0].text
+  }));
+});
+```
+
+### **Social Platform APIs**
+
+**Meta (Facebook + Instagram):**
+- OAuth: Facebook Login
+- API: Graph API v18.0
+- Publish: `POST /{page-id}/feed` (FB), `POST /{ig-user-id}/media` (IG)
+
+**LinkedIn:**
+- OAuth: OAuth 2.0
+- API: LinkedIn Marketing API
+- Publish: `POST /v2/ugcPosts`
+
+**X (Twitter):**
+- OAuth: OAuth 2.0
+- API: Twitter API v2
+- Publish: `POST /2/tweets`
+
+**YouTube:**
+- OAuth: Google OAuth
+- API: YouTube Data API v3
+- Publish: `POST /youtube/v3/videos`
+
+### **UI Components (Reuse from @pro/ui)**
+
+- `<ContentCalendar />` - Full-calendar view (react-big-calendar?)
+- `<PostComposer />` - Multi-platform editor
+- `<MediaLibrary />` - Grid with upload (reuse PhotoUpload!)
+- `<PlatformAccountCard />` - Connect/disconnect accounts
+- `<AnalyticsChart />` - Chart.js or Recharts
+
+### **Implementation Timeline**
+
+**Phase 5: ContentPro** (Weeks 7-9)
+- **Week 7:** Database schema, account connection (OAuth)
+- **Week 8:** Post composer, media library, calendar UI
+- **Week 9:** Scheduler Edge Function, analytics, testing
+
+### **Subscription Tiers (Updated)**
+
+| Plan | Price | Modules Included |
+|------|-------|------------------|
+| **Free** | $0 | CoachPro only |
+| **Basic** | $9/mo | CoachPro, PaymentsPro |
+| **Premium** | $29/mo | CoachPro, PaymentsPro, DigiPro, LifePro |
+| **Business** | $49/mo | **ALL 5 modules** (+ ContentPro!) |
+
+---
+
 **End of Migration Plan**
-**Version:** 1.0
+**Version:** 1.1 (Updated with ContentPro)
 **Last Updated:** 12. listopadu 2025
 
 ---
