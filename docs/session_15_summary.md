@@ -522,6 +522,44 @@ const saveData = async (data) => {
 
 ---
 
+---
+
+## 🔧 Additional Fix: Google OAuth Intent Preservation
+
+### Problem (Production Only)
+**Issue:** On production (Vercel), Google OAuth redirect loses `?intent=client/tester` query param
+- Users with multiple roles see RoleSelector again after OAuth
+- Confusing UX: "I clicked 'I'm a client' → OAuth → select role again?"
+- Worked fine on localhost (URL params preserved)
+
+### Solution: localStorage Fallback
+**Implemented dual strategy:**
+1. **Primary:** URL params (`?intent=client`) - works on localhost
+2. **Fallback:** localStorage - works on production when URL params lost
+
+**Flow:**
+```javascript
+// Before OAuth (GoogleSignInButton.jsx)
+const intent = extractIntentFromRedirectTo('/?intent=client');
+localStorage.setItem('oauth_intent', 'client'); // ← Store as backup
+
+// After OAuth redirect (RootRedirect.jsx)
+let intent = searchParams.get('intent');  // Try URL first
+if (!intent) {
+  intent = localStorage.getItem('oauth_intent');  // Fallback
+  localStorage.removeItem('oauth_intent');  // Clean up
+}
+// → Direct redirect to /client/welcome (no RoleSelector!)
+```
+
+**Files Modified:**
+- `GoogleSignInButton.jsx` - Store intent before OAuth
+- `RootRedirect.jsx` - Read from localStorage as fallback
+
+**Result:** ✅ Works on both localhost AND production!
+
+---
+
 ## 🏆 Success Metrics
 
 ✅ **100% modularita** - Žádné hardcoded userType podmínky
@@ -530,6 +568,7 @@ const saveData = async (data) => {
 ✅ **Google foto všude** - CORS problém vyřešen
 ✅ **Accessibility** - Autocomplete attributes přidány
 ✅ **Database konzistence** - UNIQUE constraints, proper types
+✅ **OAuth intent preservation** - Funguje na produkci i lokále
 
 **Session #15 = Complete Success! 🎉**
 
