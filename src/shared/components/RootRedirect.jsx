@@ -17,7 +17,15 @@ const RootRedirect = () => {
   useEffect(() => {
     const checkAuthAndRedirect = async () => {
       try {
-        const intent = searchParams.get('intent');
+        // Get intent from URL params first, fallback to localStorage (for OAuth redirects)
+        let intent = searchParams.get('intent');
+        if (!intent) {
+          intent = localStorage.getItem('oauth_intent');
+          if (intent) {
+            // Clear it immediately after reading
+            localStorage.removeItem('oauth_intent');
+          }
+        }
 
         const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 

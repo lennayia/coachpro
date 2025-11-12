@@ -31,6 +31,14 @@ const GoogleSignInButton = ({
     setLoading(true);
 
     try {
+      // Extract intent from redirectTo and store in localStorage as fallback
+      // (Google OAuth may not preserve query params in production)
+      const urlParams = new URLSearchParams(redirectTo.split('?')[1]);
+      const intent = urlParams.get('intent');
+      if (intent) {
+        localStorage.setItem('oauth_intent', intent);
+      }
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
