@@ -32,7 +32,14 @@ const PrivacyPolicy = () => {
           </Box>
 
           <Typography variant="body2" color="text.secondary" mb={4}>
-            Poslední aktualizace: 1. listopadu 2025
+            Poslední aktualizace: 14. listopadu 2025
+          </Typography>
+
+          <Typography variant="body1" color="text.secondary" mb={3}>
+            Tyto zásady se vztahují na webovou aplikaci CoachPro dostupnou na{' '}
+            <Link href="https://coachpro.cz" underline="hover" sx={{ color: 'primary.main', fontWeight: 600 }}>https://coachpro.cz</Link>.
+            Používáním aplikace souhlasíte se zpracováním vašich osobních údajů
+            v souladu s těmito zásadami a platnými právními předpisy (GDPR).
           </Typography>
 
           {/* 1. Úvod */}
@@ -49,9 +56,11 @@ const PrivacyPolicy = () => {
             2. Správce osobních údajů
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            Správcem osobních údajů je provozovatel aplikace CoachPro.
+            Správcem osobních údajů je Lenka Roubalová, IČ: 49266896, se sídlem Jiřice 104, Lysá nad Labem, provozovatel aplikace CoachPro.
             <br />
-            Kontakt: <Link href="mailto:info@coachpro.cz" underline="hover">info@coachpro.cz</Link>
+            Webové stránky: <Link href="https://coachpro.cz" underline="hover" sx={{ color: 'primary.main', fontWeight: 600 }}>https://coachpro.cz</Link>
+            <br />
+            Kontakt: <Link href="mailto:lenna@online-byznys.cz" underline="hover" sx={{ color: 'primary.main', fontWeight: 600 }}>lenna@online-byznys.cz</Link>
           </Typography>
 
           {/* 3. Jaké údaje sbíráme */}
@@ -59,22 +68,35 @@ const PrivacyPolicy = () => {
             3. Jaké osobní údaje sbíráme
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={2}>
-            Při registraci do beta testování sbíráme následující údaje:
+            Při používání aplikace CoachPro sbíráme následující údaje:
           </Typography>
           <Box component="ul" sx={{ pl: 3, mb: 3 }}>
             <li>
               <Typography variant="body1" color="text.secondary">
-                <strong>Kontaktní údaje:</strong> jméno a příjmení, e-mailová adresa, telefonní číslo (volitelně)
+                <strong>Registrační údaje:</strong> jméno a příjmení, e-mailová adresa, heslo (šifrované)
               </Typography>
             </li>
             <li>
               <Typography variant="body1" color="text.secondary">
-                <strong>Technické údaje:</strong> IP adresa, user agent (typ prohlížeče)
+                <strong>Profilové údaje:</strong> telefonní číslo (volitelně), fotografie profilu (volitelně),
+                sociální sítě (volitelně), webové stránky (volitelně)
               </Typography>
             </li>
             <li>
               <Typography variant="body1" color="text.secondary">
-                <strong>Další údaje:</strong> důvod zájmu o testování (volitelně)
+                <strong>Koučovací data:</strong> programy, materiály, poznámky, záznamy o sezeních
+                (pouze pro kouče a jejich klienty)
+              </Typography>
+            </li>
+            <li>
+              <Typography variant="body1" color="text.secondary">
+                <strong>Technické údaje:</strong> IP adresa, user agent (typ prohlížeče),
+                datum a čas přístupu
+              </Typography>
+            </li>
+            <li>
+              <Typography variant="body1" color="text.secondary">
+                <strong>Autentizační údaje:</strong> Google OAuth ID (pokud se přihlašujete přes Google)
               </Typography>
             </li>
           </Box>
@@ -89,17 +111,42 @@ const PrivacyPolicy = () => {
           <Box component="ul" sx={{ pl: 3, mb: 3 }}>
             <li>
               <Typography variant="body1" color="text.secondary">
-                <strong>Beta testování:</strong> identifikace testerek, správa přístupových kódů, komunikace o aplikaci
+                <strong>Poskytování služby:</strong> vytvoření a správa uživatelského účtu,
+                přístup k aplikaci, ukládání vašich dat
               </Typography>
             </li>
             <li>
               <Typography variant="body1" color="text.secondary">
-                <strong>Marketing (pouze s vaším souhlasem):</strong> zasílání novinek, tipů a nabídek týkajících se CoachPro
+                <strong>Koučovací činnost:</strong> umožnění koučovacího vztahu mezi koučem a klientem,
+                správa programů, materiálů a záznamů o sezeních
               </Typography>
             </li>
             <li>
               <Typography variant="body1" color="text.secondary">
-                <strong>Technická podpora:</strong> řešení problémů s aplikací
+                <strong>Autentizace:</strong> ověření vaší identity při přihlášení,
+                zabezpečení přístupu k vašemu účtu
+              </Typography>
+            </li>
+            <li>
+              <Typography variant="body1" color="text.secondary">
+                <strong>Komunikace:</strong> zasílání důležitých informací o aplikaci,
+                odpovědi na vaše dotazy
+              </Typography>
+            </li>
+            <li>
+              <Typography variant="body1" color="text.secondary">
+                <strong>Beta testování:</strong> testování nových funkcí, sběr zpětné vazby
+              </Typography>
+            </li>
+            <li>
+              <Typography variant="body1" color="text.secondary">
+                <strong>Technická podpora:</strong> řešení problémů s aplikací, zlepšování výkonu
+              </Typography>
+            </li>
+            <li>
+              <Typography variant="body1" color="text.secondary">
+                <strong>Marketing (pouze s vaším souhlasem):</strong> zasílání novinek,
+                tipů a nabídek týkajících se CoachPro
               </Typography>
             </li>
           </Box>
@@ -108,9 +155,33 @@ const PrivacyPolicy = () => {
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mt: 3 }}>
             5. Právní základ zpracování
           </Typography>
+          <Typography variant="body1" color="text.secondary" mb={2}>
+            Vaše osobní údaje zpracováváme na základě:
+          </Typography>
+          <Box component="ul" sx={{ pl: 3, mb: 3 }}>
+            <li>
+              <Typography variant="body1" color="text.secondary">
+                <strong>Plnění smlouvy</strong> (čl. 6 odst. 1 písm. b) GDPR) - poskytování služby,
+                správa účtu
+              </Typography>
+            </li>
+            <li>
+              <Typography variant="body1" color="text.secondary">
+                <strong>Váš souhlas</strong> (čl. 6 odst. 1 písm. a) GDPR) - marketing,
+                volitelné údaje v profilu
+              </Typography>
+            </li>
+            <li>
+              <Typography variant="body1" color="text.secondary">
+                <strong>Oprávněný zájem</strong> (čl. 6 odst. 1 písm. f) GDPR) - technická podpora,
+                zabezpečení aplikace
+              </Typography>
+            </li>
+          </Box>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            Vaše osobní údaje zpracováváme na základě <strong>vašeho výslovného souhlasu</strong> (čl. 6 odst. 1 písm. a) GDPR).
-            Souhlas můžete kdykoliv odvolat zasláním e-mailu na <Link href="mailto:info@coachpro.cz" underline="hover">info@coachpro.cz</Link>.
+            Souhlas můžete kdykoliv odvolat zasláním e-mailu na{' '}
+            <Link href="mailto:lenna@online-byznys.cz" underline="hover" sx={{ color: 'primary.main', fontWeight: 600 }}>lenna@online-byznys.cz</Link>.
+            Odvolání souhlasu nemá vliv na zákonnost zpracování před jeho odvoláním.
           </Typography>
 
           {/* 6. Sdílení údajů */}
@@ -118,22 +189,30 @@ const PrivacyPolicy = () => {
             6. Sdílení osobních údajů
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={2}>
-            Vaše osobní údaje sdílíme pouze s následujícími subjekty:
+            Vaše osobní údaje sdílíme pouze s následujícími zpracovateli:
           </Typography>
           <Box component="ul" sx={{ pl: 3, mb: 3 }}>
             <li>
               <Typography variant="body1" color="text.secondary">
-                <strong>Supabase</strong> - hosting databáze (USA, GDPR-compliant)
+                <strong>Supabase (Supabase Inc.)</strong> - hosting databáze a autentizační služby
+                (USA, GDPR-compliant, standardní smluvní doložky)
               </Typography>
             </li>
             <li>
               <Typography variant="body1" color="text.secondary">
-                <strong>MailerLite</strong> - e-mailový marketing (pouze pokud jste udělila souhlas se zasíláním novinek)
+                <strong>Vercel Inc.</strong> - hosting webové aplikace (USA, GDPR-compliant)
+              </Typography>
+            </li>
+            <li>
+              <Typography variant="body1" color="text.secondary">
+                <strong>Google LLC</strong> - OAuth autentizace (pouze pokud používáte přihlášení přes Google)
               </Typography>
             </li>
           </Box>
           <Typography variant="body1" color="text.secondary" mb={3}>
             S třetími stranami nesdílíme vaše údaje pro účely jejich vlastního marketingu.
+            Vaše koučovací data (programy, materiály, poznámky) jsou přístupná pouze vám
+            a vašemu koučovi/klientům v rámci koučovacího vztahu.
           </Typography>
 
           {/* 7. Doba uložení */}
@@ -143,12 +222,27 @@ const PrivacyPolicy = () => {
           <Box component="ul" sx={{ pl: 3, mb: 3 }}>
             <li>
               <Typography variant="body1" color="text.secondary">
-                <strong>Účet testera:</strong> po dobu trvání beta testování nebo do odvolání souhlasu
+                <strong>Uživatelský účet:</strong> po dobu aktivního užívání služby nebo do smazání účtu
+              </Typography>
+            </li>
+            <li>
+              <Typography variant="body1" color="text.secondary">
+                <strong>Koučovací data:</strong> po dobu trvání koučovacího vztahu nebo do smazání koučem/klientem
+              </Typography>
+            </li>
+            <li>
+              <Typography variant="body1" color="text.secondary">
+                <strong>Technické logy:</strong> maximálně 90 dnů
               </Typography>
             </li>
             <li>
               <Typography variant="body1" color="text.secondary">
                 <strong>Marketingové účely:</strong> do odvolání souhlasu se zasíláním novinek
+              </Typography>
+            </li>
+            <li>
+              <Typography variant="body1" color="text.secondary">
+                <strong>Po smazání účtu:</strong> všechna osobní data jsou trvale smazána do 30 dnů
               </Typography>
             </li>
           </Box>
@@ -188,7 +282,7 @@ const PrivacyPolicy = () => {
             </li>
           </Box>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            Pro uplatnění svých práv nás kontaktujte na <Link href="mailto:info@coachpro.cz" underline="hover">info@coachpro.cz</Link>.
+            Pro uplatnění svých práv nás kontaktujte na <Link href="mailto:lenna@online-byznys.cz" underline="hover" sx={{ color: 'primary.main', fontWeight: 600 }}>lenna@online-byznys.cz</Link>.
           </Typography>
 
           {/* 9. Zabezpečení */}
@@ -217,6 +311,32 @@ const PrivacyPolicy = () => {
             Tyto zásady můžeme čas od času aktualizovat. O významných změnách vás budeme informovat e-mailem.
           </Typography>
 
+          {/* 12. Související dokumenty */}
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mt: 3 }}>
+            12. Související dokumenty
+          </Typography>
+          <Typography variant="body1" color="text.secondary" mb={3}>
+            Používání aplikace se řídí našimi{' '}
+            <Link href="/terms-of-service" underline="hover" sx={{ color: 'primary.main', fontWeight: 600 }}>Obchodními podmínkami</Link>.
+          </Typography>
+
+          {/* Vstup do aplikace */}
+          <Box sx={{ mt: 4, textAlign: 'center' }}>
+            <Typography variant="body1" color="text.secondary" mb={2}>
+              <Link
+                href="/"
+                underline="hover"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: '1.1rem',
+                  '&:hover': { color: 'primary.main' }
+                }}
+              >
+                Vstup do aplikace CoachPro
+              </Link>
+            </Typography>
+          </Box>
+
           {/* Kontakt */}
           <Box
             sx={{
@@ -232,7 +352,7 @@ const PrivacyPolicy = () => {
             <Typography variant="body1" color="text.secondary">
               Máte otázku ohledně zpracování osobních údajů?
               <br />
-              Napište nám na: <Link href="mailto:info@coachpro.cz" underline="hover">info@coachpro.cz</Link>
+              Napište nám na: <Link href="mailto:lenna@online-byznys.cz" underline="hover" sx={{ color: 'primary.main', fontWeight: 600 }}>lenna@online-byznys.cz</Link>
             </Typography>
           </Box>
         </CardContent>

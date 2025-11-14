@@ -44,6 +44,20 @@ const Footer = () => {
           </Link>
 
           <Link
+            href="/terms-of-service"
+            underline="hover"
+            sx={{
+              fontSize: '0.8rem',
+              color: 'text.primary',
+              fontWeight: 500,
+              transition: 'color 0.2s',
+              '&:hover': { color: 'primary.main' },
+            }}
+          >
+            Obchodní podmínky
+          </Link>
+
+          <Link
             href="mailto:lenna@online-byznys.cz"
             underline="hover"
             sx={{

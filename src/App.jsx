@@ -9,6 +9,7 @@ import ClientView from '@modules/coach/pages/ClientView';
 import TesterView from '@modules/coach/pages/TesterView';
 import AdminLogin from '@modules/coach/pages/AdminLogin';
 import PrivacyPolicy from '@modules/coach/pages/PrivacyPolicy';
+import TermsOfService from '@modules/coach/pages/TermsOfService';
 import RootRedirect from '@shared/components/RootRedirect';
 
 // Context pro theme mode
@@ -46,6 +47,7 @@ function App() {
                 <Route path="/" element={<RootRedirect />} />
                 <Route path="/lenna" element={<AdminLogin />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
                 <Route path="/coach/*" element={<ErrorBoundary><CoachView /></ErrorBoundary>} />
                 <Route path="/client/*" element={<ErrorBoundary><ClientView /></ErrorBoundary>} />
                 <Route path="/tester/*" element={<ErrorBoundary><TesterView /></ErrorBoundary>} />
