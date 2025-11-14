@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Grid, Card, CardContent, CircularProgress, Alert } from '@mui/material';
+import { Box, Typography, Grid, Card, CardContent, CircularProgress, Alert, Chip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { fadeIn, fadeInUp, staggerContainer, staggerItem } from '@shared/styles/animations';
@@ -10,7 +10,7 @@ import ClientAuthGuard from '@shared/components/ClientAuthGuard';
 import { getVocative } from '@shared/utils/czechGrammar';
 import SessionCard from '@shared/components/SessionCard';
 import { getNextSession } from '@shared/utils/sessions';
-import { getCoachById } from '@shared/utils/coaches';
+import { getCoachById, getClientCoaches } from '@shared/utils/coaches';
 import CoachCard from '@shared/components/CoachCard';
 import { DASHBOARD_ICONS, STATS_ICONS } from '@shared/constants/icons';
 
@@ -20,8 +20,8 @@ const ClientDashboard = () => {
   const { profile } = useClientAuth();
   const [nextSession, setNextSession] = useState(null);
   const [loadingSession, setLoadingSession] = useState(true);
-  const [coachInfo, setCoachInfo] = useState(null);
-  const [loadingCoach, setLoadingCoach] = useState(true);
+  const [coaches, setCoaches] = useState([]);
+  const [loadingCoaches, setLoadingCoaches] = useState(true);
 
   // Destructure icons from centralized config
   const SessionsIcon = STATS_ICONS.sessions;
@@ -47,27 +47,27 @@ const ClientDashboard = () => {
     loadNextSession();
   }, [profile?.id]);
 
-  // Load coach info
+  // Load all coaches working with this client
   useEffect(() => {
-    const loadCoach = async () => {
-      if (!profile?.coach_id) {
-        setLoadingCoach(false);
+    const loadCoaches = async () => {
+      if (!profile?.id) {
+        setLoadingCoaches(false);
         return;
       }
 
-      setLoadingCoach(true);
+      setLoadingCoaches(true);
       try {
-        const coach = await getCoachById(profile.coach_id);
-        setCoachInfo(coach);
+        const clientCoaches = await getClientCoaches(profile.id);
+        setCoaches(clientCoaches);
       } catch (error) {
-        // Error handled by UI - shows "Nemáte přiřazenou koučku" alert
+        console.error('Error loading coaches:', error);
       } finally {
-        setLoadingCoach(false);
+        setLoadingCoaches(false);
       }
     };
 
-    loadCoach();
-  }, [profile?.coach_id]);
+    loadCoaches();
+  }, [profile?.id]);
 
   return (
     <ClientAuthGuard requireProfile={true}>
@@ -275,13 +275,13 @@ const ClientDashboard = () => {
         {/* Alerts - Coach & Session Info */}
         <Grid container spacing={2} mb={3}>
           {/* Coach Info Alert */}
-          {loadingCoach ? (
+          {loadingCoaches ? (
             <Grid item xs={12}>
               <Box display="flex" justifyContent="center" py={2}>
                 <CircularProgress size={32} />
               </Box>
             </Grid>
-          ) : !coachInfo ? (
+          ) : coaches.length === 0 ? (
             <Grid item xs={12} md={6}>
               <motion.div
                 variants={fadeInUp}
@@ -306,7 +306,7 @@ const ClientDashboard = () => {
               </Box>
             </Grid>
           ) : !nextSession ? (
-            <Grid item xs={12} md={coachInfo ? 12 : 6}>
+            <Grid item xs={12} md={coaches.length > 0 ? 12 : 6}>
               <motion.div
                 variants={fadeInUp}
                 initial="hidden"
@@ -323,8 +323,8 @@ const ClientDashboard = () => {
           ) : null}
         </Grid>
 
-        {/* Coach Info Widget - only if coach exists */}
-        {coachInfo && (
+        {/* Coaches Info Widget - show all coaches working with this client */}
+        {coaches.length > 0 && (
           <motion.div
             variants={fadeInUp}
             initial="hidden"
@@ -333,9 +333,58 @@ const ClientDashboard = () => {
           >
             <Box mb={4}>
               <Typography variant="h5" fontWeight={600} mb={2}>
-                Vaše koučka
+                {coaches.length === 1 ? 'Vaše koučka' : 'Vaše koučky'}
               </Typography>
-              <CoachCard coach={coachInfo} compact={false} />
+              <Grid container spacing={2}>
+                {coaches.map((coach, index) => (
+                  <Grid item xs={12} md={coaches.length === 1 ? 12 : 6} key={coach.id}>
+                    <motion.div
+                      variants={fadeInUp}
+                      initial="hidden"
+                      animate="visible"
+                      transition={{ delay: 0.05 + index * 0.05 }}
+                    >
+                      <CoachCard coach={coach} compact={false} />
+                      {/* Show what services this coach provides */}
+                      <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        {coach.activities?.hasSessions && (
+                          <Chip
+                            label="Sezení"
+                            size="small"
+                            sx={{
+                              backgroundColor: 'rgba(85, 107, 47, 0.1)',
+                              color: 'primary.main',
+                              fontSize: '0.75rem'
+                            }}
+                          />
+                        )}
+                        {coach.activities?.hasMaterials && (
+                          <Chip
+                            label="Materiály"
+                            size="small"
+                            sx={{
+                              backgroundColor: 'rgba(139, 188, 143, 0.1)',
+                              color: 'primary.main',
+                              fontSize: '0.75rem'
+                            }}
+                          />
+                        )}
+                        {coach.activities?.hasPrograms && (
+                          <Chip
+                            label="Programy"
+                            size="small"
+                            sx={{
+                              backgroundColor: 'rgba(107, 142, 35, 0.1)',
+                              color: 'primary.main',
+                              fontSize: '0.75rem'
+                            }}
+                          />
+                        )}
+                      </Box>
+                    </motion.div>
+                  </Grid>
+                ))}
+              </Grid>
             </Box>
           </motion.div>
         )}

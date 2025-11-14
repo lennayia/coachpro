@@ -1,8 +1,34 @@
 # CoachPro - Master TODO List
 
-**Branch:** `claude-code-12list`
-**Last Updated:** November 2025
-**Status:** Session #16 - FlipCard Implementation
+**Branch:** `main`
+**Last Updated:** 14. listopadu 2025
+**Status:** Session #17 - Terms of Service & Privacy Policy
+
+---
+
+## ✓ Completed Tasks - Session #17
+
+### Legal Documents
+- [x] Create TermsOfService.jsx with complete legal terms
+- [x] Update PrivacyPolicy.jsx with expanded GDPR-compliant content
+- [x] Add Terms of Service route to App.jsx (/terms-of-service)
+- [x] Update Footer.jsx with Terms of Service link
+- [x] Add cross-references between Terms and Privacy documents
+- [x] Style all links with primary color and bold
+- [x] Add "Vstup do aplikace" links at bottom of both documents
+- [x] Include complete business details (IČ: 49266896, Jiřice 104, Lysá nad Labem)
+- [x] Fix email addresses to lenna@online-byznys.cz throughout
+
+### Bug Fixes
+- [x] Remove hardcoded phone number from ClientMaterials.jsx
+- [x] Load coach contact info dynamically from database
+
+### Google OAuth Setup
+- [x] Set up coachpro.cz custom domain on Vercel
+- [x] Configure DNS nameservers for coachpro.cz
+- [x] Add coachpro.cz to Supabase redirect URLs
+- [x] Add coachpro.cz to Google OAuth authorized domains
+- [x] Update Supabase Site URL to https://coachpro.cz
 
 ---
 
@@ -81,6 +107,21 @@ _No tasks currently in progress_
 - [ ] Create pre-designed card templates library
 - [ ] Add animation duration preferences to user settings
 - [ ] Consider adding flip on hover as alternative interaction mode
+
+### Coach-Client Relationship Enhancements (Session #17 - Future)
+- [ ] **Multiple Coaches Support** - Allow clients to work with multiple coaches simultaneously
+  - Current: Client has single `coach_id` field
+  - Proposed: Display coaches dynamically based on materials/sessions/programs
+  - Implementation options:
+    1. ✅ **Recommended (Simple):** Load coaches from activities (materials, sessions, programs)
+    2. Many-to-many relationship table (client_coaches)
+    3. Primary coach + secondary coaches
+  - Changes needed:
+    - ClientDashboard: "Vaše koučky" (plural) instead of "Vaše koučka"
+    - Show all active coaches with what they provide (materiály/sezení/program)
+    - CoachCard: Display relationship context
+  - Benefits: Flexible, accurate, supports multiple coaching areas
+  - Priority: **Low** (wait for real use case with 20+ clients)
 
 ---
 

@@ -28,7 +28,7 @@ import { useNotification } from '@shared/context/NotificationContext';
 import { useTheme } from '@mui/material';
 import { createBackdrop, createGlassDialog, createPrimaryModalButton, createFormTextField, createCancelButton, createSubmitButton } from '../../../../shared/styles/modernEffects';
 import { generateShareCode, generateQRCode } from '../../utils/generateCode';
-import { createSharedMaterial, getCurrentUser } from '../../utils/storage';
+import { createSharedMaterial, getCurrentUser, getSharedMaterials } from '../../utils/storage';
 
 const ShareMaterialModal = ({ open, onClose, material }) => {
   const { showSuccess, showError } = useNotification();
@@ -37,6 +37,7 @@ const ShareMaterialModal = ({ open, onClose, material }) => {
 
   const [step, setStep] = useState('form'); // 'form' or 'success'
   const [clientName, setClientName] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
   const [accessStartDate, setAccessStartDate] = useState(new Date());
   const [accessEndDate, setAccessEndDate] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -47,6 +48,7 @@ const ShareMaterialModal = ({ open, onClose, material }) => {
   const handleClose = () => {
     setStep('form');
     setClientName('');
+    setClientEmail('');
     setAccessStartDate(new Date());
     setAccessEndDate(null);
     setGeneratedSharedMaterial(null);
@@ -60,6 +62,15 @@ const ShareMaterialModal = ({ open, onClose, material }) => {
       return;
     }
 
+    // Validace e-mailu (pokud je vyplněný)
+    if (clientEmail.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(clientEmail.trim())) {
+        showError('Chyba', 'Zadej platný e-mail');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const currentUser = getCurrentUser();
@@ -68,12 +79,34 @@ const ShareMaterialModal = ({ open, onClose, material }) => {
         return;
       }
 
-      // Vytvoř sdílený materiál s časovým omezením
+      // Kontrola duplicit - pouze pokud je zadaný e-mail
+      const normalizedEmail = clientEmail.trim() ? clientEmail.trim().toLowerCase() : null;
+
+      if (normalizedEmail) {
+        const allSharedMaterials = await getSharedMaterials(currentUser.id);
+        const existingShare = allSharedMaterials.find(
+          sm => sm.materialId === material.id &&
+                sm.clientEmail &&
+                sm.clientEmail.toLowerCase() === normalizedEmail
+        );
+
+        if (existingShare) {
+          showError(
+            'Materiál už je sdílený',
+            `Tento materiál už je sdílený klientce ${clientEmail}. Kód: ${existingShare.shareCode}`
+          );
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Vytvoř sdílený materiál s časovým omezením a e-mailem klientky
       const sharedMaterial = await createSharedMaterial(
         material,
         currentUser.id,
         accessStartDate ? accessStartDate.toISOString() : null,
-        accessEndDate ? accessEndDate.toISOString() : null
+        accessEndDate ? accessEndDate.toISOString() : null,
+        normalizedEmail
       );
 
       // Ulož pro zobrazení
@@ -193,6 +226,19 @@ Těším se na tvůj růst! 💚`;
                 sx={createFormTextField(isDark)}
               />
 
+              {/* E-mail klientky */}
+              <TextField
+                label="E-mail klientky (volitelné)"
+                fullWidth
+                type="email"
+                value={clientEmail}
+                onChange={(e) => setClientEmail(e.target.value)}
+                placeholder="např. jana.nova@email.cz"
+                disabled={loading}
+                helperText="Vyplň pro konkrétní klientku. Nebo nechej prázdné pro lead magnet (kdokoliv zadá kód a vyplní své údaje)"
+                sx={createFormTextField(isDark)}
+              />
+
               {/* Date pickery */}
               <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={cs}>
                 <DatePicker
@@ -237,7 +283,7 @@ Těším se na tvůj růst! 💚`;
             <Button
               variant="contained"
               onClick={handleGenerateCode}
-              disabled={loading || !clientName.trim()}
+              disabled={loading || !clientName.trim() || !clientEmail.trim()}
               startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
               sx={createSubmitButton(isDark)}
             >

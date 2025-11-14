@@ -177,3 +177,77 @@ export async function autoAssignCoachIfNeeded(clientId, coachId) {
     return false;
   }
 }
+
+/**
+ * Get all coaches working with a client (from sessions, materials, programs)
+ * @param {string} clientId - Client profile ID
+ * @returns {Promise<Array>} Array of coaches with activity context
+ */
+export async function getClientCoaches(clientId) {
+  if (!clientId) return [];
+
+  try {
+    const coachesMap = new Map();
+
+    // 1. Load coaches from scheduled sessions
+    const { data: sessions, error: sessionsError } = await supabase
+      .from('coachpro_sessions')
+      .select('coach_id')
+      .eq('client_id', clientId)
+      .eq('status', 'scheduled');
+
+    if (!sessionsError && sessions) {
+      sessions.forEach(session => {
+        if (session.coach_id) {
+          if (!coachesMap.has(session.coach_id)) {
+            coachesMap.set(session.coach_id, { hasSessions: false, hasMaterials: false, hasPrograms: false });
+          }
+          coachesMap.get(session.coach_id).hasSessions = true;
+        }
+      });
+    }
+
+    // 2. Load coaches from shared materials
+    const { data: materials, error: materialsError } = await supabase
+      .from('coachpro_shared_materials')
+      .select('coach_id')
+      .eq('client_id', clientId);
+
+    if (!materialsError && materials) {
+      materials.forEach(material => {
+        if (material.coach_id) {
+          if (!coachesMap.has(material.coach_id)) {
+            coachesMap.set(material.coach_id, { hasSessions: false, hasMaterials: false, hasPrograms: false });
+          }
+          coachesMap.get(material.coach_id).hasMaterials = true;
+        }
+      });
+    }
+
+    // 3. Load coaches from programs (future - add when programs table exists)
+    // TODO: Add programs query when implemented
+
+    // 4. Fetch full coach details for all unique coach IDs
+    const coachIds = Array.from(coachesMap.keys());
+    if (coachIds.length === 0) {
+      return [];
+    }
+
+    const { data: coaches, error: coachesError } = await supabase
+      .from('coachpro_coaches')
+      .select('*')
+      .in('id', coachIds);
+
+    if (coachesError) throw coachesError;
+
+    // 5. Combine coach data with activity context
+    return (coaches || []).map(coach => ({
+      ...coach,
+      activities: coachesMap.get(coach.id),
+    }));
+
+  } catch (error) {
+    console.error('Error fetching client coaches:', error);
+    return [];
+  }
+}

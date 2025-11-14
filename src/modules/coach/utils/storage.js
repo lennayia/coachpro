@@ -192,6 +192,7 @@ const convertMaterialFromDB = (dbMaterial) => {
     coachingStyle: dbMaterial.coaching_style,
     coachingAuthority: dbMaterial.coaching_authority,
     clientFeedback: dbMaterial.client_feedback || [],
+    publicShareCode: dbMaterial.public_share_code,
     createdAt: dbMaterial.created_at,
     updatedAt: dbMaterial.updated_at,
   };
@@ -235,6 +236,13 @@ export const saveMaterial = async (material) => {
       }
     }
 
+    // Generate public share code if not exists (lead magnet)
+    let publicShareCode = material.publicShareCode;
+    if (!publicShareCode) {
+      const { generateShareCode } = await import('./generateCode.js');
+      publicShareCode = generateShareCode();
+    }
+
     const materialData = {
       id: material.id,
       coach_id: material.coachId,
@@ -256,6 +264,7 @@ export const saveMaterial = async (material) => {
       coaching_style: material.coachingStyle || null,
       coaching_authority: material.coachingAuthority || null,
       client_feedback: material.clientFeedback || [],
+      public_share_code: publicShareCode,
       created_at: material.createdAt || new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -737,6 +746,7 @@ const convertSharedMaterialFromDB = (dbSharedMaterial) => {
     qrCode: dbSharedMaterial.qr_code,
     coachId: dbSharedMaterial.coach_id,
     coachName: dbSharedMaterial.coach_name,
+    clientEmail: dbSharedMaterial.client_email,
     createdAt: dbSharedMaterial.created_at,
     accessStartDate: dbSharedMaterial.access_start_date,
     accessEndDate: dbSharedMaterial.access_end_date,
@@ -766,7 +776,7 @@ export const getSharedMaterials = async (coachId = null) => {
   }
 };
 
-export const createSharedMaterial = async (material, coachId, accessStartDate = null, accessEndDate = null) => {
+export const createSharedMaterial = async (material, coachId, accessStartDate = null, accessEndDate = null, clientEmail = null) => {
   try {
     const { generateShareCode, generateQRCode } = await import('./generateCode.js');
 
@@ -795,6 +805,7 @@ export const createSharedMaterial = async (material, coachId, accessStartDate = 
       qr_code: qrCode,
       coach_id: coachId,
       coach_name: coachName,
+      client_email: clientEmail ? clientEmail.toLowerCase() : null,
       access_start_date: accessStartDate,
       access_end_date: accessEndDate,
     };
@@ -834,6 +845,7 @@ export const createSharedMaterial = async (material, coachId, accessStartDate = 
       qrCode: qrCode,
       coachId: coachId,
       coachName: coachName,
+      clientEmail: clientEmail ? clientEmail.toLowerCase() : null,
       accessStartDate: accessStartDate,
       accessEndDate: accessEndDate,
       createdAt: new Date().toISOString(),

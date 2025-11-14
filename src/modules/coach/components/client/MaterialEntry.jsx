@@ -95,6 +95,24 @@ const MaterialEntry = () => {
         throw new Error(errorMsg);
       }
 
+      // Pokud má materiál přiřazený e-mail, zkontroluj, že sedí s profilem
+      if (sharedMaterial.clientEmail) {
+        if (!profile?.email) {
+          const errorMsg = 'Pro přístup k tomuto materiálu musíš být přihlášená. Prosím přihlaš se nebo se zaregistruj.';
+          showError('Vyžadováno přihlášení', errorMsg);
+          throw new Error(errorMsg);
+        }
+
+        const normalizedProfileEmail = profile.email.toLowerCase().trim();
+        const normalizedMaterialEmail = sharedMaterial.clientEmail.toLowerCase().trim();
+
+        if (normalizedProfileEmail !== normalizedMaterialEmail) {
+          const errorMsg = `Tento materiál je určen pro klientku s e-mailem ${sharedMaterial.clientEmail}. Tvůj účet používá ${profile.email}. Pokud si myslíš, že jde o chybu, kontaktuj svoji koučku.`;
+          showError('Nesprávný e-mail', errorMsg);
+          throw new Error(errorMsg);
+        }
+      }
+
       // Auto-assign coach if client doesn't have one yet
       if (profile?.id && sharedMaterial.coachId) {
         const wasAssigned = await autoAssignCoachIfNeeded(profile.id, sharedMaterial.coachId);
