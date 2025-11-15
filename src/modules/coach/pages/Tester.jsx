@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
-import { Box, Card, Typography, IconButton } from '@mui/material';
+import { Box, Card, Typography } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
 import { fadeIn, fadeInUp } from '@shared/styles/animations';
 import { useNotification } from '@shared/context/NotificationContext';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
@@ -10,6 +9,7 @@ import { useTesterAuth } from '@shared/context/TesterAuthContext';
 import { supabase } from '@shared/config/supabase';
 import { saveCoach, setCurrentUser } from '../utils/storage';
 import RegisterForm from '@shared/components/RegisterForm';
+import Breadcrumbs from '@shared/components/Breadcrumbs';
 
 const Tester = () => {
   const navigate = useNavigate();
@@ -156,19 +156,14 @@ const Tester = () => {
           }}
         >
           <Box p={4}>
-            {/* Back Button */}
-            <Box mb={2}>
-              <IconButton
-                onClick={() => navigate('/')}
-                sx={{
-                  '&:hover': {
-                    background: 'rgba(85, 107, 47, 0.1)',
-                  },
-                }}
-              >
-                <ArrowLeft size={20} />
-              </IconButton>
-            </Box>
+            {/* Breadcrumbs */}
+            <Breadcrumbs
+              customBreadcrumbs={[
+                { label: 'Domů', path: '/' },
+                { label: 'Přihlášení', path: '/coach/login' },
+                { label: 'Registrace' },
+              ]}
+            />
 
             {/* Logo */}
             <motion.div

@@ -276,6 +276,32 @@ export const getCategoryLabel = (category) => {
 };
 
 /**
+ * Get format label for material type (user-friendly format description)
+ * @param {string} type - Material type (audio, video, pdf, image, etc.)
+ * @returns {string} Formatted label with emoji
+ */
+export const getFormatLabel = (type) => {
+  switch (type) {
+    case 'audio':
+      return '🎵 Audio';
+    case 'video':
+      return '🎬 Video';
+    case 'pdf':
+      return '📄 PDF dokument';
+    case 'document':
+      return '📝 Textový dokument';
+    case 'image':
+      return '🖼️ Obrázek';
+    case 'link':
+      return '🔗 Odkaz';
+    case 'text':
+      return '📝 Text';
+    default:
+      return type ? `📦 ${type}` : '';
+  }
+};
+
+/**
  * Download QR code
  */
 export const downloadQRCode = (dataUrl, filename = 'qr-code') => {

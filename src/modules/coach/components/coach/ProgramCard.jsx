@@ -8,18 +8,20 @@ import {
 } from '@mui/material';
 import { Calendar, Link2 } from 'lucide-react';
 import { formatDate, pluralize } from '@shared/utils/helpers';
+import { createSharedProgramHelper, getSharedProgramsByCoach, getCurrentUser, validateClientExists } from '../../utils/storage';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { createTextEllipsis } from '@shared/styles/responsive';
 import { isTouchDevice, createSwipeHandlers, createLongPressHandler } from '@shared/utils/touchHandlers';
 import BaseCard from '@shared/components/cards/BaseCard';
 import ProgramFeedbackModal from './ProgramFeedbackModal';
+import PublicShareCode from '@shared/components/sharing/PublicShareCode';
+import ShareWithClientModal from '@shared/components/sharing/ShareWithClientModal';
 
 const ProgramCard = ({
   program,
   clients = [],
   materials = [], // Přidán prop pro materiály
   onPreview,
-  onShare,
   onEdit,
   onDuplicate,
   onDelete,
@@ -30,9 +32,15 @@ const ProgramCard = ({
   const isVeryNarrow = useMediaQuery('(max-width:420px)');
   const isTouch = isTouchDevice();
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   const activeClients = clients.filter(c => !c.completedAt).length;
   const totalMaterials = program.days.reduce((acc, day) => acc + (day.materialIds?.length || 0), 0);
+
+  // Handle share - open modal
+  const handleShareProgram = () => {
+    setShareModalOpen(true);
+  };
 
   // Touch gestures - Swipe handlers
   const swipeHandlers = createSwipeHandlers({
@@ -43,7 +51,7 @@ const ProgramCard = ({
     },
     onSwipeRight: () => {
       if (isTouch) {
-        onShare(program);
+        handleShareProgram();
       }
     },
     threshold: 80,
@@ -202,6 +210,30 @@ const ProgramCard = ({
     </>
   ) : null;
 
+  // Generate share text for public code sharing
+  const getShareText = () => {
+    return `🌿 CoachPro - ${program.title}
+
+${program.description || ''}
+
+📅 Délka programu: ${pluralize(program.duration, 'den', 'dny', 'dní')}
+📚 Materiály: ${pluralize(totalMaterials, 'materiál', 'materiály', 'materiálů')}
+
+🔑 Pro přístup k programu zadej tento kód v aplikaci CoachPro:
+${program.shareCode}
+
+Těším se na tvůj růst! 💚`;
+  };
+
+  // Public share code footer
+  const publicCodeFooter = program.shareCode ? (
+    <PublicShareCode
+      code={program.shareCode}
+      shareText={getShareText()}
+      shareTitle={`CoachPro - ${program.title}`}
+    />
+  ) : null;
+
   return (
     <>
       <BaseCard
@@ -209,7 +241,7 @@ const ProgramCard = ({
         largeIcon={largeIcon}
         onPreview={() => onPreview(program)}
         onDuplicate={onDuplicate}
-        onShare={() => onShare(program)}
+        onShare={handleShareProgram}
         onEdit={() => onEdit(program)}
         onDelete={() => onDelete(program)}
 
@@ -236,6 +268,9 @@ const ProgramCard = ({
         feedbackData={program.programFeedback}
         onFeedbackClick={() => setFeedbackModalOpen(true)}
 
+        // Public share code footer
+        footer={publicCodeFooter}
+
         // Other props
         swipeHandlers={swipeHandlers}
         longPressHandlers={longPressHandlers}
@@ -248,6 +283,64 @@ const ProgramCard = ({
         open={feedbackModalOpen}
         onClose={() => setFeedbackModalOpen(false)}
         program={program}
+      />
+
+      {/* Share Program Modal */}
+      <ShareWithClientModal
+        open={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        content={program}
+        contentType="program"
+        onShare={async (data) => {
+          const currentUser = getCurrentUser();
+          if (!currentUser) {
+            throw new Error('Není přihlášený žádný kouč');
+          }
+
+          const sharedProgram = await createSharedProgramHelper(
+            program,
+            currentUser.id,
+            data.clientName,
+            data.clientEmail,
+            data.accessStartDate,
+            data.accessEndDate
+          );
+
+          return sharedProgram;
+        }}
+        getShareText={(shared) => {
+          const accessInfo = shared.accessEndDate
+            ? `\n⏰ Dostupné: ${formatDate(shared.accessStartDate, { day: 'numeric', month: 'numeric', year: 'numeric' })} - ${formatDate(shared.accessEndDate, { day: 'numeric', month: 'numeric', year: 'numeric' })}`
+            : `\n⏰ Dostupné od: ${formatDate(shared.accessStartDate, { day: 'numeric', month: 'numeric', year: 'numeric' })}`;
+
+          return `🌿 CoachPro - ${program.title}
+
+${program.description || ''}
+
+⏱️ Délka: ${program.duration} dní
+📚 ${program.days.reduce((acc, day) => acc + (day.materialIds?.length || 0), 0)} materiálů${accessInfo}
+
+🔑 Pro přístup k programu zadej tento kód v aplikaci CoachPro:
+${shared.shareCode}
+
+Těším se na tvůj růst! 💚`;
+        }}
+        getContentInfo={(prog) => ({
+          title: prog.title,
+          subtitle: `${prog.duration} dní • ${prog.days.reduce((acc, day) => acc + (day.materialIds?.length || 0), 0)} materiálů`
+        })}
+        checkDuplicate={async (email, prog) => {
+          const currentUser = getCurrentUser();
+          if (!currentUser) return null;
+
+          const allSharedPrograms = await getSharedProgramsByCoach(currentUser.id);
+          return allSharedPrograms.find(
+            sp => sp.programId === prog.id &&
+                  sp.clientEmail &&
+                  sp.clientEmail.toLowerCase() === email.toLowerCase()
+          );
+        }}
+        validateClient={validateClientExists}
       />
     </>
   );

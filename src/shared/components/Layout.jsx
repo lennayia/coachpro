@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Box, Toolbar } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from './Header';
+import Breadcrumbs from './Breadcrumbs';
 import { PAGE_PADDING } from '../styles/responsive';
 
 const Layout = ({ children, userType = 'coach', logoutHandler = null }) => {
@@ -84,6 +85,9 @@ const Layout = ({ children, userType = 'coach', logoutHandler = null }) => {
 
         {/* Page content */}
         <Box sx={{ position: 'relative', zIndex: 1 }}>
+          {/* Breadcrumbs navigation */}
+          <Breadcrumbs />
+
           {children}
         </Box>
       </Box>

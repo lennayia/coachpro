@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@shared/config/supabase';
 import { useNotification } from '@shared/context/NotificationContext';
 import { useTesterAuth } from '@shared/context/TesterAuthContext';
@@ -15,12 +15,16 @@ import { PHOTO_BUCKETS } from '@shared/utils/photoStorage';
  */
 const ProfilePage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { showSuccess, showError } = useNotification();
   const { user, profile: testerProfile, loading: authLoading } = useTesterAuth();
 
   const [coachProfile, setCoachProfile] = useState(null);
   const [metadata, setMetadata] = useState({});
   const [loading, setLoading] = useState(true);
+
+  // Get the "from" path from navigation state
+  const fromPath = location.state?.from;
 
   // Load coach profile from coachpro_coaches table
   useEffect(() => {
@@ -120,9 +124,13 @@ const ProfilePage = () => {
         'Váš profil byl úspěšně aktualizován.'
       );
 
-      // Navigate back to welcome
+      // Navigate back to where we came from, or to welcome
       setTimeout(() => {
-        navigate('/tester/welcome');
+        if (fromPath) {
+          navigate(fromPath);
+        } else {
+          navigate('/tester/welcome');
+        }
       }, 1500);
 
     } catch (err) {
@@ -131,8 +139,18 @@ const ProfilePage = () => {
     }
   };
 
+  // Determine user type based on current route
+  const isCoachRoute = location.pathname.startsWith('/coach');
+  const userType = isCoachRoute ? 'coach' : 'tester';
+
   const handleBack = () => {
-    navigate('/tester/welcome');
+    // If we came from another page, go back there
+    if (fromPath) {
+      navigate(fromPath);
+    } else {
+      // Default: go to appropriate welcome page based on user type
+      navigate(isCoachRoute ? '/tester/welcome' : '/tester/welcome');
+    }
   };
 
   return (
@@ -142,7 +160,7 @@ const ProfilePage = () => {
         user={user}
         onSave={handleSave}
         onBack={handleBack}
-        userType="tester"
+        userType={userType}
         photoBucket={PHOTO_BUCKETS.COACH_PHOTOS}
         showPhotoUpload={true}
         editableFields={[

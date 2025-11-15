@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -28,21 +28,19 @@ import {
   FileType,
   Link2,
   Paperclip,
-  Share2,
-  Copy,
   User,
   Calendar,
   MessageSquare
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDuration, formatFileSize, getCategoryLabel, formatDate } from '@shared/utils/helpers';
-import { deleteMaterial, getCurrentUser, getPrograms, setCurrentClient } from '../../utils/storage';
+import { deleteMaterial, getCurrentUser, getPrograms, setCurrentClient, createSharedMaterial, getSharedMaterials, validateClientExists } from '../../utils/storage';
 import { getAreaLabel, getAreaIcon, getStyleLabel, getAuthorityLabel } from '@shared/constants/coachingTaxonomy';
+import { supabase } from '@shared/config/supabase';
 import { generateUUID } from '../../utils/generateCode';
 import ServiceLogo from '../shared/ServiceLogo';
 import PreviewModal from '../shared/PreviewModal';
 import AddMaterialModal from './AddMaterialModal';
-import ShareMaterialModal from './ShareMaterialModal';
 import ClientFeedbackModal from './ClientFeedbackModal';
 import BORDER_RADIUS from '@styles/borderRadius';
 import { createBackdrop, createGlassDialog, createIconButton, createClientPreviewButton } from '../../../../shared/styles/modernEffects';
@@ -52,6 +50,8 @@ import { QuickTooltip } from '@shared/components/AppTooltip';
 import { useNotification } from '@shared/context/NotificationContext';
 import { isTouchDevice, createSwipeHandlers, createLongPressHandler } from '@shared/utils/touchHandlers';
 import BaseCard from '@shared/components/cards/BaseCard';
+import PublicShareCode from '@shared/components/sharing/PublicShareCode';
+import ShareWithClientModal from '@shared/components/sharing/ShareWithClientModal';
 
 const MaterialCard = ({
   material,
@@ -246,6 +246,31 @@ const MaterialCard = ({
 
   const metadata = renderMetadata();
 
+  // Generate share text for public code sharing
+  const getShareText = () => {
+    const typeLabel = {
+      audio: '🎵 Audio',
+      video: '🎬 Video',
+      pdf: '📄 PDF',
+      document: '📎 Dokument',
+      image: '🖼️ Obrázek',
+      text: '📝 Text',
+      link: '🔗 Odkaz',
+    }[material.type] || material.type;
+
+    return `🌿 CoachPro - ${material.title}
+
+${material.description || ''}
+
+📚 Typ: ${typeLabel}
+🏷️ ${getCategoryLabel(material.category)}
+
+🔑 Pro přístup k materiálu zadej tento kód v aplikaci CoachPro:
+${material.publicShareCode}
+
+Těším se na tvůj růst! 💚`;
+  };
+
   // BaseCard props
   const largeIcon = (
     <IconButton
@@ -265,6 +290,15 @@ const MaterialCard = ({
       {renderIcon()}
     </IconButton>
   );
+
+  // Public share code footer (pod reflexemi, zarovnané vlevo)
+  const publicCodeFooter = material.publicShareCode ? (
+    <PublicShareCode
+      code={material.publicShareCode}
+      shareText={getShareText()}
+      shareTitle={`CoachPro - ${material.title}`}
+    />
+  ) : null;
 
   const chipConfig = {
     label: getCategoryLabel(material.category),
@@ -327,6 +361,7 @@ const MaterialCard = ({
         onClientPreview={handleClientPreview}
         feedbackData={material.clientFeedback}
         onFeedbackClick={() => setFeedbackModalOpen(true)}
+        footer={publicCodeFooter}
         swipeHandlers={swipeHandlers}
         longPressHandlers={longPressHandlers}
         minHeight={280}
@@ -389,10 +424,72 @@ const MaterialCard = ({
       />
 
       {/* Share Material Modal */}
-      <ShareMaterialModal
+      <ShareWithClientModal
         open={shareModalOpen}
-        onClose={() => setShareModalOpen(false)}
-        material={material}
+        onClose={() => {
+          setShareModalOpen(false);
+          onUpdate(); // Refresh materials after modal closes
+        }}
+        content={material}
+        contentType="material"
+        onShare={async (data) => {
+          const currentUser = getCurrentUser();
+          if (!currentUser) {
+            throw new Error('Není přihlášený žádný kouč');
+          }
+
+          const sharedMaterial = await createSharedMaterial(
+            material,
+            currentUser.id,
+            data.accessStartDate,
+            data.accessEndDate,
+            data.clientEmail
+          );
+
+          // Don't refresh here - it will be refreshed when modal closes
+          // onUpdate();
+
+          return sharedMaterial;
+        }}
+        getShareText={(shared) => {
+          const typeLabel = {
+            audio: '🎵 Audio',
+            video: '🎬 Video',
+            pdf: '📄 PDF',
+            document: '📎 Dokument',
+            image: '🖼️ Obrázek',
+            text: '📝 Text',
+            link: '🔗 Odkaz',
+          }[material.type] || material.type;
+
+          return `🌿 CoachPro - ${material.title}
+
+${material.description || ''}
+
+📚 Typ: ${typeLabel}
+🏷️ ${getCategoryLabel(material.category)}
+
+🔑 Pro přístup k materiálu zadej tento kód v aplikaci CoachPro:
+${shared.shareCode}
+
+Těším se na tvůj růst! 💚`;
+        }}
+        getContentInfo={(mat) => ({
+          title: mat.title,
+          subtitle: getCategoryLabel(mat.category)
+        })}
+        checkDuplicate={async (email, mat) => {
+          const currentUser = getCurrentUser();
+          if (!currentUser) return null;
+
+          const allSharedMaterials = await getSharedMaterials(currentUser.id);
+          return allSharedMaterials.find(
+            sm => sm.materialId === mat.id &&
+                  sm.clientEmail &&
+                  sm.clientEmail.toLowerCase() === email.toLowerCase()
+          );
+        }}
+        validateClient={validateClientExists}
       />
 
       {/* Client Feedback Modal */}

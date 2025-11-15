@@ -66,6 +66,7 @@ export const DASHBOARD_ICONS = {
   cards: Layers,           // Koučovací karty
   clients: Users,
   profile: User,
+  help: HelpCircle,
 };
 
 /**

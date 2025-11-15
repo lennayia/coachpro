@@ -30,6 +30,7 @@ import { useGlassCard } from '@shared/hooks/useModernEffects';
 import { useTheme } from '@mui/material';
 import GoogleSignInButton from '@shared/components/GoogleSignInButton';
 import { useClientAuth } from '@shared/context/ClientAuthContext';
+import ShareCodePreview from '@shared/components/ShareCodePreview';
 
 const Client = () => {
   const navigate = useNavigate();
@@ -69,10 +70,35 @@ const Client = () => {
       }
 
       try {
-        // Try program first
-        const program = await getProgramByCode(code);
+        // Try program first (check both main program and individually shared programs)
+        let program = await getProgramByCode(code);
+
+        // If not found in main programs, try shared programs table
+        if (!program) {
+          const { getSharedProgramByCode } = await import('../utils/storage');
+          const sharedProgram = await getSharedProgramByCode(code);
+          console.log('🔍 [Client.jsx] getSharedProgramByCode result:', sharedProgram);
+          if (sharedProgram) {
+            // sharedProgram.program is JSONB from DB, merge with shared metadata
+            program = {
+              ...(sharedProgram.program || {}),
+              shareCode: sharedProgram.shareCode,
+              coachName: sharedProgram.coachName,
+              clientEmail: sharedProgram.clientEmail,
+            };
+            console.log('✅ [Client.jsx] Merged program:', program);
+          }
+        }
+
         if (program) {
-          setPreviewData({ title: program.title, coachName: program.coachName });
+          setPreviewData({
+            title: program.title,
+            subtitle: program.description || null,
+            coachName: program.coachName || program.coach_name,
+            duration: program.duration,
+            category: 'Program',
+            clientEmail: program.clientEmail || null,
+          });
           setDetectedType('program');
           setShowNameInput(true);
           return;
@@ -81,7 +107,14 @@ const Client = () => {
         // Try material
         const material = await getSharedMaterialByCode(code);
         if (material) {
-          setPreviewData({ title: material.title, type: 'Materiál' });
+          const { getCategoryLabel, getFormatLabel } = await import('@shared/utils/helpers');
+          setPreviewData({
+            title: material.material?.title || 'Materiál',
+            category: getCategoryLabel(material.material?.category),
+            format: getFormatLabel(material.material?.type),
+            coachName: material.coachName || 'Neznámá koučka',
+            clientEmail: material.clientEmail || null,
+          });
           setDetectedType('material');
           setShowNameInput(false);
           return;
@@ -90,7 +123,13 @@ const Client = () => {
         // Try card deck
         const cardDeck = await getCardDeckByCode(code);
         if (cardDeck) {
-          setPreviewData({ title: cardDeck.deck_name || 'Koučovací karty', type: 'Karty' });
+          setPreviewData({
+            title: cardDeck.deck_name || 'Koučovací karty',
+            subtitle: cardDeck.description || null,
+            coachName: cardDeck.coach_name || null,
+            category: 'Koučovací karty',
+            format: `🃏 ${cardDeck.card_count || 0} karet`,
+          });
           setDetectedType('card-deck');
           setShowNameInput(false);
           return;
@@ -126,7 +165,25 @@ const Client = () => {
     try {
       // Program entry
       if (detectedType === 'program') {
-        const program = await getProgramByCode(code);
+        // Try main program first, then shared programs
+        let program = await getProgramByCode(code);
+        let sharedProgramData = null;
+
+        if (!program) {
+          const { getSharedProgramByCode } = await import('../utils/storage');
+          const sharedProgram = await getSharedProgramByCode(code);
+          if (sharedProgram) {
+            // sharedProgram.program is JSONB from DB, merge with shared metadata
+            sharedProgramData = sharedProgram;
+            program = {
+              ...(sharedProgram.program || {}),
+              shareCode: sharedProgram.shareCode,
+              coachId: sharedProgram.coachId,
+              coachName: sharedProgram.coachName,
+            };
+          }
+        }
+
         if (!program) {
           throw new Error('Program nebyl nalezen');
         }
@@ -139,10 +196,17 @@ const Client = () => {
           client = {
             id: generateUUID(),
             name: clientName || 'Klientka',
-            programCodes: [code],
-            programIds: [program.id],
+            programCode: code,  // Single code (not array)
+            programId: program.id,  // Single ID (not array)
             coachId: program.coachId,
-            createdAt: new Date().toISOString(),
+            currentDay: 1,
+            completedDays: [],
+            moodChecks: [],
+            streak: 0,
+            longestStreak: 0,
+            startedAt: new Date().toISOString(),
+            completedAt: null,
+            certificateGenerated: false,
             auth_user_id: user?.id || null, // Link to OAuth user if logged in
           };
           await saveClient(client);
@@ -360,31 +424,7 @@ const Client = () => {
               />
 
               {/* Preview */}
-              {previewData && (
-                <Alert
-                  severity="success"
-                  icon={<CheckIcon />}
-                  sx={{
-                    mt: 2,
-                    mb: 1,
-                    borderRadius: BORDER_RADIUS.compact,
-                  }}
-                >
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {previewData.title}
-                  </Typography>
-                  {previewData.coachName && (
-                    <Typography variant="caption" sx={{ fontWeight: 500, color: 'primary.main' }}>
-                      Od kouče: {previewData.coachName}
-                    </Typography>
-                  )}
-                  {previewData.type && (
-                    <Typography variant="caption" color="text.secondary">
-                      Typ: {previewData.type}
-                    </Typography>
-                  )}
-                </Alert>
-              )}
+              <ShareCodePreview data={previewData} />
 
               {/* Name input for programs */}
               {showNameInput && (
@@ -420,6 +460,24 @@ const Client = () => {
               >
                 {loading ? <CircularProgress size={24} /> : detectedType === 'program' ? 'Vstoupit do programu' : 'Vstoupit'}
               </Button>
+
+              {/* Link to registration */}
+              <Box sx={{ mt: 4, pt: 3, borderTop: 1, borderColor: 'divider' }}>
+                <Typography variant="body2" color="text.secondary" align="center" gutterBottom>
+                  Ještě nemáš účet?
+                </Typography>
+                <Button
+                  fullWidth
+                  variant="text"
+                  onClick={() => navigate('/client/login')}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 600,
+                  }}
+                >
+                  Přihlásit se nebo zaregistrovat
+                </Button>
+              </Box>
             </motion.div>
           </Box>
         </Card>

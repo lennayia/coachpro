@@ -10,13 +10,20 @@ import { useNotification } from '@shared/context/NotificationContext';
 import { useGlassCard } from '@shared/hooks/useModernEffects';
 import GoogleSignInButton from '@shared/components/GoogleSignInButton';
 import Breadcrumbs from '@shared/components/Breadcrumbs';
-import { useTesterAuth } from '@shared/context/TesterAuthContext';
+import { useClientAuth } from '@shared/context/ClientAuthContext';
 
-const CoachLogin = () => {
+/**
+ * ClientLandingPage - Přihlašovací stránka pro klientky
+ *
+ * Features:
+ * - Přihlášení (email/heslo, Google OAuth, Magic Link)
+ * - Link na registraci
+ */
+const ClientLandingPage = () => {
   const navigate = useNavigate();
   const { showSuccess, showError } = useNotification();
   const glassCardStyles = useGlassCard('subtle');
-  const { user, profile, loading: authLoading } = useTesterAuth();
+  const { user, profile, loading: authLoading } = useClientAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,10 +32,10 @@ const CoachLogin = () => {
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [showMagicLink, setShowMagicLink] = useState(false);
 
-  // Auto-redirect if already authenticated with profile
+  // Auto-redirect if already authenticated
   useEffect(() => {
     if (!authLoading && user && profile) {
-      navigate('/coach/dashboard');
+      navigate('/client/daily');
     }
   }, [authLoading, user, profile, navigate]);
 
@@ -48,7 +55,7 @@ const CoachLogin = () => {
       const { error: magicLinkError } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
         options: {
-          emailRedirectTo: window.location.origin + '/coach/dashboard',
+          emailRedirectTo: window.location.origin + '/client/daily',
         },
       });
 
@@ -84,19 +91,12 @@ const CoachLogin = () => {
     setLoading(true);
 
     try {
-      // Sign in with email + password
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password: password,
       });
 
       if (signInError) {
-        if (signInError.message?.includes('Invalid login credentials')) {
-          throw new Error('Nesprávný email nebo heslo');
-        }
-        if (signInError.message?.includes('Email not confirmed')) {
-          throw new Error('Prosím potvrď svůj email. Zkontroluj si schránku.');
-        }
         throw new Error(signInError.message);
       }
 
@@ -105,17 +105,29 @@ const CoachLogin = () => {
       }
 
       showSuccess('Přihlášení úspěšné! 🎉', 'Vítej zpátky!');
-
-      // Navigate will happen automatically via TesterAuthContext
-      // when it detects the auth session
-      navigate('/coach/dashboard');
+      navigate('/client/daily');
     } catch (err) {
       setError(err.message || 'Něco se pokazilo. Zkus to prosím znovu.');
-      showError('Chyba při přihlášení', err.message);
+      showError('Chyba při přihlašování', err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -171,6 +183,7 @@ const CoachLogin = () => {
             <Breadcrumbs
               customBreadcrumbs={[
                 { label: 'Domů', path: '/' },
+                { label: 'Klientský vstup', path: '/client' },
                 { label: 'Přihlášení' },
               ]}
             />
@@ -228,7 +241,7 @@ const CoachLogin = () => {
             >
               <GoogleSignInButton
                 variant="contained"
-                redirectTo="/?intent=tester"
+                redirectTo="/?intent=client"
                 showDivider={false}
                 buttonText="Přihlásit se přes Google"
                 showSuccessToast={false}
@@ -408,7 +421,7 @@ const CoachLogin = () => {
                       textDecoration: 'underline',
                     },
                   }}
-                  onClick={() => navigate('/tester')}
+                  onClick={() => navigate('/client/register')}
                 >
                   Zaregistruj se
                 </Typography>
@@ -421,4 +434,4 @@ const CoachLogin = () => {
   );
 };
 
-export default CoachLogin;
+export default ClientLandingPage;

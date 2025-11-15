@@ -486,7 +486,7 @@ const ProfileScreen = ({
                           setEmailError(getFieldError('email', e.target.value, 'email'));
                         }}
                         error={!!emailError}
-                        helperText={emailError}
+                        helperText={emailError || undefined}
                         disabled={saving || externalLoading}
                         inputProps={{
                           autoComplete: 'email',

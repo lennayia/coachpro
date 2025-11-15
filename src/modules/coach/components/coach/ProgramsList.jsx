@@ -469,8 +469,6 @@ const ProgramsList = () => {
         onSuccess={(program) => {
           if (!editingProgram) {
             showSuccess('Hotovo!', `Program "${program.title}" byl úspěšně vytvořen 🎉`);
-            setSelectedProgram(program);
-            setShareModalOpen(true);
           } else {
             showSuccess('Uloženo!', `Program "${program.title}" byl úspěšně upraven`);
           }

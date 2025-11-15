@@ -26,7 +26,7 @@ const TesterProfileSimple = () => {
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/tester/signup');
+      navigate('/tester');
     }
   }, [authLoading, user, navigate]);
 

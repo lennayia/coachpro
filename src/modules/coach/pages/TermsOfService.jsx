@@ -150,7 +150,9 @@ const TermsOfService = () => {
             že Aplikace může obsahovat chyby, nestabilní funkce nebo dočasná omezení.
             Provozovatel nenese odpovědnost za případné výpadky nebo ztrátu dat během beta fáze.
             Beta testerky se zavazují poskytovat zpětnou vazbu a hlásit chyby na{' '}
-            <Link href="mailto:lenna@online-byznys.cz" underline="hover" sx={{ color: 'primary.main', fontWeight: 600 }}>lenna@online-byznys.cz</Link>.
+            <Link href="mailto:lenna@online-byznys.cz" underline="hover" sx={{ fontWeight: 600 }}>
+              lenna@online-byznys.cz
+            </Link>.
           </Typography>
 
           {/* 6. Ceny a platby */}
@@ -169,8 +171,7 @@ const TermsOfService = () => {
             7. Duševní vlastnictví
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={2}>
-            Veškerý obsah Aplikace vytvořený Provozovatelem (design, zdrojový kód, texty rozhraní,
-            grafika, loga, instruktážní texty, dokumentace) je chráněn autorským právem
+            Veškerý obsah Aplikace vytvořený Provozovatelem (design, zdrojový kód, texty rozhraní, grafika, loga, instruktážní texty, dokumentace) je chráněn autorským právem
             a je majetkem Provozovatele nebo poskytnut na základě licence. Uživatel nesmí:
           </Typography>
           <Box component="ul" sx={{ pl: 3, mb: 3 }}>
@@ -186,8 +187,7 @@ const TermsOfService = () => {
             </li>
             <li>
               <Typography variant="body1" color="text.secondary">
-                Kopírovat design, grafiku, loga nebo textový obsah rozhraní Aplikace
-                pro účely vytváření vlastního produktu
+                Kopírovat design, grafiku, loga nebo textový obsah rozhraní Aplikace pro účely vytváření vlastního produktu
               </Typography>
             </li>
             <li>
@@ -202,11 +202,9 @@ const TermsOfService = () => {
             </li>
           </Box>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            <strong>Obsah vytvořený uživateli</strong> (koučovací programy, materiály, poznámky,
-            záznamy o sezeních, nahrané dokumenty) zůstává jejich výhradním majetkem.
-            Provozovatel získává pouze nevýhradní licenci k ukládání a zobrazování
-            tohoto obsahu pro účely poskytování služby a nezneužije jej pro jiné účely.
-            Uživatel může svůj obsah kdykoliv exportovat nebo smazat.
+            Obsah vytvořený uživateli (koučovací programy, materiály, poznámky, záznamy o sezeních, nahrané dokumenty) zůstává
+            jejich výhradným majetkem. Provozovatel získává pouze nevýhradní licenci k ukládání a zobrazování
+            tohoto obsahu pro účely poskytování služby a nezneužije jej pro jiné účely. Uživatel může svůj obsah kdykoliv exportovat nebo smazat.
           </Typography>
 
           {/* 8. Odpovědnost za škody */}
@@ -250,7 +248,9 @@ const TermsOfService = () => {
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
             Zpracování osobních údajů se řídí našimi{' '}
-            <Link href="/privacy-policy" underline="hover" sx={{ color: 'primary.main', fontWeight: 600 }}>Zásadami ochrany osobních údajů</Link>,
+            <Link href="/privacy-policy" underline="hover" sx={{ fontWeight: 600 }}>
+              Zásadami ochrany osobních údajů
+            </Link>,
             které jsou nedílnou součástí těchto obchodních podmínek.
           </Typography>
 
@@ -260,7 +260,9 @@ const TermsOfService = () => {
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={2}>
             Uživatel může kdykoliv ukončit užívání Aplikace zasláním žádosti o smazání účtu na{' '}
-            <Link href="mailto:lenna@online-byznys.cz" underline="hover" sx={{ color: 'primary.main', fontWeight: 600 }}>lenna@online-byznys.cz</Link>.
+            <Link href="mailto:lenna@online-byznys.cz" underline="hover" sx={{ fontWeight: 600 }}>
+              lenna@online-byznys.cz
+            </Link>.
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
             Provozovatel si vyhrazuje právo zrušit uživatelský účet v případě:
@@ -306,23 +308,6 @@ const TermsOfService = () => {
             ostatní ustanovení zůstávají v platnosti.
           </Typography>
 
-          {/* Vstup do aplikace */}
-          <Box sx={{ mt: 4, textAlign: 'center' }}>
-            <Typography variant="body1" color="text.secondary" mb={2}>
-              <Link
-                href="/"
-                underline="hover"
-                sx={{
-                  fontWeight: 600,
-                  fontSize: '1.1rem',
-                  '&:hover': { color: 'primary.main' }
-                }}
-              >
-                Vstup do aplikace CoachPro
-              </Link>
-            </Typography>
-          </Box>
-
           {/* Kontakt */}
           <Box
             sx={{
@@ -338,7 +323,10 @@ const TermsOfService = () => {
             <Typography variant="body1" color="text.secondary">
               Máte dotaz k obchodním podmínkám?
               <br />
-              Napište nám na: <Link href="mailto:lenna@online-byznys.cz" underline="hover" sx={{ color: 'primary.main', fontWeight: 600 }}>lenna@online-byznys.cz</Link>
+              Napište nám na:{' '}
+              <Link href="mailto:lenna@online-byznys.cz" underline="hover" sx={{ fontWeight: 600 }}>
+                lenna@online-byznys.cz
+              </Link>
             </Typography>
           </Box>
         </CardContent>

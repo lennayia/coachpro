@@ -734,6 +734,95 @@ export const getClientsByCoachId = async (coachId) => {
   }
 };
 
+// Validate that a client with given email exists in client_profiles
+export const validateClientExists = async (email) => {
+  try {
+    const normalizedEmail = email.toLowerCase().trim();
+
+    console.log('🔍 [validateClientExists] Checking email:', normalizedEmail);
+
+    const { data, error } = await supabase
+      .from('coachpro_client_profiles')
+      .select('id, email')
+      .ilike('email', normalizedEmail)
+      .limit(1);
+
+    console.log('📊 [validateClientExists] Result:', { data, error });
+
+    if (error) {
+      console.error('❌ [validateClientExists] Error:', error);
+      return false;
+    }
+
+    const exists = data && data.length > 0;
+    console.log(exists ? '✅ [validateClientExists] Client EXISTS' : '❌ [validateClientExists] Client NOT FOUND');
+    return exists;
+  } catch (error) {
+    console.error('Error in validateClientExists:', error);
+    return false;
+  }
+};
+
+// Create a new client profile (for paid clients with membership/program access)
+// If client with this email already exists, return the existing profile
+export const createClientProfile = async (name, email, phone = null) => {
+  try {
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Check if client already exists
+    const { data: existingClient } = await supabase
+      .from('coachpro_client_profiles')
+      .select('*')
+      .ilike('email', normalizedEmail)
+      .limit(1)
+      .single();
+
+    // If exists, return existing profile (client can be shared between multiple coaches)
+    if (existingClient) {
+      return {
+        id: existingClient.id,
+        name: existingClient.name,
+        email: existingClient.email,
+        phone: existingClient.phone,
+        authUserId: existingClient.auth_user_id,
+        createdAt: existingClient.created_at,
+        updatedAt: existingClient.updated_at,
+      };
+    }
+
+    // Create new profile if doesn't exist
+    const { data, error } = await supabase
+      .from('coachpro_client_profiles')
+      .insert([
+        {
+          name: name.trim(),
+          email: normalizedEmail,
+          phone: phone?.trim() || null,
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Insert error:', error);
+      throw error;
+    }
+
+    return {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      authUserId: data.auth_user_id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    };
+  } catch (error) {
+    console.error('Error creating client profile:', error);
+    throw error;
+  }
+};
+
 // ===== SHARED MATERIALS =====
 // Helper: Convert shared material from DB (snake_case) to JS (camelCase)
 const convertSharedMaterialFromDB = (dbSharedMaterial) => {
@@ -753,7 +842,7 @@ const convertSharedMaterialFromDB = (dbSharedMaterial) => {
   };
 };
 
-export const getSharedMaterials = async (coachId = null) => {
+export const getSharedMaterials = async (coachId = null, clientEmail = null) => {
   try {
     let query = supabase
       .from('coachpro_shared_materials')
@@ -764,6 +853,10 @@ export const getSharedMaterials = async (coachId = null) => {
       query = query.eq('coach_id', coachId);
     }
 
+    if (clientEmail) {
+      query = query.eq('client_email', clientEmail.toLowerCase());
+    }
+
     const { data, error } = await query;
 
     if (error) throw error;
@@ -772,7 +865,10 @@ export const getSharedMaterials = async (coachId = null) => {
     console.error('Error fetching shared materials from Supabase:', error);
     // Fallback to localStorage
     const sharedMaterials = loadFromStorage(STORAGE_KEYS.SHARED_MATERIALS, []);
-    return coachId ? sharedMaterials.filter(sm => sm.coachId === coachId) : sharedMaterials;
+    let filtered = sharedMaterials;
+    if (coachId) filtered = filtered.filter(sm => sm.coachId === coachId);
+    if (clientEmail) filtered = filtered.filter(sm => sm.clientEmail === clientEmail.toLowerCase());
+    return filtered;
   }
 };
 
@@ -910,20 +1006,72 @@ const convertSharedProgramFromDB = (dbSharedProgram) => {
     qrCode: dbSharedProgram.qr_code,
     coachId: dbSharedProgram.coach_id,
     coachName: dbSharedProgram.coach_name,
+    clientName: dbSharedProgram.client_name,
+    clientEmail: dbSharedProgram.client_email,
     createdAt: dbSharedProgram.created_at,
     accessStartDate: dbSharedProgram.access_start_date,
     accessEndDate: dbSharedProgram.access_end_date,
   };
 };
 
+// Helper function similar to createSharedMaterial - easier to use
+export const createSharedProgramHelper = async (program, coachId, clientName, clientEmail, accessStartDate = null, accessEndDate = null) => {
+  try {
+    const { generateShareCode, generateQRCode } = await import('./generateCode.js');
+
+    const shareCode = generateShareCode();
+    const qrCode = await generateQRCode(shareCode);
+
+    let coach = await getCoachById(coachId);
+
+    if (!coach) {
+      const currentUser = getCurrentUser();
+      if (currentUser && currentUser.id === coachId) {
+        await saveCoach(currentUser);
+        coach = currentUser;
+      } else {
+        throw new Error(`Coach s ID ${coachId} nebyl nalezen. Přihlaš se prosím znovu.`);
+      }
+    }
+
+    const coachName = coach?.name || 'Neznámá koučka';
+
+    const sharedProgramData = {
+      program: program,  // ADD: Store full program as JSONB
+      programId: program.id,
+      coachId: coachId,
+      coachName: coachName,
+      clientName: clientName,
+      clientEmail: clientEmail ? clientEmail.toLowerCase() : null,
+      shareCode: shareCode,
+      qrCode: qrCode,
+      accessStartDate: accessStartDate,
+      accessEndDate: accessEndDate,
+    };
+
+    return await createSharedProgram(sharedProgramData);
+  } catch (error) {
+    console.error('Error creating shared program helper:', error);
+
+    if (error.code === '23503') {
+      throw new Error('Nepodařilo se vytvořit sdílený program. Zkus se odhlásit a znovu přihlásit.');
+    }
+
+    throw error;
+  }
+};
+
 export const createSharedProgram = async (sharedProgramData) => {
   try {
-    const { data, error } = await supabase
+    const { data, error} = await supabase
       .from('coachpro_shared_programs')
       .insert([{
+        program: sharedProgramData.program,  // ADD: Store full program as JSONB
         program_id: sharedProgramData.programId,
         coach_id: sharedProgramData.coachId,
         coach_name: sharedProgramData.coachName,
+        client_name: sharedProgramData.clientName,
+        client_email: sharedProgramData.clientEmail ? sharedProgramData.clientEmail.toLowerCase() : null,
         share_code: sharedProgramData.shareCode,
         qr_code: sharedProgramData.qrCode,
         access_start_date: sharedProgramData.accessStartDate,
@@ -969,6 +1117,31 @@ export const getSharedProgramsByCoach = async (coachId) => {
     return (data || []).map(convertSharedProgramFromDB);
   } catch (error) {
     console.error('Error fetching shared programs by coach:', error);
+    return [];
+  }
+};
+
+export const getSharedPrograms = async (coachId = null, clientEmail = null) => {
+  try {
+    let query = supabase
+      .from('coachpro_shared_programs')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (coachId) {
+      query = query.eq('coach_id', coachId);
+    }
+
+    if (clientEmail) {
+      query = query.eq('client_email', clientEmail.toLowerCase());
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return (data || []).map(convertSharedProgramFromDB);
+  } catch (error) {
+    console.error('Error fetching shared programs:', error);
     return [];
   }
 };

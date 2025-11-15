@@ -12,7 +12,7 @@ import GenericAuthGuard from './GenericAuthGuard';
 const TesterAuthGuard = ({
   children,
   requireProfile = true,
-  redirectOnNoAuth = '/tester/signup',
+  redirectOnNoAuth = '/tester',
   redirectOnNoProfile = '/tester/profile',
   showError = true,
 }) => {

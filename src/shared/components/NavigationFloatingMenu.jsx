@@ -88,6 +88,12 @@ const NavigationFloatingMenu = ({ isOpen = false, onToggle, userType = 'coach' }
       gradient: `linear-gradient(150deg, ${theme.palette.primary.light} 0%, ${theme.palette.secondary.dark} 100%)`,
     },
     {
+      icon: NAVIGATION_ICONS.programs,
+      label: 'Moje programy',
+      onClick: () => handleNavigate('/client/programs'),
+      gradient: `linear-gradient(120deg, ${theme.palette.primary.light} 0%, ${theme.palette.secondary.dark} 100%)`,
+    },
+    {
       icon: NAVIGATION_ICONS.cards,
       label: 'Koučovací karty',
       onClick: () => handleNavigate('/client/cards'),

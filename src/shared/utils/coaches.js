@@ -208,20 +208,30 @@ export async function getClientCoaches(clientId) {
     }
 
     // 2. Load coaches from shared materials
-    const { data: materials, error: materialsError } = await supabase
-      .from('coachpro_shared_materials')
-      .select('coach_id')
-      .eq('client_id', clientId);
+    // Note: We need to match by client_email, not client_id
+    // Since we have clientId (UUID), we need to get client's email first
+    const { data: clientProfile } = await supabase
+      .from('coachpro_client_profiles')
+      .select('email')
+      .eq('id', clientId)
+      .single();
 
-    if (!materialsError && materials) {
-      materials.forEach(material => {
-        if (material.coach_id) {
-          if (!coachesMap.has(material.coach_id)) {
-            coachesMap.set(material.coach_id, { hasSessions: false, hasMaterials: false, hasPrograms: false });
+    if (clientProfile?.email) {
+      const { data: materials, error: materialsError } = await supabase
+        .from('coachpro_shared_materials')
+        .select('coach_id')
+        .eq('client_email', clientProfile.email);
+
+      if (!materialsError && materials) {
+        materials.forEach(material => {
+          if (material.coach_id) {
+            if (!coachesMap.has(material.coach_id)) {
+              coachesMap.set(material.coach_id, { hasSessions: false, hasMaterials: false, hasPrograms: false });
+            }
+            coachesMap.get(material.coach_id).hasMaterials = true;
           }
-          coachesMap.get(material.coach_id).hasMaterials = true;
-        }
-      });
+        });
+      }
     }
 
     // 3. Load coaches from programs (future - add when programs table exists)

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Grid, Card, CardContent, CircularProgress, Alert, Chip } from '@mui/material';
+import { Box, Typography, Grid, Card, CardContent, CircularProgress, Alert, Chip, LinearProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { fadeIn, fadeInUp, staggerContainer, staggerItem } from '@shared/styles/animations';
@@ -13,6 +13,8 @@ import { getNextSession } from '@shared/utils/sessions';
 import { getCoachById, getClientCoaches } from '@shared/utils/coaches';
 import CoachCard from '@shared/components/CoachCard';
 import { DASHBOARD_ICONS, STATS_ICONS } from '@shared/constants/icons';
+import { getClientStats } from '@shared/utils/clientStats';
+import { Sprout, TrendingUp, BookOpen, Heart, Sparkles, Compass } from 'lucide-react';
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
@@ -22,6 +24,52 @@ const ClientDashboard = () => {
   const [loadingSession, setLoadingSession] = useState(true);
   const [coaches, setCoaches] = useState([]);
   const [loadingCoaches, setLoadingCoaches] = useState(true);
+  const [stats, setStats] = useState({
+    materialsCount: 0,
+    programsCount: 0,
+    scheduledSessionsCount: 0,
+    completedSessionsCount: 0,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  // Calculate activity level based on stats
+  const getActivityLevel = () => {
+    const totalSeeds = stats.materialsCount * 5 + stats.completedSessionsCount * 10;
+    const hasActivePrograms = stats.programsCount > 0;
+
+    // High activity: 30+ seeds or 3+ completed sessions
+    if (totalSeeds >= 30 || stats.completedSessionsCount >= 3) {
+      return {
+        level: 'high',
+        icon: Heart,
+        color: '#E91E63',
+        title: 'Vedete si skvěle, jen tak dál!',
+        iconBg: 'rgba(233, 30, 99, 0.1)',
+      };
+    }
+
+    // Medium activity: some engagement (10+ seeds or active programs)
+    if (totalSeeds >= 10 || hasActivePrograms) {
+      return {
+        level: 'medium',
+        icon: Sparkles,
+        color: '#FF9800',
+        title: 'Dobrá práce, jste na dobré cestě',
+        iconBg: 'rgba(255, 152, 0, 0.1)',
+      };
+    }
+
+    // Low activity: just starting or inactive
+    return {
+      level: 'low',
+      icon: Compass,
+      color: '#2196F3',
+      title: 'Vaše cesta začíná - objevte, co pro vás máme',
+      iconBg: 'rgba(33, 150, 243, 0.1)',
+    };
+  };
+
+  const activityLevel = getActivityLevel();
 
   // Destructure icons from centralized config
   const SessionsIcon = STATS_ICONS.sessions;
@@ -29,6 +77,7 @@ const ClientDashboard = () => {
   const ProgramsIcon = STATS_ICONS.programs;
   const CardsIcon = DASHBOARD_ICONS.cards;
   const ProfileIcon = DASHBOARD_ICONS.profile;
+  const HelpIcon = DASHBOARD_ICONS.help;
 
   // Load next session
   useEffect(() => {
@@ -68,6 +117,28 @@ const ClientDashboard = () => {
 
     loadCoaches();
   }, [profile?.id]);
+
+  // Load client statistics
+  useEffect(() => {
+    const loadStats = async () => {
+      if (!profile?.id && !profile?.email) {
+        setLoadingStats(false);
+        return;
+      }
+
+      setLoadingStats(true);
+      try {
+        const clientStats = await getClientStats(profile.id, profile.email);
+        setStats(clientStats);
+      } catch (error) {
+        console.error('Error loading client stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    loadStats();
+  }, [profile?.id, profile?.email]);
 
   return (
     <ClientAuthGuard requireProfile={true}>
@@ -125,7 +196,7 @@ const ClientDashboard = () => {
                       </Box>
                     </Box>
                     <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      {profile?.sessions_completed || 0}
+                      {loadingStats ? '...' : stats.completedSessionsCount}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Dokončených sezení
@@ -139,8 +210,10 @@ const ClientDashboard = () => {
             <Grid item xs={12} sm={6} md={3}>
               <motion.div variants={staggerItem}>
                 <Card
+                  onClick={() => navigate('/client/sessions')}
                   sx={{
                     height: '100%',
+                    cursor: 'pointer',
                     transition: 'all 0.3s ease-in-out',
                     '&:hover': {
                       transform: 'translateY(-4px)',
@@ -170,7 +243,7 @@ const ClientDashboard = () => {
                       </Box>
                     </Box>
                     <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      {nextSession ? '1' : '0'}
+                      {loadingStats ? '...' : stats.scheduledSessionsCount}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Naplánované sezení
@@ -184,8 +257,10 @@ const ClientDashboard = () => {
             <Grid item xs={12} sm={6} md={3}>
               <motion.div variants={staggerItem}>
                 <Card
+                  onClick={() => navigate('/client/materials')}
                   sx={{
                     height: '100%',
+                    cursor: 'pointer',
                     transition: 'all 0.3s ease-in-out',
                     '&:hover': {
                       transform: 'translateY(-4px)',
@@ -215,7 +290,7 @@ const ClientDashboard = () => {
                       </Box>
                     </Box>
                     <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      0
+                      {loadingStats ? '...' : stats.materialsCount}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Sdílené materiály
@@ -229,8 +304,10 @@ const ClientDashboard = () => {
             <Grid item xs={12} sm={6} md={3}>
               <motion.div variants={staggerItem}>
                 <Card
+                  onClick={() => navigate('/client/programs')}
                   sx={{
                     height: '100%',
+                    cursor: 'pointer',
                     transition: 'all 0.3s ease-in-out',
                     '&:hover': {
                       transform: 'translateY(-4px)',
@@ -260,7 +337,7 @@ const ClientDashboard = () => {
                       </Box>
                     </Box>
                     <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      0
+                      {loadingStats ? '...' : stats.programsCount}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Aktivní programy
@@ -411,186 +488,217 @@ const ClientDashboard = () => {
           </motion.div>
         )}
 
-        {/* Dashboard Cards - odpovídají menu položkám */}
+        {/* Motivační sekce - dynamický název */}
+        <Box mb={4}>
+          <Box display="flex" alignItems="center" gap={1.5} mb={2}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                backgroundColor: activityLevel.iconBg,
+              }}
+            >
+              <activityLevel.icon size={20} style={{ color: activityLevel.color }} />
+            </Box>
+            <Typography variant="h5" fontWeight={600} sx={{ color: activityLevel.color }}>
+              {activityLevel.title}
+            </Typography>
+          </Box>
+          <Grid container spacing={3}>
+            {/* Semínka růstu */}
+            <Grid item xs={12} md={4}>
+              <motion.div
+                variants={fadeInUp}
+                initial="hidden"
+                animate="visible"
+                transition={{ delay: 0.1 }}
+              >
+                <Card
+                  elevation={0}
+                  sx={{
+                    height: '100%',
+                    borderRadius: BORDER_RADIUS.card,
+                    border: '2px solid',
+                    borderColor: 'success.main',
+                    background: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 188, 143, 0.05) 100%)'
+                        : 'linear-gradient(135deg, rgba(76, 175, 80, 0.05) 0%, rgba(139, 188, 143, 0.1) 100%)',
+                  }}
+                >
+                  <CardContent sx={{ p: 3 }}>
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <Box
+                        sx={{
+                          p: 1.5,
+                          borderRadius: '50%',
+                          backgroundColor: 'success.main',
+                          color: '#fff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 2,
+                        }}
+                      >
+                        <Sprout size={24} />
+                      </Box>
+                      <Box>
+                        <Typography variant="h4" fontWeight={700} color="success.main">
+                          {stats.materialsCount * 5 + stats.completedSessionsCount * 10}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Semínka růstu
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Sbírejte semínka za každý dokončený materiál (+5) a sezení (+10). Vaše zahrada osobního růstu kvete! 🌱
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Grid>
+
+            {/* Rozpracované aktivity */}
+            <Grid item xs={12} md={4}>
+              <motion.div
+                variants={fadeInUp}
+                initial="hidden"
+                animate="visible"
+                transition={{ delay: 0.2 }}
+              >
+                <Card
+                  onClick={() => navigate('/client/programs')}
+                  elevation={0}
+                  sx={{
+                    height: '100%',
+                    borderRadius: BORDER_RADIUS.card,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      transform: 'translateY(-4px)',
+                      boxShadow: (theme) => theme.shadows[4],
+                    },
+                  }}
+                >
+                  <CardContent sx={{ p: 3 }}>
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <Box
+                        sx={{
+                          p: 1.5,
+                          borderRadius: '50%',
+                          backgroundColor: (theme) =>
+                            theme.palette.mode === 'dark'
+                              ? 'rgba(139, 188, 143, 0.15)'
+                              : 'rgba(85, 107, 47, 0.1)',
+                          color: 'primary.main',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 2,
+                        }}
+                      >
+                        <TrendingUp size={24} />
+                      </Box>
+                      <Box>
+                        <Typography variant="h4" fontWeight={700}>
+                          {stats.programsCount}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Aktivních programů
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Máte rozpracované programy, které čekají na váš pokrok. Pokračujte v růstu!
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Grid>
+
+            {/* Doporučení */}
+            <Grid item xs={12} md={4}>
+              <motion.div
+                variants={fadeInUp}
+                initial="hidden"
+                animate="visible"
+                transition={{ delay: 0.3 }}
+              >
+                <Card
+                  onClick={() => navigate('/client/materials')}
+                  elevation={0}
+                  sx={{
+                    height: '100%',
+                    borderRadius: BORDER_RADIUS.card,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      transform: 'translateY(-4px)',
+                      boxShadow: (theme) => theme.shadows[4],
+                    },
+                  }}
+                >
+                  <CardContent sx={{ p: 3 }}>
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <Box
+                        sx={{
+                          p: 1.5,
+                          borderRadius: '50%',
+                          backgroundColor: (theme) =>
+                            theme.palette.mode === 'dark'
+                              ? 'rgba(139, 188, 143, 0.15)'
+                              : 'rgba(85, 107, 47, 0.1)',
+                          color: 'primary.main',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 2,
+                        }}
+                      >
+                        <BookOpen size={24} />
+                      </Box>
+                      <Box>
+                        <Typography variant="h4" fontWeight={700}>
+                          {stats.materialsCount}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Nových materiálů
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Vaše koučka pro vás připravila nové materiály k prostudování. Prozkoumejte je!
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Grid>
+          </Grid>
+        </Box>
+
+        {/* Rychlé odkazy */}
+        <Typography variant="h5" fontWeight={600} mb={2} mt={2}>
+          Rychlé odkazy
+        </Typography>
         <Grid container spacing={3}>
-          {/* Card 1: Moje sezení (odpovídá Calendar v menu) */}
+          {/* Card 1: Můj profil */}
           <Grid item xs={12} sm={6} md={3}>
             <motion.div
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
               transition={{ delay: 0.1 }}
-            >
-              <Card
-                elevation={0}
-                sx={{
-                  height: '100%',
-                  borderRadius: BORDER_RADIUS.card,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s',
-                  '&:hover': {
-                    borderColor: 'primary.main',
-                    transform: 'translateY(-4px)',
-                    boxShadow: (theme) =>
-                      theme.palette.mode === 'dark'
-                        ? '0 8px 24px rgba(139, 188, 143, 0.15)'
-                        : '0 8px 24px rgba(85, 107, 47, 0.15)',
-                  },
-                }}
-                onClick={() => navigate('/client/sessions')}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 56,
-                      height: 56,
-                      borderRadius: '50%',
-                      backgroundColor: (theme) =>
-                        theme.palette.mode === 'dark'
-                          ? 'rgba(139, 188, 143, 0.15)'
-                          : 'rgba(85, 107, 47, 0.1)',
-                      mb: 2,
-                    }}
-                  >
-                    <SessionsIcon size={28} style={{ color: theme.palette.primary.main }} />
-                  </Box>
-                  <Typography variant="h6" fontWeight={600} gutterBottom>
-                    Moje sezení
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Přehled všech vašich sezení s koučkou
-                  </Typography>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </Grid>
-
-          {/* Card 2: Materiály (odpovídá FileText v menu) */}
-          <Grid item xs={12} sm={6} md={3}>
-            <motion.div
-              variants={fadeInUp}
-              initial="hidden"
-              animate="visible"
-              transition={{ delay: 0.2 }}
-            >
-              <Card
-                elevation={0}
-                sx={{
-                  height: '100%',
-                  borderRadius: BORDER_RADIUS.card,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s',
-                  '&:hover': {
-                    borderColor: 'primary.main',
-                    transform: 'translateY(-4px)',
-                    boxShadow: (theme) =>
-                      theme.palette.mode === 'dark'
-                        ? '0 8px 24px rgba(139, 188, 143, 0.15)'
-                        : '0 8px 24px rgba(85, 107, 47, 0.15)',
-                  },
-                }}
-                onClick={() => navigate('/client/materials')}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 56,
-                      height: 56,
-                      borderRadius: '50%',
-                      backgroundColor: (theme) =>
-                        theme.palette.mode === 'dark'
-                          ? 'rgba(139, 188, 143, 0.15)'
-                          : 'rgba(85, 107, 47, 0.1)',
-                      mb: 2,
-                    }}
-                  >
-                    <MaterialsIcon size={28} style={{ color: theme.palette.primary.main }} />
-                  </Box>
-                  <Typography variant="h6" fontWeight={600} gutterBottom>
-                    Materiály
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Prohlížejte sdílené materiály od koučky
-                  </Typography>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </Grid>
-
-          {/* Card 3: Koučovací karty (odpovídá Layers v menu) */}
-          <Grid item xs={12} sm={6} md={3}>
-            <motion.div
-              variants={fadeInUp}
-              initial="hidden"
-              animate="visible"
-              transition={{ delay: 0.3 }}
-            >
-              <Card
-                elevation={0}
-                sx={{
-                  height: '100%',
-                  borderRadius: BORDER_RADIUS.card,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s',
-                  '&:hover': {
-                    borderColor: 'primary.main',
-                    transform: 'translateY(-4px)',
-                    boxShadow: (theme) =>
-                      theme.palette.mode === 'dark'
-                        ? '0 8px 24px rgba(139, 188, 143, 0.15)'
-                        : '0 8px 24px rgba(85, 107, 47, 0.15)',
-                  },
-                }}
-                onClick={() => navigate('/client/cards')}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 56,
-                      height: 56,
-                      borderRadius: '50%',
-                      backgroundColor: (theme) =>
-                        theme.palette.mode === 'dark'
-                          ? 'rgba(139, 188, 143, 0.15)'
-                          : 'rgba(85, 107, 47, 0.1)',
-                      mb: 2,
-                    }}
-                  >
-                    <CardsIcon size={28} style={{ color: theme.palette.primary.main }} />
-                  </Box>
-                  <Typography variant="h6" fontWeight={600} gutterBottom>
-                    Koučovací karty
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Přístup ke koučovacím kartám
-                  </Typography>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </Grid>
-
-          {/* Card 4: Můj profil */}
-          <Grid item xs={12} sm={6} md={3}>
-            <motion.div
-              variants={fadeInUp}
-              initial="hidden"
-              animate="visible"
-              transition={{ delay: 0.4 }}
             >
               <Card
                 elevation={0}
@@ -635,6 +743,63 @@ const ClientDashboard = () => {
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Upravte svoje osobní údaje a nastavení
+                  </Typography>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </Grid>
+
+          {/* Card 2: Nápověda */}
+          <Grid item xs={12} sm={6} md={3}>
+            <motion.div
+              variants={fadeInUp}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.2 }}
+            >
+              <Card
+                elevation={0}
+                sx={{
+                  height: '100%',
+                  borderRadius: BORDER_RADIUS.card,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    transform: 'translateY(-4px)',
+                    boxShadow: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? '0 8px 24px rgba(139, 188, 143, 0.15)'
+                        : '0 8px 24px rgba(85, 107, 47, 0.15)',
+                  },
+                }}
+                onClick={() => navigate('/client/help')}
+              >
+                <CardContent sx={{ p: 3 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 56,
+                      height: 56,
+                      borderRadius: '50%',
+                      backgroundColor: (theme) =>
+                        theme.palette.mode === 'dark'
+                          ? 'rgba(139, 188, 143, 0.15)'
+                          : 'rgba(85, 107, 47, 0.1)',
+                      mb: 2,
+                    }}
+                  >
+                    <HelpIcon size={28} style={{ color: theme.palette.primary.main }} />
+                  </Box>
+                  <Typography variant="h6" fontWeight={600} gutterBottom>
+                    Nápověda
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Pomoc a často kladené otázky
                   </Typography>
                 </CardContent>
               </Card>

@@ -38,8 +38,10 @@ const ClientMaterials = () => {
   const [coachInfo, setCoachInfo] = useState(null);
 
   useEffect(() => {
-    loadMaterials();
-  }, []);
+    if (profile?.email) {
+      loadMaterials();
+    }
+  }, [profile?.email]);
 
   useEffect(() => {
     // Filter materials based on selected tab
@@ -56,9 +58,17 @@ const ClientMaterials = () => {
       setLoading(true);
       setError(null);
 
-      // Načti všechny sdílené materiály
-      // V budoucnu můžeme filtrovat podle client_id pokud chceme
-      const sharedMaterials = await getSharedMaterials();
+      if (!profile?.email) {
+        setMaterials([]);
+        setFilteredMaterials([]);
+        setLoading(false);
+        return;
+      }
+
+      // Načti POUZE individuálně sdílené materiály pro tuto klientku
+      // (materiály s client_email = email klientky)
+      // Veřejné materiály (client_email = NULL) se zobrazují přes share code bez přihlášení
+      const sharedMaterials = await getSharedMaterials(null, profile.email);
 
       // Deduplicate by material_id - keep only the latest share of each material
       const uniqueMaterials = [];
