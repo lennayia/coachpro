@@ -107,6 +107,7 @@ const ProfileScreen = ({
   const [website, setWebsite] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [telegram, setTelegram] = useState('');
+  const [bookingUrl, setBookingUrl] = useState('');
   const [preferredContact, setPreferredContact] = useState('email');
   const [timezone, setTimezone] = useState('Europe/Prague');
 
@@ -157,6 +158,7 @@ const ProfileScreen = ({
         setWebsite(profile.website || '');
         setWhatsapp(profile.whatsapp || '');
         setTelegram(profile.telegram || '');
+        setBookingUrl(profile.booking_url || '');
         setPreferredContact(profile.preferred_contact || 'email');
         setTimezone(profile.timezone || 'Europe/Prague');
 
@@ -244,6 +246,7 @@ const ProfileScreen = ({
         website: website.trim() || null,
         whatsapp: whatsapp.trim() || null,
         telegram: telegram.trim() || null,
+        booking_url: bookingUrl.trim() || null,
         preferred_contact: preferredContact,
         timezone: timezone,
       };
@@ -914,6 +917,23 @@ const ProfileScreen = ({
                             disabled={saving || externalLoading}
                             placeholder="username"
                             helperText="Automaticky přidáno: https://t.me/"
+                            InputProps={{
+                              sx: { borderRadius: BORDER_RADIUS.compact },
+                            }}
+                          />
+                        </Grid>
+                      )}
+
+                      {isFieldEditable('booking_url') && (
+                        <Grid item xs={12}>
+                          <TextField
+                            fullWidth
+                            label="Booking URL (Calendly, Cal.com, ...)"
+                            value={bookingUrl}
+                            onChange={(e) => setBookingUrl(e.target.value)}
+                            disabled={saving || externalLoading}
+                            placeholder="https://calendly.com/vase-jmeno"
+                            helperText="Odkaz na váš booking systém - klientky se mohou samy rezervovat sezení"
                             InputProps={{
                               sx: { borderRadius: BORDER_RADIUS.compact },
                             }}

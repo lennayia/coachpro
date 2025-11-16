@@ -11,6 +11,7 @@ import ClientsList from '../components/coach/ClientsList';
 import ProfilePage from './ProfilePage';
 import CoachingCardsPage from './CoachingCardsPage';
 import TesterManagement from '../components/coach/TesterManagement';
+import CoachSessions from './CoachSessions';
 
 const CoachDashboard = () => {
   const { logout } = useTesterAuth();
@@ -24,6 +25,7 @@ const CoachDashboard = () => {
           <Route path="/materials" element={<MaterialsLibrary />} />
           <Route path="/programs" element={<ProgramsList />} />
           <Route path="/clients" element={<ClientsList />} />
+          <Route path="/sessions" element={<CoachSessions />} />
           <Route path="/cards" element={<CoachingCardsPage />} />
           <Route path="/testers" element={<TesterManagement />} />
           <Route path="/profile" element={<ProfilePage />} />

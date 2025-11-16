@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Grid, Card, CardContent, CircularProgress, Alert, Chip, LinearProgress } from '@mui/material';
+import { Box, Typography, Grid, Card, CardContent, CircularProgress, Alert, Chip, LinearProgress, Button, Avatar } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { fadeIn, fadeInUp, staggerContainer, staggerItem } from '@shared/styles/animations';
@@ -15,8 +15,9 @@ import CoachCard from '@shared/components/CoachCard';
 import { DASHBOARD_ICONS, STATS_ICONS } from '@shared/constants/icons';
 import { getClientStats } from '@shared/utils/clientStats';
 import { getClientOpenItems } from '@shared/utils/clientOpenItems';
-import { setCurrentClient, saveClient } from '../utils/storage';
-import { Sprout, TrendingUp, BookOpen, Heart, Sparkles, Compass, Calendar, FileText, FolderOpen } from 'lucide-react';
+import { setCurrentClient, saveClient, getSharedPrograms, getSharedMaterials } from '../utils/storage';
+import { supabase } from '@shared/config/supabase';
+import { Sprout, TrendingUp, BookOpen, Heart, Sparkles, Compass, Calendar, FileText, FolderOpen, Mail, Phone } from 'lucide-react';
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ const ClientDashboard = () => {
   const [loadingSession, setLoadingSession] = useState(true);
   const [coaches, setCoaches] = useState([]);
   const [loadingCoaches, setLoadingCoaches] = useState(true);
+  const [coachStats, setCoachStats] = useState({}); // { coachId: { programs, materials, sessions } }
   const [stats, setStats] = useState({
     materialsCount: 0,
     programsCount: 0,
@@ -116,6 +118,35 @@ const ClientDashboard = () => {
       try {
         const clientCoaches = await getClientCoaches(profile.id);
         setCoaches(clientCoaches);
+
+        // Load stats for each coach
+        if (profile?.email && profile?.id) {
+          const statsPromises = clientCoaches.map(async (coach) => {
+            const programs = await getSharedPrograms(coach.id, profile.email);
+            const materials = await getSharedMaterials(coach.id, profile.email);
+            const { data: sessions } = await supabase
+              .from('coachpro_sessions')
+              .select('id')
+              .eq('client_id', profile.id)
+              .eq('coach_id', coach.id);
+
+            return {
+              coachId: coach.id,
+              stats: {
+                programs: programs?.length || 0,
+                materials: materials?.length || 0,
+                sessions: sessions?.length || 0,
+              },
+            };
+          });
+
+          const statsResults = await Promise.all(statsPromises);
+          const statsMap = {};
+          statsResults.forEach(({ coachId, stats }) => {
+            statsMap[coachId] = stats;
+          });
+          setCoachStats(statsMap);
+        }
       } catch (error) {
         console.error('Error loading coaches:', error);
       } finally {
@@ -124,7 +155,7 @@ const ClientDashboard = () => {
     };
 
     loadCoaches();
-  }, [profile?.id]);
+  }, [profile?.id, profile?.email]);
 
   // Load client statistics
   useEffect(() => {
@@ -170,6 +201,40 @@ const ClientDashboard = () => {
     loadOpenItems();
   }, [profile?.id, profile?.email]);
 
+  // Helper: Get items for specific coach
+  const getCoachItems = (coachId) => {
+    return {
+      programs: openItems.openPrograms.filter(p => p.coachId === coachId),
+      materials: openItems.recentMaterials?.filter(m => m.coachId === coachId) || [],
+      sessions: openItems.upcomingSessions?.filter(s => s.coach_id === coachId) || [],
+    };
+  };
+
+  // Helper: Get next session for specific coach
+  const getCoachNextSession = (coachId) => {
+    if (!nextSession || nextSession.coach_id !== coachId) return null;
+    return nextSession;
+  };
+
+  // Helper: Get stats for specific coach
+  const getCoachStats = async (coachId) => {
+    if (!profile?.email || !profile?.id) return { programs: 0, materials: 0, sessions: 0 };
+
+    const programs = await getSharedPrograms(coachId, profile.email);
+    const materials = await getSharedMaterials(coachId, profile.email);
+    const { data: sessions } = await supabase
+      .from('coachpro_sessions')
+      .select('id')
+      .eq('client_id', profile.id)
+      .eq('coach_id', coachId);
+
+    return {
+      programs: programs?.length || 0,
+      materials: materials?.length || 0,
+      sessions: sessions?.length || 0,
+    };
+  };
+
   return (
     <ClientAuthGuard requireProfile={true}>
     <Box>
@@ -184,205 +249,404 @@ const ClientDashboard = () => {
           </Typography>
         </Box>
 
-        {/* Otevřené položky - Na čem právě pracujete */}
-        {!loadingOpenItems && (
-          openItems.openPrograms.length > 0 ||
-          openItems.recentMaterials.length > 0 ||
-          openItems.upcomingSessions.length > 0
-        ) && (
-          <Box mb={4}>
-            <Typography variant="h5" fontWeight={600} mb={2}>
-              Na čem právě pracujete
-            </Typography>
-            <Grid container spacing={2}>
-              {/* Otevřené programy */}
-              {openItems.openPrograms.map((program, index) => (
-                <Grid item xs={12} sm={6} md={4} key={`program-${index}`}>
-                  <motion.div
-                    variants={staggerItem}
-                    initial="hidden"
-                    animate="visible"
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <Card
-                      onClick={async () => {
-                        try {
-                          console.log('🎯 Program clicked:', program.shareCode);
-                          console.log('📦 Program data available:', program.program ? 'YES' : 'NO');
-                          console.log('📦 Full program object:', program);
+        {/* SEKCE 1: Vaše koučky - PRVNÍ SEKCE */}
+        <Typography variant="h5" fontWeight={600} mb={3}>
+          {loadingCoaches ? '...' : coaches.length === 0 ? 'Vaše koučky' : coaches.length === 1 ? 'Vaše koučka' : 'Vaše koučky'}
+        </Typography>
 
-                          const clientData = {
-                            id: profile.id,
-                            name: profile.displayName || profile.name || profile.email,
-                            programCode: program.shareCode,
-                            programId: program.programId,
-                            coachId: program.coachId,
-                            currentDay: program.currentDay || 1,
-                            completedDays: program.completedDays || [],
-                            moodChecks: program.moodChecks || [],
-                            streak: program.streak || 0,
-                            longestStreak: program.longestStreak || 0,
-                            startedAt: program.startedAt || new Date().toISOString(),
-                            completedAt: program.completedAt || null,
-                            certificateGenerated: program.certificateGenerated || false,
-                            auth_user_id: profile.authUserId,
-                            _previewProgram: program.program, // Embed program data to avoid DB lookup
-                          };
-
-                          console.log('📦 _previewProgram:', clientData._previewProgram ? 'SET' : 'NULL');
-
-                          console.log('📦 Client data prepared:', clientData);
-
-                          // Save to sessionStorage
-                          setCurrentClient(clientData);
-                          console.log('✅ Saved to sessionStorage');
-
-                          // Save to Supabase (create record if it doesn't exist)
-                          console.log('💾 Saving to Supabase...');
-                          await saveClient(clientData);
-                          console.log('✅ Saved to Supabase, navigating to daily view...');
-
-                          navigate('/client/daily');
-                        } catch (error) {
-                          console.error('❌ Error opening program:', error);
-                          alert('Chyba při otevírání programu: ' + error.message);
-                        }
-                      }}
-                      sx={{
-                        height: '100%',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease-in-out',
-                        border: '2px solid',
-                        borderColor: 'primary.main',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: (theme) => theme.shadows[8],
-                        },
-                      }}
-                    >
-                      <CardContent>
-                        <Box display="flex" alignItems="center" mb={2}>
-                          <Box
-                            sx={{
-                              p: 1,
-                              borderRadius: BORDER_RADIUS.compact,
-                              backgroundColor: 'rgba(107, 142, 35, 0.1)',
-                              color: '#6B8E23',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              mr: 2,
-                            }}
-                          >
-                            <FolderOpen size={24} />
-                          </Box>
-                          <Box flex={1}>
-                            <Typography variant="subtitle2" fontWeight={600} noWrap>
-                              {program.program?.name || 'Program'}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Den {program.currentDay || 1} z {program.program?.duration || '?'}
-                            </Typography>
-                          </Box>
-                        </Box>
-                        <LinearProgress
-                          variant="determinate"
-                          value={
-                            program.program?.duration
-                              ? Math.round(
-                                  ((program.completedDays?.length || 0) / program.program.duration) * 100
-                                )
-                              : 0
-                          }
-                          sx={{
-                            height: 6,
-                            borderRadius: BORDER_RADIUS.compact,
-                            backgroundColor: 'rgba(107, 142, 35, 0.1)',
-                            '& .MuiLinearProgress-bar': {
-                              backgroundColor: '#6B8E23',
-                            },
-                          }}
-                        />
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </Grid>
-              ))}
-
-              {/* Nadcházející sezení */}
-              {openItems.upcomingSessions.map((session, index) => (
-                <Grid item xs={12} sm={6} md={4} key={`session-${index}`}>
-                  <motion.div
-                    variants={staggerItem}
-                    initial="hidden"
-                    animate="visible"
-                    transition={{
-                      delay: (openItems.openPrograms.length + index) * 0.1,
-                    }}
-                  >
-                    <Card
-                      onClick={() => navigate('/client/sessions')}
-                      sx={{
-                        height: '100%',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease-in-out',
-                        border: '2px solid',
-                        borderColor: 'rgba(34, 139, 34, 0.5)',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: (theme) => theme.shadows[8],
-                        },
-                      }}
-                    >
-                      <CardContent>
-                        <Box display="flex" alignItems="center" mb={1}>
-                          <Box
-                            sx={{
-                              p: 1,
-                              borderRadius: BORDER_RADIUS.compact,
-                              backgroundColor: 'rgba(34, 139, 34, 0.1)',
-                              color: '#228B22',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              mr: 2,
-                            }}
-                          >
-                            <Calendar size={24} />
-                          </Box>
-                          <Box flex={1}>
-                            <Typography variant="subtitle2" fontWeight={600} noWrap>
-                              Sezení
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {session.session_date
-                                ? new Date(session.session_date).toLocaleDateString('cs-CZ', {
-                                    day: 'numeric',
-                                    month: 'long',
-                                  })
-                                : 'Naplánováno'}
-                            </Typography>
-                          </Box>
-                        </Box>
-                        <Chip
-                          label="Nadcházející"
-                          size="small"
-                          sx={{
-                            backgroundColor: 'rgba(34, 139, 34, 0.2)',
-                            color: '#228B22',
-                            fontSize: '0.7rem',
-                          }}
-                        />
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </Grid>
-              ))}
-            </Grid>
+        {/* Koučky s 4 kartami */}
+        {loadingCoaches ? (
+          <Box display="flex" justifyContent="center" py={4}>
+            <CircularProgress size={48} />
           </Box>
+        ) : coaches.length === 0 ? (
+          <Alert severity="warning" sx={{ mb: 4, borderRadius: BORDER_RADIUS.card }}>
+            <Typography variant="body1" fontWeight={600}>
+              Nemáte přiřazenou žádnou koučku
+            </Typography>
+            <Typography variant="body2">
+              Kontaktujte nás pro přiřazení koučky nebo si vyberte z naší nabídky.
+            </Typography>
+          </Alert>
+        ) : (
+          coaches.map((coach, coachIndex) => {
+            const items = getCoachItems(coach.id);
+            const coachNextSession = openItems.upcomingSessions?.find(s => s.coach_id === coach.id);
+            const statsData = coachStats[coach.id] || { programs: 0, materials: 0, sessions: 0 };
+
+            return (
+              <Box key={coach.id} mb={4}>
+                <Grid container spacing={2}>
+                  {/* Karta 1: Profil koučky - MODERNÍ DESIGN */}
+                  <Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
+                    <motion.div
+                      variants={fadeInUp}
+                      initial="hidden"
+                      animate="visible"
+                      transition={{ delay: coachIndex * 0.1 }}
+                      style={{ width: '100%', display: 'flex' }}
+                    >
+                      <Card
+                        onClick={() => {
+                          const slug = coach.name
+                            .toLowerCase()
+                            .normalize('NFD')
+                            .replace(/[\u0300-\u036f]/g, '')
+                            .replace(/[^a-z0-9]+/g, '-')
+                            .replace(/^-+|-+$/g, '');
+                          navigate(`/client/coach/${slug}`, { state: { coachId: coach.id } });
+                        }}
+                        elevation={0}
+                        sx={{
+                          height: '100%',
+                          width: '100%',
+                          cursor: 'pointer',
+                          borderRadius: BORDER_RADIUS.card,
+                          position: 'relative',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          background: (theme) =>
+                            theme.palette.mode === 'dark'
+                              ? 'linear-gradient(135deg, rgba(139, 188, 143, 0.1) 0%, rgba(85, 107, 47, 0.05) 100%)'
+                              : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(143, 188, 143, 0.05) 100%)',
+                          backdropFilter: 'blur(10px)',
+                          border: '2px solid',
+                          borderColor: (theme) =>
+                            theme.palette.mode === 'dark'
+                              ? 'rgba(139, 188, 143, 0.2)'
+                              : 'rgba(85, 107, 47, 0.15)',
+                          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                          '&:hover': {
+                            transform: 'translateY(-8px) scale(1.02)',
+                            borderColor: 'primary.main',
+                            boxShadow: (theme) =>
+                              theme.palette.mode === 'dark'
+                                ? '0 20px 40px rgba(139, 188, 143, 0.25), 0 0 0 1px rgba(139, 188, 143, 0.1)'
+                                : '0 20px 40px rgba(85, 107, 47, 0.2), 0 0 0 1px rgba(85, 107, 47, 0.1)',
+                          },
+                          '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: '4px',
+                            background: (theme) =>
+                              theme.palette.mode === 'dark'
+                                ? 'linear-gradient(90deg, #8FBC8F, #556B2F, #8FBC8F)'
+                                : 'linear-gradient(90deg, #556B2F, #8FBC8F, #556B2F)',
+                            backgroundSize: '200% 100%',
+                            animation: 'gradientShift 3s ease infinite',
+                          },
+                          '@keyframes gradientShift': {
+                            '0%': { backgroundPosition: '0% 50%' },
+                            '50%': { backgroundPosition: '100% 50%' },
+                            '100%': { backgroundPosition: '0% 50%' },
+                          },
+                        }}
+                      >
+                        <CardContent sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                          {/* Avatar s ring efektem */}
+                          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                            <Box
+                              sx={{
+                                position: 'relative',
+                                '&::before': {
+                                  content: '""',
+                                  position: 'absolute',
+                                  inset: -4,
+                                  borderRadius: '50%',
+                                  padding: '4px',
+                                  background: (theme) =>
+                                    theme.palette.mode === 'dark'
+                                      ? 'linear-gradient(135deg, #8FBC8F, #556B2F)'
+                                      : 'linear-gradient(135deg, #556B2F, #8FBC8F)',
+                                  WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                                  WebkitMaskComposite: 'xor',
+                                  maskComposite: 'exclude',
+                                },
+                              }}
+                            >
+                              <Avatar
+                                src={coach.photo_url}
+                                sx={{
+                                  width: 80,
+                                  height: 80,
+                                  bgcolor: 'primary.main',
+                                  fontSize: 32,
+                                  fontWeight: 600,
+                                  boxShadow: (theme) =>
+                                    theme.palette.mode === 'dark'
+                                      ? '0 8px 16px rgba(139, 188, 143, 0.3)'
+                                      : '0 8px 16px rgba(85, 107, 47, 0.2)',
+                                }}
+                              >
+                                {!coach.photo_url && coach.name?.charAt(0)}
+                              </Avatar>
+                            </Box>
+                          </Box>
+
+                          {/* Jméno - FIXNÍ VÝŠKA (max 2 řádky) */}
+                          <Typography
+                            variant="h6"
+                            fontWeight={700}
+                            textAlign="center"
+                            gutterBottom
+                            sx={{
+                              background: (theme) =>
+                                theme.palette.mode === 'dark'
+                                  ? 'linear-gradient(135deg, #8FBC8F, #fff)'
+                                  : 'linear-gradient(135deg, #556B2F, #2c3e2c)',
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                              backgroundClip: 'text',
+                              mb: 2,
+                              minHeight: '2.6em',
+                              maxHeight: '2.6em',
+                              lineHeight: 1.3,
+                              overflow: 'hidden',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                            }}
+                          >
+                            {coach.name}
+                          </Typography>
+
+                          {/* Kontaktní údaje - FIXNÍ VÝŠKA */}
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minHeight: '48px' }}>
+                            {/* Email - vždy zabírá prostor */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minHeight: '20px' }}>
+                              {coach.email ? (
+                                <>
+                                  <Mail size={14} color={theme.palette.text.secondary} />
+                                  <Typography variant="caption" color="text.secondary" noWrap>
+                                    {coach.email}
+                                  </Typography>
+                                </>
+                              ) : (
+                                <Typography variant="caption" color="transparent">
+                                  &nbsp;
+                                </Typography>
+                              )}
+                            </Box>
+
+                            {/* Telefon - vždy zabírá prostor */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minHeight: '20px' }}>
+                              {coach.phone ? (
+                                <>
+                                  <Phone size={14} color={theme.palette.text.secondary} />
+                                  <Typography variant="caption" color="text.secondary">
+                                    {coach.phone}
+                                  </Typography>
+                                </>
+                              ) : (
+                                <Typography variant="caption" color="transparent">
+                                  &nbsp;
+                                </Typography>
+                              )}
+                            </Box>
+                          </Box>
+
+                          {/* Specializace chipy - FIXNÍ VÝŠKA */}
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 2, minHeight: '24px' }}>
+                            {coach.specializations ? (
+                              (typeof coach.specializations === 'string'
+                                ? coach.specializations.split(',').map(s => s.trim())
+                                : coach.specializations
+                              )
+                                .slice(0, 2)
+                                .map((spec, idx) => (
+                                  <Chip
+                                    key={idx}
+                                    label={spec}
+                                    size="small"
+                                    sx={{
+                                      fontSize: '0.7rem',
+                                      height: 20,
+                                      background: (theme) =>
+                                        theme.palette.mode === 'dark'
+                                          ? 'rgba(139, 188, 143, 0.2)'
+                                          : 'rgba(85, 107, 47, 0.1)',
+                                      color: 'primary.main',
+                                      fontWeight: 600,
+                                      border: '1px solid',
+                                      borderColor: (theme) =>
+                                        theme.palette.mode === 'dark'
+                                          ? 'rgba(139, 188, 143, 0.3)'
+                                          : 'rgba(85, 107, 47, 0.2)',
+                                    }}
+                                  />
+                                ))
+                            ) : (
+                              <Typography variant="caption" color="transparent">
+                                &nbsp;
+                              </Typography>
+                            )}
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  </Grid>
+
+                  {/* Karta 2: Příští sezení */}
+                  <Grid item xs={12} sm={6} md={3}>
+                    <motion.div
+                      variants={fadeInUp}
+                      initial="hidden"
+                      animate="visible"
+                      transition={{ delay: coachIndex * 0.1 + 0.05 }}
+                    >
+                      <Card
+                        elevation={0}
+                        sx={{
+                          borderRadius: BORDER_RADIUS.card,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                        }}
+                      >
+                        <CardContent sx={{ p: 2 }}>
+                          <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                            Příští sezení
+                          </Typography>
+                          {coachNextSession ? (
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">
+                                {new Date(coachNextSession.session_date).toLocaleDateString('cs-CZ', {
+                                  day: 'numeric',
+                                  month: 'long',
+                                  year: 'numeric',
+                                })}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {coachNextSession.session_time || 'Čas bude upřesněn'}
+                              </Typography>
+                            </Box>
+                          ) : (
+                            <Box>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                Žádné naplánované sezení
+                              </Typography>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => {
+                                  if (coach.booking_url) {
+                                    window.open(coach.booking_url, '_blank', 'noopener,noreferrer');
+                                  } else {
+                                    navigate('/client/sessions');
+                                  }
+                                }}
+                                sx={{ textTransform: 'none' }}
+                              >
+                                Naplánovat
+                              </Button>
+                            </Box>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  </Grid>
+
+                  {/* Karta 3: Právě pracujete */}
+                  <Grid item xs={12} sm={6} md={3}>
+                    <motion.div
+                      variants={fadeInUp}
+                      initial="hidden"
+                      animate="visible"
+                      transition={{ delay: coachIndex * 0.1 + 0.1 }}
+                    >
+                      <Card
+                        elevation={0}
+                        sx={{
+                          borderRadius: BORDER_RADIUS.card,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                        }}
+                      >
+                        <CardContent sx={{ p: 2 }}>
+                          <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                            Právě pracujete
+                          </Typography>
+                          {items.programs.length > 0 ? (
+                            <Box>
+                              {items.programs.slice(0, 2).map((program, idx) => (
+                                <Typography key={idx} variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                  • {program.program?.name || 'Program'}
+                                </Typography>
+                              ))}
+                            </Box>
+                          ) : (
+                            <Box>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                Žádné rozpracované programy
+                              </Typography>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => {
+                                  const slug = coach.name
+                                    .toLowerCase()
+                                    .normalize('NFD')
+                                    .replace(/[\u0300-\u036f]/g, '')
+                                    .replace(/[^a-z0-9]+/g, '-')
+                                    .replace(/^-+|-+$/g, '');
+                                  navigate(`/client/coach/${slug}`, { state: { coachId: coach.id } });
+                                }}
+                                sx={{ textTransform: 'none' }}
+                              >
+                                Prozkoumat
+                              </Button>
+                            </Box>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  </Grid>
+
+                  {/* Karta 4: Aktivní obsah */}
+                  <Grid item xs={12} sm={6} md={3}>
+                    <motion.div
+                      variants={fadeInUp}
+                      initial="hidden"
+                      animate="visible"
+                      transition={{ delay: coachIndex * 0.1 + 0.15 }}
+                    >
+                      <Card
+                        elevation={0}
+                        sx={{
+                          borderRadius: BORDER_RADIUS.card,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                        }}
+                      >
+                        <CardContent sx={{ p: 2 }}>
+                          <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                            Aktivní obsah
+                          </Typography>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              📚 {statsData.programs} {statsData.programs === 1 ? 'program' : statsData.programs < 5 ? 'programy' : 'programů'}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              📄 {statsData.materials} {statsData.materials === 1 ? 'materiál' : statsData.materials < 5 ? 'materiály' : 'materiálů'}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              🗓️ {statsData.sessions} {statsData.sessions === 1 ? 'sezení' : 'sezení'}
+                            </Typography>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  </Grid>
+                </Grid>
+              </Box>
+            );
+          })
         )}
 
-        {/* Stats karty */}
+        {/* SEKCE 2: Celkové statistiky */}
         <Typography
           variant="h5"
           sx={{
@@ -496,167 +760,7 @@ const ClientDashboard = () => {
           </Grid>
         </motion.div>
 
-        {/* Alerts - Coach & Session Info */}
-        <Grid container spacing={2} mb={3}>
-          {/* Coach Info Alert */}
-          {loadingCoaches ? (
-            <Grid item xs={12}>
-              <Box display="flex" justifyContent="center" py={2}>
-                <CircularProgress size={32} />
-              </Box>
-            </Grid>
-          ) : coaches.length === 0 ? (
-            <Grid item xs={12} md={6}>
-              <motion.div
-                variants={fadeInUp}
-                initial="hidden"
-                animate="visible"
-                transition={{ delay: 0.05 }}
-              >
-                <Alert severity="warning" sx={{ borderRadius: BORDER_RADIUS.compact }}>
-                  <Typography variant="body2" fontWeight={600}>
-                    Nemáte přiřazenou koučku
-                  </Typography>
-                </Alert>
-              </motion.div>
-            </Grid>
-          ) : null}
-
-          {/* Session Info Alert */}
-          {loadingSession ? (
-            <Grid item xs={12}>
-              <Box display="flex" justifyContent="center" py={2}>
-                <CircularProgress size={32} />
-              </Box>
-            </Grid>
-          ) : !nextSession ? (
-            <Grid item xs={12} md={coaches.length > 0 ? 12 : 6}>
-              <motion.div
-                variants={fadeInUp}
-                initial="hidden"
-                animate="visible"
-                transition={{ delay: 0.1 }}
-              >
-                <Alert severity="info" sx={{ borderRadius: BORDER_RADIUS.compact }}>
-                  <Typography variant="body2">
-                    Nemáte naplánované žádné sezení. Vaše koučka vám brzy naplánuje první schůzku.
-                  </Typography>
-                </Alert>
-              </motion.div>
-            </Grid>
-          ) : null}
-        </Grid>
-
-        {/* Coaches Info Widget - show all coaches working with this client */}
-        {coaches.length > 0 && (
-          <motion.div
-            variants={fadeInUp}
-            initial="hidden"
-            animate="visible"
-            transition={{ delay: 0.05 }}
-          >
-            <Box mb={4}>
-              <Typography variant="h5" fontWeight={600} mb={2}>
-                {coaches.length === 1 ? 'Vaše koučka' : 'Vaše koučky'}
-              </Typography>
-              <Grid container spacing={2}>
-                {coaches.map((coach, index) => (
-                  <Grid item xs={12} md={coaches.length === 1 ? 12 : 6} key={coach.id}>
-                    <motion.div
-                      variants={fadeInUp}
-                      initial="hidden"
-                      animate="visible"
-                      transition={{ delay: 0.05 + index * 0.05 }}
-                    >
-                      <Box
-                        onClick={() => {
-                          // Create slug from coach name
-                          const slug = coach.name
-                            .toLowerCase()
-                            .normalize('NFD')
-                            .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-                            .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with -
-                            .replace(/^-+|-+$/g, ''); // Remove leading/trailing -
-
-                          navigate(`/client/coach/${slug}`, { state: { coachId: coach.id } });
-                        }}
-                        sx={{
-                          cursor: 'pointer',
-                          transition: 'transform 0.2s',
-                          '&:hover': {
-                            transform: 'translateY(-4px)',
-                          },
-                        }}
-                      >
-                        <CoachCard coach={coach} compact={false} />
-                      </Box>
-                      {/* Show what services this coach provides */}
-                      <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                        {coach.activities?.hasSessions && (
-                          <Chip
-                            label="Sezení"
-                            size="small"
-                            sx={{
-                              backgroundColor: 'rgba(85, 107, 47, 0.1)',
-                              color: 'primary.main',
-                              fontSize: '0.75rem'
-                            }}
-                          />
-                        )}
-                        {coach.activities?.hasMaterials && (
-                          <Chip
-                            label="Materiály"
-                            size="small"
-                            sx={{
-                              backgroundColor: 'rgba(139, 188, 143, 0.1)',
-                              color: 'primary.main',
-                              fontSize: '0.75rem'
-                            }}
-                          />
-                        )}
-                        {coach.activities?.hasPrograms && (
-                          <Chip
-                            label="Programy"
-                            size="small"
-                            sx={{
-                              backgroundColor: 'rgba(107, 142, 35, 0.1)',
-                              color: 'primary.main',
-                              fontSize: '0.75rem'
-                            }}
-                          />
-                        )}
-                      </Box>
-                    </motion.div>
-                  </Grid>
-                ))}
-              </Grid>
-            </Box>
-          </motion.div>
-        )}
-
-        {/* Next Session Widget - only if session exists */}
-        {nextSession && (
-          <motion.div
-            variants={fadeInUp}
-            initial="hidden"
-            animate="visible"
-            transition={{ delay: 0.1 }}
-          >
-            <Box mb={4}>
-              <Typography variant="h5" fontWeight={600} mb={2}>
-                Příští sezení
-              </Typography>
-              <SessionCard
-                session={nextSession}
-                viewMode="client"
-                onClick={() => navigate('/client/sessions')}
-                showCountdown={true}
-              />
-            </Box>
-          </motion.div>
-        )}
-
-        {/* Motivační sekce - dynamický název */}
+        {/* SEKCE 3: Motivační sekce - dynamický název */}
         <Box mb={4}>
           <Box display="flex" alignItems="center" gap={1.5} mb={2}>
             <Box

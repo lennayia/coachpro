@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS coachpro_coaches (
   website TEXT,
   whatsapp TEXT,
   telegram TEXT,
+  -- Booking & scheduling
+  booking_url TEXT, -- Calendly, Cal.com, or other booking system URL
   -- Timestamps
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

@@ -45,7 +45,9 @@ const GoogleSignInButton = ({
           redirectTo: `${window.location.origin}${redirectTo}`,
           queryParams: {
             prompt: 'select_account',  // Force account picker (allow logout/switch accounts)
+            access_type: 'offline',     // Get refresh token for long-term access
           },
+          scopes: 'email profile https://www.googleapis.com/auth/calendar.readonly',  // Request Calendar API access
         },
       });
 

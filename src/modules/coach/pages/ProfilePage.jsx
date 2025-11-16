@@ -77,6 +77,7 @@ const ProfilePage = () => {
         website: profileData.website,
         whatsapp: profileData.whatsapp,
         telegram: profileData.telegram,
+        booking_url: profileData.booking_url,
       };
 
       const { data: coachData, error: coachError } = await supabase
@@ -178,6 +179,7 @@ const ProfilePage = () => {
           'website',
           'whatsapp',
           'telegram',
+          'booking_url',
         ]}
         metadata={metadata}
         loading={loading || authLoading}
