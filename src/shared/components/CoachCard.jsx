@@ -140,6 +140,28 @@ const CoachCard = ({ coach, onClick, compact = false, showFullProfile = false, c
                     </Typography>
                   </Box>
                 )}
+
+                {/* Specializations as chips */}
+                {specializations.length > 0 && (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                    {specializations.slice(0, 3).map((spec, index) => (
+                      <Chip
+                        key={index}
+                        label={spec}
+                        size="small"
+                        sx={{
+                          fontSize: '0.7rem',
+                          height: 22,
+                          bgcolor: (theme) =>
+                            theme.palette.mode === 'dark'
+                              ? 'rgba(139, 188, 143, 0.15)'
+                              : 'rgba(85, 107, 47, 0.1)',
+                          color: 'primary.main',
+                        }}
+                      />
+                    ))}
+                  </Box>
+                )}
               </Box>
             )}
 
