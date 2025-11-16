@@ -30,7 +30,7 @@ const Breadcrumbs = ({ customBreadcrumbs = null, showHome = true }) => {
 
   // Route labels mapping (Czech)
   const routeLabels = {
-    // Coach routes
+    // Coach routes (when coach is logged in)
     'coach': 'Dashboard',
     'materials': 'Materiály',
     'programs': 'Programy',
@@ -49,6 +49,10 @@ const Breadcrumbs = ({ customBreadcrumbs = null, showHome = true }) => {
     'daily': 'Denní úkol',
     'material': 'Materiál',
     'program': 'Program',
+    'select-coach': 'Vybrat koučku',
+
+    // Special pages
+    'help': 'Nápověda',
   };
 
   // Generate breadcrumbs from current path
@@ -56,11 +60,15 @@ const Breadcrumbs = ({ customBreadcrumbs = null, showHome = true }) => {
     const pathSegments = location.pathname.split('/').filter(Boolean);
     const breadcrumbs = [];
 
+    // Determine the dashboard path based on user type (first segment)
+    const userType = pathSegments[0]; // 'client', 'coach', or 'tester'
+    const dashboardPath = `/${userType}/dashboard`;
+
     // Add home if requested
     if (showHome && pathSegments.length > 0) {
       breadcrumbs.push({
         label: <Home size={16} />,
-        path: `/${pathSegments[0]}`,
+        path: dashboardPath, // Always go to dashboard, not just root
         isHome: true,
       });
     }
@@ -70,11 +78,20 @@ const Breadcrumbs = ({ customBreadcrumbs = null, showHome = true }) => {
     pathSegments.forEach((segment, index) => {
       currentPath += `/${segment}`;
 
-      // Skip first segment if home is shown
+      // Skip first segment (userType: client/coach/tester) if home is shown
       if (showHome && index === 0) return;
 
-      // Get label from mapping or use segment as fallback
-      const label = routeLabels[segment] || segment;
+      // Skip 'coach' segment when it's a path part (not the user type)
+      // This handles /client/coach/admin-lenna -> skip 'coach' part
+      if (segment === 'coach' && index > 0) return;
+
+      // Special handling for dynamic routes (IDs)
+      let label = routeLabels[segment] || segment;
+
+      // If previous segment was 'coach', this is coach ID - show "Koučka"
+      if (index > 0 && pathSegments[index - 1] === 'coach') {
+        label = 'Koučka';
+      }
 
       breadcrumbs.push({
         label,

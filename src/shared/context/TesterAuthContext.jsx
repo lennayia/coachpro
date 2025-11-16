@@ -1,5 +1,6 @@
 import { setCurrentUser } from '../../modules/coach/utils/storage';
 import { createAuthContext } from './GenericAuthContext';
+import { supabase } from '@shared/config/supabase';
 
 // Load coach session from database (for OAuth testers who are also coaches)
 const loadCoachSession = async (authUser, profileData) => {
@@ -9,6 +10,17 @@ const loadCoachSession = async (authUser, profileData) => {
     const existingCoach = coaches.find(c => c.email === profileData.email);
 
     if (existingCoach) {
+      // Sync Google photo to coach profile if available (always update to get latest)
+      const googlePhotoUrl = authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture;
+
+      if (googlePhotoUrl && googlePhotoUrl !== existingCoach.photo_url) {
+        // Update coach profile with latest Google photo
+        await supabase
+          .from('coachpro_coaches')
+          .update({ photo_url: googlePhotoUrl })
+          .eq('id', existingCoach.id);
+      }
+
       const coachUser = {
         id: existingCoach.id,
         auth_user_id: existingCoach.auth_user_id,

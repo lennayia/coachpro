@@ -1,34 +1,75 @@
 # CoachPro - Master TODO List
 
 **Branch:** `main`
-**Last Updated:** 14. listopadu 2025
-**Status:** Session #17 - Terms of Service & Privacy Policy
+**Last Updated:** 16. listopadu 2025
+**Status:** Session #17 - Client Coach Profiles & Selection System
 
 ---
 
 ## ✓ Completed Tasks - Session #17
 
-### Legal Documents
-- [x] Create TermsOfService.jsx with complete legal terms
-- [x] Update PrivacyPolicy.jsx with expanded GDPR-compliant content
-- [x] Add Terms of Service route to App.jsx (/terms-of-service)
-- [x] Update Footer.jsx with Terms of Service link
-- [x] Add cross-references between Terms and Privacy documents
-- [x] Style all links with primary color and bold
-- [x] Add "Vstup do aplikace" links at bottom of both documents
-- [x] Include complete business details (IČ: 49266896, Jiřice 104, Lysá nad Labem)
-- [x] Fix email addresses to lenna@online-byznys.cz throughout
+### Client Coach Profiles & Selection System
+- [x] Add 12 new columns to coachpro_coaches table (photo_url, auth_user_id, bio, education, certifications, specializations, years_of_experience, linkedin, instagram, facebook, website, whatsapp, telegram)
+- [x] Complete CoachCard refactor with accordion layout
+  - [x] Google OAuth photo display with auto-sync
+  - [x] Bio preview (3 lines with ellipsis)
+  - [x] Specializations display (max 3 visible, rest in accordion)
+  - [x] Accordion "Víc info" with full profile data
+  - [x] Social media icons with branded colors
+  - [x] Fixed heights for uniform card sizing (name: 2.6em, specs: 1.2em, bio: 3.2em)
+- [x] Implement dual-purpose ClientCoachSelection page
+  - [x] Assignment mode: Select and assign first coach
+  - [x] Browsing mode: Browse all coaches with counts
+  - [x] Load counts for programs, materials, sessions per coach
+- [x] Create CoachDetail page (580 lines)
+  - [x] Slug-based routing (/client/coach/lenka-roubalova)
+  - [x] Breadcrumbs navigation
+  - [x] Tabs: Programy / Materiály / Sezení
+  - [x] Full profile display with showFullProfile={true}
+- [x] Implement Google OAuth photo auto-sync in TesterAuthContext
+- [x] Add social media URL builders (smart username/URL detection)
+- [x] Create universal specializations parser (handles string/array)
+- [x] Update ProfilePage.jsx to save new profile fields
+- [x] Add getSharedPrograms() to storage.js
+- [x] Update Breadcrumbs.jsx with coach detail labels
+- [x] Add CoachDetail route to ClientView.jsx
 
 ### Bug Fixes
-- [x] Remove hardcoded phone number from ClientMaterials.jsx
-- [x] Load coach contact info dynamically from database
+- [x] Fix Google profile photos not displaying (URL format update)
+- [x] Fix coach cards not same height (flexbox + fixed heights pattern)
+- [x] Fix accordion background in dark mode
 
-### Google OAuth Setup
-- [x] Set up coachpro.cz custom domain on Vercel
-- [x] Configure DNS nameservers for coachpro.cz
-- [x] Add coachpro.cz to Supabase redirect URLs
-- [x] Add coachpro.cz to Google OAuth authorized domains
-- [x] Update Supabase Site URL to https://coachpro.cz
+---
+
+## ✓ Completed Tasks - Session #16B
+
+### Client Dashboard Redesign & Gamification
+- [x] Create ClientPrograms.jsx page (680 lines)
+  - [x] Filter tabs: All / Active / Completed
+  - [x] Progress tracking with LinearProgress
+  - [x] Click to open in DailyView
+- [x] Implement gamification system "Semínka růstu"
+  - [x] Materials: +5 seeds
+  - [x] Sessions: +10 seeds
+  - [x] Green accent card with Sprout icon
+- [x] Add dynamic 3-level motivational messaging
+  - [x] High activity (30+ seeds OR 3+ sessions): Heart icon (pink) - "Vedete si skvěle!"
+  - [x] Medium activity (10+ seeds OR active programs): Sparkles icon (orange) - "Dobrá práce!"
+  - [x] Low activity (starting): Compass icon (blue) - "Vaše cesta začíná!"
+- [x] Make statistical cards clickable for navigation
+  - [x] Stats cards navigate to detail pages
+  - [x] Eliminates redundancy (stats + navigation cards were duplicates)
+- [x] Reorder navigation menu
+  - [x] Programs moved BELOW Materials
+  - [x] New order: Dashboard → Sezení → Materiály → Programy → Karty
+- [x] Add getSharedPrograms() to storage.js (24 lines)
+- [x] Refactor ClientDashboard.jsx (~300 lines)
+- [x] Update NavigationFloatingMenu.jsx with new order
+
+### Key Technical Patterns
+- [x] Frontend deduplication using Set-based approach
+- [x] Activity-based dynamic UI content
+- [x] Stats as navigation pattern
 
 ---
 

@@ -23,6 +23,7 @@ import { useTheme } from '@mui/material';
 import { useClientAuth } from '@shared/context/ClientAuthContext';
 import ClientAuthGuard from '@shared/components/ClientAuthGuard';
 import { formatDate } from '@shared/utils/helpers';
+import { setCurrentClient } from '../utils/storage';
 
 const ClientPrograms = () => {
   const navigate = useNavigate();
@@ -103,11 +104,9 @@ const ClientPrograms = () => {
 
   const handleProgramClick = (program) => {
     // Set current client session and navigate to daily view
-    const { setCurrentClient } = require('../utils/storage');
-
     setCurrentClient({
-      id: program.clientId || profile.id,
-      name: profile.name || profile.email,
+      id: profile.id,
+      name: profile.displayName || profile.name || profile.email,
       programCode: program.shareCode,
       programId: program.programId,
       coachId: program.coachId,
@@ -120,6 +119,7 @@ const ClientPrograms = () => {
       completedAt: program.completedAt || null,
       certificateGenerated: program.certificateGenerated || false,
       auth_user_id: profile.authUserId,
+      _previewProgram: program.program, // Embed program data to avoid DB lookup
     });
 
     navigate('/client/daily');
@@ -190,7 +190,7 @@ const ClientPrograms = () => {
           {/* Header with Back Button */}
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
             <IconButton
-              onClick={() => navigate('/client/dashboard')}
+              onClick={() => navigate(-1)}
               sx={{
                 mr: 2,
                 color: 'primary.main',

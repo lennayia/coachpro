@@ -1,6 +1,6 @@
 # CoachPro - Architecture & Context Overview
 
-**Aktualizováno:** Session #16 (15.11.2025) - Dashboard Redesign & Gamification
+**Aktualizováno:** Session #17 (16.11.2025) - Client Coach Profiles & Selection
 
 ---
 
@@ -49,18 +49,25 @@ ClientProfile.jsx, ProfilePage.jsx (pages)
 
 ```
 src/
-├── modules/coach/
-│   ├── pages/
-│   │   ├── Tester.jsx                  # Registrace testerů
-│   │   ├── TesterWelcome.jsx           # Welcome screen (uses WelcomeScreen)
-│   │   ├── CoachLogin.jsx              # Login (3 auth methods)
-│   │   ├── ClientWelcome.jsx           # Client welcome (uses WelcomeScreen + FlipCard)
-│   │   ├── ClientWelcomeEnhanced.jsx   # ⭐ NEW Session #16 - Proof of concept
-│   │   ├── ClientProfile.jsx           # Client profile
-│   │   ├── ProfilePage.jsx             # Coach profile
-│   │   └── ...
-│   └── components/
-│       └── SessionCard.jsx             # Session display
+├── modules/
+│   ├── coach/
+│   │   ├── pages/
+│   │   │   ├── Tester.jsx                  # Registrace testerů
+│   │   │   ├── TesterWelcome.jsx           # Welcome screen (uses WelcomeScreen)
+│   │   │   ├── CoachLogin.jsx              # Login (3 auth methods)
+│   │   │   ├── ClientWelcome.jsx           # Client welcome (uses WelcomeScreen + FlipCard)
+│   │   │   ├── ClientWelcomeEnhanced.jsx   # ⭐ NEW Session #16 - Proof of concept
+│   │   │   ├── ClientProfile.jsx           # Client profile
+│   │   │   ├── ClientPrograms.jsx          # ⭐ NEW Session #16B - Programs list (680 lines)
+│   │   │   ├── ClientCoachSelection.jsx    # ⭐ UPDATED Session #17 - Dual-purpose
+│   │   │   ├── ProfilePage.jsx             # Coach profile
+│   │   │   └── ...
+│   │   └── components/
+│   │       └── SessionCard.jsx             # Session display
+│   │
+│   └── client/
+│       └── pages/
+│           └── CoachDetail.jsx         # ⭐ NEW Session #17 - Coach profile detail (580 lines)
 │
 └── shared/
     ├── components/
@@ -74,6 +81,7 @@ src/
     │   │
     │   ├── cards/
     │   │   ├── FlipCard.jsx            # ⭐ NEW Session #16 - 3D flip animation
+    │   │   ├── CoachCard.jsx           # ⭐ REFACTORED Session #17 - Full profiles
     │   │   └── BaseCard.jsx            # Foundation for all cards
     │   │
     │   └── effects/
@@ -507,13 +515,28 @@ import { Signpost } from 'lucide-react';
   - Added RegisterForm, WelcomeScreen
   - Email confirmation, Google OAuth
 - **Session #15:** Universal ProfileScreen, validation system
-- **Session #16:** Client Dashboard Redesign & Gamification 🎮
+- **Session #16:** FlipCard Implementation & Interactive Enhancements ✨
+  - FlipCard component (3D CSS animations)
+  - useSoundFeedback hook (Web Audio API)
+  - AnimatedGradient component
+  - WelcomeScreen enhancements (sounds, gradients, glow effects)
+  - Icon system improvements (Signpost for Rozcestník)
+  - Soft gradient helper (35%→25% opacity)
+- **Session #16B:** Client Dashboard Redesign & Gamification 🎮
   - ClientPrograms.jsx page (680 lines - was completely missing!)
   - Clickable statistical cards (eliminate redundancy)
   - Gamification system "Semínka růstu" (Materials +5, Sessions +10)
   - Dynamic 3-level motivational messaging (Heart/Sparkles/Compass)
   - Navigation menu reordered (Programs below Materials)
   - Dashboard reorganization (removed duplicate cards)
+- **Session #17:** Client Coach Profiles & Selection System 👥
+  - Database expansion (12 new columns for coach profiles)
+  - CoachCard complete refactor (accordion, fixed heights, social media)
+  - Dual-purpose ClientCoachSelection (assignment vs browsing)
+  - CoachDetail page (580 lines, slug-based routing)
+  - Google OAuth photo auto-sync
+  - Social media integration with branded colors
+  - Universal specializations parser (string/array support)
 
 ---
 
@@ -567,8 +590,12 @@ import { Signpost } from 'lucide-react';
 
 **Architecture Motto:** Utils → Components → Pages. Always.
 
-**Session #16 Motto:** Stats as Navigation. Gamification = Engagement. Personalization Wins.
+**Session #16 Motto:** Interactivity Wins. Sound + Animation = Engagement.
+
+**Session #16B Motto:** Stats as Navigation. Gamification = Engagement. Personalization Wins.
+
+**Session #17 Motto:** Profiles Matter. Uniform Heights = Professional. Auto-Sync = Fresh Data.
 
 ---
 
-**Poslední update:** 15. listopadu 2025 - Session #16: Dashboard Redesign & Gamification
+**Poslední update:** 16. listopadu 2025 - Session #17: Client Coach Profiles & Selection

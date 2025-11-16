@@ -1,6 +1,6 @@
 # CoachPro - Detailn� Dokumentace Claude AI
 
-**Posledn� aktualizace:** 15.11.2025 - Session #16 (Dashboard Redesign & Gamification)
+**Posledn� aktualizace:** 16.11.2025 - Session #17 (Client Coach Profiles & Selection)
 **Branch:** `main`
 **Status:** Production-ready 
 
@@ -1303,3 +1303,226 @@ CSS Flip vs Framer Motion Flip:
 - ✅ 100% features delivered
 - ✅ Zero bugs
 - ✅ Production-ready code quality
+
+---
+
+## Session #17: Client Coach Profiles & Selection System (16.11.2025)
+
+### Přehled Session
+
+**Datum:** 16.11.2025
+**Cíl:** Kompletní profily kouček s fotkami, bio, specializacemi a sociálními sítěmi
+**Výsledek:** 100% úspěch, production-ready
+
+### Klíčové Změny
+
+#### 1. Database Schema Expansion (12 nových sloupců)
+```sql
+ALTER TABLE coachpro_coaches ADD COLUMN:
+- photo_url TEXT
+- auth_user_id UUID
+- bio TEXT
+- education TEXT
+- certifications TEXT
+- specializations TEXT
+- years_of_experience INTEGER
+- linkedin TEXT
+- instagram TEXT
+- facebook TEXT
+- website TEXT
+- whatsapp TEXT
+- telegram TEXT
+```
+
+#### 2. CoachCard Complete Refactor
+**Před:** Pouze jméno a email
+**Po:** Kompletní profil s:
+- Google OAuth foto (auto-sync)
+- Bio preview (3 řádky)
+- Specializace (max 3 viditelné)
+- Accordion "Víc info" obsahující:
+  - Counts (programy/materiály/sezení)
+  - Plné bio
+  - Vzdělání & certifikace
+  - Všechny specializace
+  - Kontakt (email, telefon)
+  - Sociální sítě (branded ikony s barvami)
+
+**Fixní výšky pro uniformitu:**
+```javascript
+// Jméno: 2 řádky (2.6em)
+// Každá specializace: 1 řádek (1.2em)
+// Bio preview: 3 řádky (3.2em)
+```
+
+**Flexbox pattern pro stejnou výšku:**
+```jsx
+<Grid item xs={12} md={6} lg={4} sx={{ display: 'flex' }}>
+  <motion.div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+    <CoachCard ... />
+  </motion.div>
+</Grid>
+```
+
+#### 3. ClientCoachSelection - Dual Purpose
+**Assignment Mode** (když klient nemá kouče):
+- Zobrazí všechny kouče
+- Confirm dialog před přiřazením
+- Po potvrzení: updateClientCoach() + navigate dashboard
+
+**Browsing Mode** (když má klienta více kouček):
+```javascript
+const clientCoaches = await getClientCoaches(profile?.id);
+const hasManyCoaches = clientCoaches && clientCoaches.length > 0;
+setBrowsingMode(hasManyCoaches);
+```
+- Zobrazí counts (programy, materiály, sezení) pro každou koučku
+- Kliknutí naviguje na CoachDetail
+- Slug-based URL: `/client/coach/lenka-roubalova`
+
+#### 4. CoachDetail Page (CREATED - 580 lines)
+**Features:**
+- Slug-based routing (SEO friendly)
+- Breadcrumbs navigace
+- Tabs: Programy / Materiály / Sezení
+- Shared content zobrazení
+- Show all profile data with showFullProfile={true}
+
+**URL Pattern:**
+```javascript
+// Generate slug from name
+const slug = coach.name
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '');
+
+navigate(`/client/coach/${slug}`, { state: { coachId: coach.id } });
+```
+
+#### 5. Google OAuth Photo Auto-Sync
+**TesterAuthContext.jsx:**
+```javascript
+const googlePhotoUrl = authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture;
+
+if (googlePhotoUrl && googlePhotoUrl !== existingCoach.photo_url) {
+  await supabase
+    .from('coachpro_coaches')
+    .update({ photo_url: googlePhotoUrl })
+    .eq('id', existingCoach.id);
+}
+```
+
+**Benefit:** Vždy aktuální Google profile photo při každém přihlášení
+
+#### 6. Social Media Integration
+**Branded Colors:**
+```javascript
+const SOCIAL_COLORS = {
+  linkedin: '#0A66C2',
+  instagram: 'linear-gradient(45deg, #F58529, #DD2A7B, #8134AF)',
+  facebook: '#1877F2',
+  website: theme.palette.primary.main,
+  whatsapp: '#25D366',
+  telegram: '#0088cc',
+};
+```
+
+**Smart URL Builder:**
+```javascript
+const buildSocialUrl = (platform, value) => {
+  if (!value) return null;
+  if (value.startsWith('http')) return value; // Full URL
+
+  // Build from username
+  const baseUrls = {
+    linkedin: 'https://linkedin.com/in/',
+    instagram: 'https://instagram.com/',
+    facebook: 'https://facebook.com/',
+  };
+  return baseUrls[platform] + value;
+};
+```
+
+#### 7. Specializations Parsing
+**Universal Parser:**
+```javascript
+const parseSpecializations = (specializations) => {
+  if (!specializations) return [];
+  if (Array.isArray(specializations)) return specializations;
+  if (typeof specializations === 'string') {
+    return specializations
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+  }
+  return [];
+};
+```
+
+**Handles:**
+- String: `"spec1, spec2, spec3"`
+- Array: `["spec1", "spec2", "spec3"]`
+- Null/undefined: `[]`
+
+### Files Modified
+1. **CoachCard.jsx** - Complete refactor (350+ lines)
+2. **ClientCoachSelection.jsx** - Dual-purpose logic (180 lines)
+3. **CoachDetail.jsx** - NEW page (580 lines)
+4. **TesterAuthContext.jsx** - Google photo sync
+5. **ProfilePage.jsx** - Save new profile fields
+6. **storage.js** - getSharedPrograms()
+7. **Breadcrumbs.jsx** - Coach detail label
+8. **ClientView.jsx** - CoachDetail route
+9. **supabase_database_schema.sql** - 12 new columns
+
+### Key Technical Patterns
+
+**Fixed Heights with Flexbox:**
+```jsx
+// Parent Grid
+<Grid item sx={{ display: 'flex' }}>
+  // Motion wrapper
+  <motion.div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+    // Card content with fixed heights
+    <Typography sx={{
+      minHeight: '2.6em',
+      maxHeight: '2.6em',
+      overflow: 'hidden',
+      display: '-webkit-box',
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: 'vertical',
+    }}>
+      {coach.name}
+    </Typography>
+  </motion.div>
+</Grid>
+```
+
+**Theme-Aware Accordion:**
+```jsx
+<Accordion
+  sx={{
+    background: (theme) =>
+      theme.palette.mode === 'dark'
+        ? 'rgba(139, 188, 143, 0.05)'
+        : 'rgba(85, 107, 47, 0.05)',
+    '&:before': { display: 'none' },
+  }}
+>
+```
+
+### Success Metrics
+- ✅ 100% features delivered
+- ✅ Google photos working
+- ✅ Cards uniform height
+- ✅ Dual-purpose selection working
+- ✅ Production-ready code quality
+
+### User Feedback Journey
+1. Screenshot showing cards - "ale není to stejně vysoké"
+2. After flex fix - "yesss" (Google photo displayed)
+3. After accordion refinement - approval
+4. Multiple iterations on fixed heights (2.6em name, 1.2em specs, 3.2em bio)
+5. Final approval - production ready

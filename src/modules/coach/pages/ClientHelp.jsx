@@ -74,7 +74,7 @@ const ClientHelp = () => {
           {/* Header with Back Button */}
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
             <IconButton
-              onClick={() => navigate('/client/dashboard')}
+              onClick={() => navigate(-1)}
               sx={{
                 mr: 2,
                 color: 'primary.main',

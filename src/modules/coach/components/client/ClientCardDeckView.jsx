@@ -101,7 +101,7 @@ const ClientCardDeckView = () => {
     >
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <IconButton onClick={() => navigate('/client/cards')} sx={{ mb: 2 }}>
+        <IconButton onClick={() => navigate(-1)} sx={{ mb: 2 }}>
           <BackIcon />
         </IconButton>
 

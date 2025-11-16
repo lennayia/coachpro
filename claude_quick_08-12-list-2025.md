@@ -1,8 +1,8 @@
-# Claude Quick Reference - FlipCard Implementation
+# Claude Quick Reference - Recent Sessions
 
-**Datum:** 12.11.2025
-**Branch:** `claude-code-12list`
-**Session:** #16 - Interaktivní FlipCard komponenty
+**Datum:** 16.11.2025
+**Branch:** `main`
+**Sessions:** #16 FlipCard | #16B Dashboard | #17 Coach Profiles
 
 ---
 
@@ -291,5 +291,230 @@ npm run lint
 
 ---
 
-*Rychlá reference pro Session #16*
-*Poslední aktualizace: 12.11.2025*
+## 🎯 Session #16B: Dashboard & Gamification (15.11.2025)
+
+### ClientPrograms Page
+**Cesta:** `/src/modules/coach/pages/ClientPrograms.jsx` (680 lines)
+
+```jsx
+// Filter tabs: All / Active / Completed
+<Tabs value={filterTab}>
+  <Tab label="Všechny programy" />
+  <Tab label="Aktivní" />
+  <Tab label="Dokončené" />
+</Tabs>
+
+// Progress tracking
+<LinearProgress variant="determinate" value={progress} />
+
+// Click to open
+onClick={() => navigate(`/client/daily-view/${program.id}`)}
+```
+
+### Gamification "Semínka růstu"
+```jsx
+const totalSeeds = (materialsCount * 5) + (sessionsCount * 10);
+
+// Green accent card
+<Card sx={{ background: 'linear-gradient(135deg, #8BC34A, #4CAF50)' }}>
+  <Sprout size={40} />
+  <Typography variant="h3">{totalSeeds}</Typography>
+  <Typography>Semínka růstu</Typography>
+</Card>
+```
+
+### 3-Level Motivational Messaging
+```javascript
+// High activity: 30+ seeds OR 3+ sessions
+{ icon: Heart, color: '#ec4899', message: 'Vedete si skvěle!' }
+
+// Medium activity: 10+ seeds OR active programs
+{ icon: Sparkles, color: '#f97316', message: 'Dobrá práce!' }
+
+// Low activity: starting
+{ icon: Compass, color: '#3b82f6', message: 'Vaše cesta začíná!' }
+```
+
+### Clickable Stats Pattern
+```jsx
+// Before: Stats + Navigation cards (duplicate)
+// After: Stats ARE navigation
+
+<Card onClick={() => navigate('/client/materials')} sx={{ cursor: 'pointer' }}>
+  <Typography variant="h4">{materialsCount}</Typography>
+  <Typography>Materiály</Typography>
+</Card>
+```
+
+### Navigation Reordering
+```javascript
+// New order (Programs moved below Materials):
+const clientItems = [
+  { label: 'Dashboard', path: '/client/dashboard' },
+  { label: 'Sezení', path: '/client/sessions' },
+  { label: 'Materiály', path: '/client/materials' },
+  { label: 'Programy', path: '/client/programs' },  // ← Moved here
+  { label: 'Karty', path: '/client/cards' },
+];
+```
+
+---
+
+## 🎯 Session #17: Coach Profiles & Selection (16.11.2025)
+
+### CoachCard Refactor
+**Cesta:** `/src/shared/components/CoachCard.jsx`
+
+```jsx
+<CoachCard
+  coach={coach}
+  onClick={() => handleCoachSelect(coach)}
+  showFullProfile={true}
+  counts={{ programs: 5, materials: 12, sessions: 3 }}
+/>
+```
+
+**Fixed Heights Pattern:**
+```jsx
+// Name: 2 lines (2.6em)
+<Typography sx={{
+  minHeight: '2.6em',
+  maxHeight: '2.6em',
+  overflow: 'hidden',
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical',
+}}>
+  {coach.name}
+</Typography>
+
+// Specializations: 1 line each (1.2em)
+{specs.slice(0, 3).map(spec => (
+  <Chip label={spec} sx={{ minHeight: '1.2em', maxHeight: '1.2em' }} />
+))}
+
+// Bio preview: 3 lines (3.2em)
+<Typography sx={{
+  minHeight: '3.2em',
+  maxHeight: '3.2em',
+  WebkitLineClamp: 3,
+}}>
+  {coach.bio}
+</Typography>
+```
+
+### Uniform Card Heights (Flexbox)
+```jsx
+<Grid item xs={12} md={6} lg={4} sx={{ display: 'flex' }}>
+  <motion.div style={{
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column'
+  }}>
+    <CoachCard ... />
+  </motion.div>
+</Grid>
+```
+
+### Dual-Purpose ClientCoachSelection
+```javascript
+// Assignment mode: First coach selection
+const clientCoaches = await getClientCoaches(profile?.id);
+const hasManyCoaches = clientCoaches && clientCoaches.length > 0;
+
+if (hasManyCoaches) {
+  // Browsing mode: Show counts, navigate to detail
+  navigate(`/client/coach/${slug}`, { state: { coachId: coach.id } });
+} else {
+  // Assignment mode: Confirm dialog → assign
+  await updateClientCoach(profile.id, selectedCoach.id);
+}
+```
+
+### Slug-Based Routing
+```javascript
+const slug = coach.name
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')  // Remove diacritics
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '');
+
+// Result: "Lenka Roubalová" → "lenka-roubalova"
+```
+
+### Google OAuth Photo Auto-Sync
+**Cesta:** `/src/shared/context/TesterAuthContext.jsx`
+
+```javascript
+const googlePhotoUrl = authUser.user_metadata?.avatar_url ||
+                       authUser.user_metadata?.picture;
+
+if (googlePhotoUrl && googlePhotoUrl !== existingCoach.photo_url) {
+  await supabase
+    .from('coachpro_coaches')
+    .update({ photo_url: googlePhotoUrl })
+    .eq('id', existingCoach.id);
+}
+```
+
+### Social Media with Branded Colors
+```javascript
+const SOCIAL_COLORS = {
+  linkedin: '#0A66C2',
+  instagram: 'linear-gradient(45deg, #F58529, #DD2A7B, #8134AF)',
+  facebook: '#1877F2',
+  website: theme.palette.primary.main,
+  whatsapp: '#25D366',
+  telegram: '#0088cc',
+};
+
+// Smart URL builder
+const buildSocialUrl = (platform, value) => {
+  if (value.startsWith('http')) return value;
+  return `https://${platform}.com/${value}`;
+};
+```
+
+### Specializations Parser (Universal)
+```javascript
+const parseSpecializations = (specializations) => {
+  if (!specializations) return [];
+  if (Array.isArray(specializations)) return specializations;
+  if (typeof specializations === 'string') {
+    return specializations.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  return [];
+};
+```
+
+---
+
+## 📦 Nové soubory
+
+### Session #16B (1)
+1. `/src/modules/coach/pages/ClientPrograms.jsx` - 680 lines
+
+### Session #17 (1)
+1. `/src/modules/client/pages/CoachDetail.jsx` - 580 lines
+
+---
+
+## 📝 Upravené soubory
+
+### Session #16B (3)
+1. `storage.js` - getSharedPrograms()
+2. `ClientDashboard.jsx` - Gamification + clickable stats
+3. `NavigationFloatingMenu.jsx` - Reordered menu
+
+### Session #17 (5)
+1. `CoachCard.jsx` - Complete refactor
+2. `ClientCoachSelection.jsx` - Dual-purpose logic
+3. `TesterAuthContext.jsx` - Google photo sync
+4. `ProfilePage.jsx` - Save profile fields
+5. `Breadcrumbs.jsx` - Coach detail labels
+
+---
+
+*Rychlá reference pro Sessions #16, #16B, #17*
+*Poslední aktualizace: 16.11.2025*

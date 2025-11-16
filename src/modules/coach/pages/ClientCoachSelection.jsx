@@ -18,6 +18,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  Chip,
 } from '@mui/material';
 import { ArrowLeft, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -25,9 +26,11 @@ import { fadeIn, fadeInUp } from '@shared/styles/animations';
 import { useTheme } from '@mui/material';
 import ClientAuthGuard from '@shared/components/ClientAuthGuard';
 import CoachCard from '@shared/components/CoachCard';
-import { getActiveCoaches, updateClientCoach } from '@shared/utils/coaches';
+import { getActiveCoaches, updateClientCoach, getClientCoaches } from '@shared/utils/coaches';
 import { useNotification } from '@shared/context/NotificationContext';
 import { useClientAuth } from '@shared/context/ClientAuthContext';
+import { getSharedPrograms, getSharedMaterials } from '../utils/storage';
+import { supabase } from '@shared/config/supabase';
 
 const ClientCoachSelection = () => {
   const navigate = useNavigate();
@@ -40,16 +43,34 @@ const ClientCoachSelection = () => {
   const [selectedCoach, setSelectedCoach] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [assigning, setAssigning] = useState(false);
+  const [browsingMode, setBrowsingMode] = useState(false);
+  const [coachCounts, setCoachCounts] = useState({}); // { coachId: { programs, materials, sessions } }
 
   useEffect(() => {
     loadCoaches();
-  }, []);
+  }, [profile]);
 
   const loadCoaches = async () => {
     setLoading(true);
     try {
-      const data = await getActiveCoaches({ excludeTesters: false });
-      setCoaches(data);
+      // Check if client has any coaches assigned
+      const clientCoaches = await getClientCoaches(profile?.id);
+      const hasManyCoaches = clientCoaches && clientCoaches.length > 0;
+
+      setBrowsingMode(hasManyCoaches);
+
+      // If browsing mode, load all coaches and get counts
+      if (hasManyCoaches) {
+        const allCoaches = await getActiveCoaches({ excludeTesters: false });
+        setCoaches(allCoaches);
+
+        // Load counts for each coach
+        await loadCoachCounts(allCoaches);
+      } else {
+        // Assignment mode - load all coaches
+        const data = await getActiveCoaches({ excludeTesters: false });
+        setCoaches(data);
+      }
     } catch (error) {
       console.error('Error loading coaches:', error);
       showError('Chyba', 'Nepodařilo se načíst seznam koučů');
@@ -58,9 +79,51 @@ const ClientCoachSelection = () => {
     }
   };
 
+  const loadCoachCounts = async (coachList) => {
+    if (!profile?.email || !profile?.id) return;
+
+    const counts = {};
+
+    for (const coach of coachList) {
+      // Get programs count
+      const programs = await getSharedPrograms(coach.id, profile.email);
+
+      // Get materials count
+      const materials = await getSharedMaterials(coach.id, profile.email);
+
+      // Get sessions count
+      const { data: sessions } = await supabase
+        .from('coachpro_sessions')
+        .select('id')
+        .eq('client_id', profile.id)
+        .eq('coach_id', coach.id);
+
+      counts[coach.id] = {
+        programs: programs?.length || 0,
+        materials: materials?.length || 0,
+        sessions: sessions?.length || 0,
+      };
+    }
+
+    setCoachCounts(counts);
+  };
+
   const handleCoachSelect = (coach) => {
-    setSelectedCoach(coach);
-    setConfirmOpen(true);
+    if (browsingMode) {
+      // Browsing mode - navigate to coach detail
+      const slug = coach.name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+      navigate(`/client/coach/${slug}`, { state: { coachId: coach.id } });
+    } else {
+      // Assignment mode - show confirmation dialog
+      setSelectedCoach(coach);
+      setConfirmOpen(true);
+    }
   };
 
   const handleConfirmAssignment = async () => {
@@ -142,11 +205,13 @@ const ClientCoachSelection = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
                   <Users size={32} color={theme.palette.primary.main} />
                   <Typography variant="h3" fontWeight={700}>
-                    Vyberte si koučku
+                    {browsingMode ? 'Procházet nabídku kouček' : 'Vyberte si koučku'}
                   </Typography>
                 </Box>
                 <Typography variant="body1" color="text.secondary">
-                  Prozkoumejte naše kouče a vyberte si toho pravého pro vaši cestu
+                  {browsingMode
+                    ? 'Klikněte na koučku a prohlédněte si její programy, materiály a dostupná sezení'
+                    : 'Prozkoumejte naše kouče a vyberte si toho pravého pro vaši cestu'}
                 </Typography>
               </Box>
             </Box>
@@ -193,24 +258,32 @@ const ClientCoachSelection = () => {
                 transition={{ delay: 0.1 }}
               >
                 <Grid container spacing={3}>
-                  {coaches.map((coach, index) => (
-                    <Grid item xs={12} md={6} lg={4} key={coach.id}>
-                      <motion.div
-                        variants={fadeInUp}
-                        initial="hidden"
-                        animate="visible"
-                        transition={{ delay: 0.1 + index * 0.05 }}
-                      >
-                        <CoachCard
-                          coach={coach}
-                          onClick={() => handleCoachSelect(coach)}
-                        />
-                      </motion.div>
-                    </Grid>
-                  ))}
+                  {coaches.map((coach, index) => {
+                    const counts = coachCounts[coach.id];
+                    const hasAnyCounts = counts && (counts.programs > 0 || counts.materials > 0 || counts.sessions > 0);
+
+                    return (
+                      <Grid item xs={12} md={6} lg={4} key={coach.id} sx={{ display: 'flex' }}>
+                        <motion.div
+                          variants={fadeInUp}
+                          initial="hidden"
+                          animate="visible"
+                          transition={{ delay: 0.1 + index * 0.05 }}
+                          style={{ width: '100%', display: 'flex', flexDirection: 'column' }}
+                        >
+                          <CoachCard
+                            coach={coach}
+                            onClick={() => handleCoachSelect(coach)}
+                            showFullProfile={true}
+                            counts={browsingMode ? counts : null}
+                          />
+                        </motion.div>
+                      </Grid>
+                    );
+                  })}
                 </Grid>
 
-                {/* Info Alert */}
+                {/* Info Alert - different content based on mode */}
                 <Box sx={{ mt: 4 }}>
                   <Alert
                     severity="info"
@@ -220,13 +293,30 @@ const ClientCoachSelection = () => {
                       borderRadius: '16px',
                     }}
                   >
-                    <Typography variant="body2" fontWeight={600} gutterBottom>
-                      Jak vybrat koučku?
-                    </Typography>
-                    <Typography variant="body2">
-                      Kontaktujte koučku přímo pomocí telefonu nebo emailu. Domluvte si
-                      úvodní konzultaci a zjistěte, zda je to ten pravý kouč pro vás.
-                    </Typography>
+                    {browsingMode ? (
+                      <>
+                        <Typography variant="body2" fontWeight={600} gutterBottom>
+                          Jak to funguje?
+                        </Typography>
+                        <Typography variant="body2" component="div">
+                          <strong>Můžete mít více kouček!</strong> Každá koučka vám může sdílet své programy, materiály a nabízet sezení na různá témata.
+                          <br /><br />
+                          <strong>Klikněte na koučku</strong> a prohlédněte si, co vám nabízí. Můžete procházet nabídku všech kouček a vybrat si to, co vás zajímá.
+                          <br /><br />
+                          Počty vedle každé koučky ukazují, kolik programů, materiálů a sezení od ní máte k dispozici.
+                        </Typography>
+                      </>
+                    ) : (
+                      <>
+                        <Typography variant="body2" fontWeight={600} gutterBottom>
+                          Jak vybrat koučku?
+                        </Typography>
+                        <Typography variant="body2">
+                          Kontaktujte koučku přímo pomocí telefonu nebo emailu. Domluvte si
+                          úvodní konzultaci a zjistěte, zda je to ten pravý kouč pro vás.
+                        </Typography>
+                      </>
+                    )}
                   </Alert>
                 </Box>
               </motion.div>

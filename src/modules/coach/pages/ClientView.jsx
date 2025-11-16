@@ -18,6 +18,7 @@ import ClientSessions from './ClientSessions';
 import ClientCardDeckEntry from '../components/client/ClientCardDeckEntry';
 import ClientCardDeckView from '../components/client/ClientCardDeckView';
 import ClientCoachSelection from './ClientCoachSelection';
+import CoachDetail from './CoachDetail';
 
 // Wrapper component to access ClientAuth context
 const ClientViewContent = () => {
@@ -55,6 +56,7 @@ const ClientViewContent = () => {
   return (
     <Layout userType="client" logoutHandler={logout}>
       <Routes>
+        <Route index element={<ClientDashboard />} />
         <Route path="/dashboard" element={<ClientDashboard />} />
         <Route path="/profile" element={<ClientProfile />} />
         <Route path="/programs" element={<ClientPrograms />} />
@@ -67,6 +69,7 @@ const ClientViewContent = () => {
         <Route path="/select-coach" element={<ClientCoachSelection />} />
         <Route path="/cards" element={<ClientCardDeckEntry />} />
         <Route path="/card-deck/:code" element={<ClientCardDeckView />} />
+        <Route path="/coach/:coachId" element={<CoachDetail />} />
       </Routes>
     </Layout>
   );

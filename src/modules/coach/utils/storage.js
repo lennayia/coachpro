@@ -634,9 +634,19 @@ export const getClients = async (programCode = null) => {
 
 export const saveClient = async (client) => {
   try {
+    // Create a unique composite ID for this client-program combination
+    const compositeId = `${client.id}_${client.programCode}`;
+
+    console.log('💾 [saveClient] Saving client:', {
+      compositeId,
+      clientId: client.id,
+      programCode: client.programCode,
+      completedAt: client.completedAt,
+    });
+
     // Prepare data - convert camelCase to snake_case for DB
     const clientData = {
-      id: client.id,
+      id: compositeId, // Use composite ID as primary key
       name: client.name,
       program_code: client.programCode,
       program_id: client.programId || null,
@@ -652,6 +662,8 @@ export const saveClient = async (client) => {
       access_end_date: client.accessEndDate || null,
     };
 
+    console.log('💾 Client data to save:', clientData);
+
     const { data, error } = await supabase
       .from('coachpro_clients')
       .upsert(clientData, { onConflict: 'id' })
@@ -659,6 +671,7 @@ export const saveClient = async (client) => {
       .single();
 
     if (error) throw error;
+    console.log('✅ Client saved successfully:', data);
     return data;
   } catch (error) {
     console.error('Error saving client to Supabase:', error);

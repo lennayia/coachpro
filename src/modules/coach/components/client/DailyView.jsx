@@ -56,6 +56,7 @@ import {
   setCurrentClient,
   saveClient,
   getProgramById,
+  getSharedProgramByCode,
   getMaterialById,
   addMaterialFeedback,
   addProgramFeedback,
@@ -89,28 +90,55 @@ const DailyView = () => {
   // Load data
   useEffect(() => {
     const loadData = async () => {
+      console.log('🔄 [DailyView] Loading data...');
+
       const loadedClient = getCurrentClient();
+      console.log('📦 [DailyView] Loaded client:', loadedClient);
+
       if (!loadedClient) {
+        console.error('❌ [DailyView] No client found, redirecting to /client');
         navigate('/client');
         return;
       }
 
       // Check if this is a preview with embedded program data
-      const loadedProgram = loadedClient._previewProgram || await getProgramById(loadedClient.programId);
+      // If not, load from shared programs using shareCode (not programId which can be duplicate)
+      let loadedProgram = loadedClient._previewProgram;
+      console.log('🎯 [DailyView] Preview program:', loadedProgram ? 'YES' : 'NO');
+
+      if (!loadedProgram && loadedClient.programCode) {
+        console.log('🔍 [DailyView] Loading program by code:', loadedClient.programCode);
+        const sharedProgram = await getSharedProgramByCode(loadedClient.programCode);
+        console.log('📦 [DailyView] Shared program:', sharedProgram);
+
+        // Extract program data from shared program
+        loadedProgram = sharedProgram?.program;
+
+        // Fallback: if program is null (old shared programs), load from coachpro_programs
+        if (!loadedProgram && sharedProgram?.programId) {
+          console.log('🔄 [DailyView] Program is null, loading from coachpro_programs by ID:', sharedProgram.programId);
+          loadedProgram = await getProgramById(sharedProgram.programId);
+          console.log('📦 [DailyView] Loaded program from DB:', loadedProgram ? loadedProgram.name : 'NOT FOUND');
+        }
+      }
+
       if (!loadedProgram) {
+        console.error('❌ [DailyView] No program found, redirecting to /client');
         navigate('/client');
         return;
       }
 
+      console.log('✅ [DailyView] Program loaded:', loadedProgram.name);
       setClient(loadedClient);
       setProgram(loadedProgram);
 
       // Get day data (either current day or viewing day)
       const dayToShow = viewingDay || loadedClient.currentDay;
       const dayData = loadedProgram.days?.[dayToShow - 1];
+      console.log('📅 [DailyView] Day to show:', dayToShow, 'Day data:', dayData ? 'EXISTS' : 'MISSING');
 
       if (!dayData) {
-        console.error('Day data not found for day', dayToShow);
+        console.error('❌ [DailyView] Day data not found for day', dayToShow, 'redirecting to /client');
         navigate('/client');
         return;
       }
@@ -229,11 +257,20 @@ const DailyView = () => {
     if (!program) return;
 
     try {
-      await addProgramFeedback(program.id, feedback);
+      // Skip saving feedback for preview/shared programs
+      // (they don't exist in coachpro_programs table)
+      const isPreview = client._previewProgram || client.programCode;
 
-      // Reload program to show updated feedback
-      const updatedProgram = await getProgramById(program.id);
-      setProgram(updatedProgram);
+      if (!isPreview) {
+        await addProgramFeedback(program.id, feedback);
+
+        // Reload program to show updated feedback
+        const updatedProgram = await getProgramById(program.id);
+        if (updatedProgram) {
+          setProgram(updatedProgram);
+        }
+      }
+      // For shared programs, feedback is handled by client completion tracking in coachpro_clients
     } catch (error) {
       console.error('Failed to save program feedback:', error);
       throw error; // Let modal handle error display
@@ -241,7 +278,7 @@ const DailyView = () => {
   };
 
   const handleBack = () => {
-    navigate('/client');
+    navigate(-1);
   };
 
   // Open material in new tab (same as PreviewModal)

@@ -104,7 +104,7 @@ const ClientProfile = () => {
   };
 
   const handleBack = () => {
-    navigate('/client/welcome');
+    navigate(-1);
   };
 
   return (

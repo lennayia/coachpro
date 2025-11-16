@@ -22,10 +22,26 @@ CREATE TABLE IF NOT EXISTS coachpro_coaches (
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
   phone TEXT,
+  photo_url TEXT,
   is_admin BOOLEAN DEFAULT false,
   is_tester BOOLEAN DEFAULT false,
   tester_id UUID REFERENCES testers(id) ON DELETE SET NULL,
   access_code TEXT,
+  auth_user_id UUID,
+  -- Profile fields
+  bio TEXT,
+  education TEXT,
+  certifications TEXT,
+  specializations TEXT,
+  years_of_experience INTEGER,
+  -- Social media & contact
+  linkedin TEXT,
+  instagram TEXT,
+  facebook TEXT,
+  website TEXT,
+  whatsapp TEXT,
+  telegram TEXT,
+  -- Timestamps
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

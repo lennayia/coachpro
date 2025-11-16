@@ -14,7 +14,9 @@ import { getCoachById, getClientCoaches } from '@shared/utils/coaches';
 import CoachCard from '@shared/components/CoachCard';
 import { DASHBOARD_ICONS, STATS_ICONS } from '@shared/constants/icons';
 import { getClientStats } from '@shared/utils/clientStats';
-import { Sprout, TrendingUp, BookOpen, Heart, Sparkles, Compass } from 'lucide-react';
+import { getClientOpenItems } from '@shared/utils/clientOpenItems';
+import { setCurrentClient, saveClient } from '../utils/storage';
+import { Sprout, TrendingUp, BookOpen, Heart, Sparkles, Compass, Calendar, FileText, FolderOpen } from 'lucide-react';
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
@@ -31,6 +33,12 @@ const ClientDashboard = () => {
     completedSessionsCount: 0,
   });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [openItems, setOpenItems] = useState({
+    openPrograms: [],
+    recentMaterials: [],
+    upcomingSessions: [],
+  });
+  const [loadingOpenItems, setLoadingOpenItems] = useState(true);
 
   // Calculate activity level based on stats
   const getActivityLevel = () => {
@@ -140,6 +148,28 @@ const ClientDashboard = () => {
     loadStats();
   }, [profile?.id, profile?.email]);
 
+  // Load open items (programs, materials, sessions)
+  useEffect(() => {
+    const loadOpenItems = async () => {
+      if (!profile?.id && !profile?.email) {
+        setLoadingOpenItems(false);
+        return;
+      }
+
+      setLoadingOpenItems(true);
+      try {
+        const items = await getClientOpenItems(profile.id, profile.email);
+        setOpenItems(items);
+      } catch (error) {
+        console.error('Error loading open items:', error);
+      } finally {
+        setLoadingOpenItems(false);
+      }
+    };
+
+    loadOpenItems();
+  }, [profile?.id, profile?.email]);
+
   return (
     <ClientAuthGuard requireProfile={true}>
     <Box>
@@ -154,106 +184,223 @@ const ClientDashboard = () => {
           </Typography>
         </Box>
 
+        {/* Otevřené položky - Na čem právě pracujete */}
+        {!loadingOpenItems && (
+          openItems.openPrograms.length > 0 ||
+          openItems.recentMaterials.length > 0 ||
+          openItems.upcomingSessions.length > 0
+        ) && (
+          <Box mb={4}>
+            <Typography variant="h5" fontWeight={600} mb={2}>
+              Na čem právě pracujete
+            </Typography>
+            <Grid container spacing={2}>
+              {/* Otevřené programy */}
+              {openItems.openPrograms.map((program, index) => (
+                <Grid item xs={12} sm={6} md={4} key={`program-${index}`}>
+                  <motion.div
+                    variants={staggerItem}
+                    initial="hidden"
+                    animate="visible"
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Card
+                      onClick={async () => {
+                        try {
+                          console.log('🎯 Program clicked:', program.shareCode);
+                          console.log('📦 Program data available:', program.program ? 'YES' : 'NO');
+                          console.log('📦 Full program object:', program);
+
+                          const clientData = {
+                            id: profile.id,
+                            name: profile.displayName || profile.name || profile.email,
+                            programCode: program.shareCode,
+                            programId: program.programId,
+                            coachId: program.coachId,
+                            currentDay: program.currentDay || 1,
+                            completedDays: program.completedDays || [],
+                            moodChecks: program.moodChecks || [],
+                            streak: program.streak || 0,
+                            longestStreak: program.longestStreak || 0,
+                            startedAt: program.startedAt || new Date().toISOString(),
+                            completedAt: program.completedAt || null,
+                            certificateGenerated: program.certificateGenerated || false,
+                            auth_user_id: profile.authUserId,
+                            _previewProgram: program.program, // Embed program data to avoid DB lookup
+                          };
+
+                          console.log('📦 _previewProgram:', clientData._previewProgram ? 'SET' : 'NULL');
+
+                          console.log('📦 Client data prepared:', clientData);
+
+                          // Save to sessionStorage
+                          setCurrentClient(clientData);
+                          console.log('✅ Saved to sessionStorage');
+
+                          // Save to Supabase (create record if it doesn't exist)
+                          console.log('💾 Saving to Supabase...');
+                          await saveClient(clientData);
+                          console.log('✅ Saved to Supabase, navigating to daily view...');
+
+                          navigate('/client/daily');
+                        } catch (error) {
+                          console.error('❌ Error opening program:', error);
+                          alert('Chyba při otevírání programu: ' + error.message);
+                        }
+                      }}
+                      sx={{
+                        height: '100%',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease-in-out',
+                        border: '2px solid',
+                        borderColor: 'primary.main',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: (theme) => theme.shadows[8],
+                        },
+                      }}
+                    >
+                      <CardContent>
+                        <Box display="flex" alignItems="center" mb={2}>
+                          <Box
+                            sx={{
+                              p: 1,
+                              borderRadius: BORDER_RADIUS.compact,
+                              backgroundColor: 'rgba(107, 142, 35, 0.1)',
+                              color: '#6B8E23',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              mr: 2,
+                            }}
+                          >
+                            <FolderOpen size={24} />
+                          </Box>
+                          <Box flex={1}>
+                            <Typography variant="subtitle2" fontWeight={600} noWrap>
+                              {program.program?.name || 'Program'}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Den {program.currentDay || 1} z {program.program?.duration || '?'}
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <LinearProgress
+                          variant="determinate"
+                          value={
+                            program.program?.duration
+                              ? Math.round(
+                                  ((program.completedDays?.length || 0) / program.program.duration) * 100
+                                )
+                              : 0
+                          }
+                          sx={{
+                            height: 6,
+                            borderRadius: BORDER_RADIUS.compact,
+                            backgroundColor: 'rgba(107, 142, 35, 0.1)',
+                            '& .MuiLinearProgress-bar': {
+                              backgroundColor: '#6B8E23',
+                            },
+                          }}
+                        />
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                </Grid>
+              ))}
+
+              {/* Nadcházející sezení */}
+              {openItems.upcomingSessions.map((session, index) => (
+                <Grid item xs={12} sm={6} md={4} key={`session-${index}`}>
+                  <motion.div
+                    variants={staggerItem}
+                    initial="hidden"
+                    animate="visible"
+                    transition={{
+                      delay: (openItems.openPrograms.length + index) * 0.1,
+                    }}
+                  >
+                    <Card
+                      onClick={() => navigate('/client/sessions')}
+                      sx={{
+                        height: '100%',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease-in-out',
+                        border: '2px solid',
+                        borderColor: 'rgba(34, 139, 34, 0.5)',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: (theme) => theme.shadows[8],
+                        },
+                      }}
+                    >
+                      <CardContent>
+                        <Box display="flex" alignItems="center" mb={1}>
+                          <Box
+                            sx={{
+                              p: 1,
+                              borderRadius: BORDER_RADIUS.compact,
+                              backgroundColor: 'rgba(34, 139, 34, 0.1)',
+                              color: '#228B22',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              mr: 2,
+                            }}
+                          >
+                            <Calendar size={24} />
+                          </Box>
+                          <Box flex={1}>
+                            <Typography variant="subtitle2" fontWeight={600} noWrap>
+                              Sezení
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {session.session_date
+                                ? new Date(session.session_date).toLocaleDateString('cs-CZ', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                  })
+                                : 'Naplánováno'}
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <Chip
+                          label="Nadcházející"
+                          size="small"
+                          sx={{
+                            backgroundColor: 'rgba(34, 139, 34, 0.2)',
+                            color: '#228B22',
+                            fontSize: '0.7rem',
+                          }}
+                        />
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        )}
+
         {/* Stats karty */}
+        <Typography
+          variant="h5"
+          sx={{
+            fontWeight: 600,
+            mb: 3,
+            color: (theme) => theme.palette.text.primary,
+          }}
+        >
+          Máte aktivní
+        </Typography>
+
         <motion.div
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
         >
           <Grid container spacing={3} mb={4}>
-            {/* Stat 1: Dokončená sezení */}
-            <Grid item xs={12} sm={6} md={3}>
-              <motion.div variants={staggerItem}>
-                <Card
-                  sx={{
-                    height: '100%',
-                    transition: 'all 0.3s ease-in-out',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: (theme) => theme.shadows[4],
-                    },
-                  }}
-                >
-                  <CardContent>
-                    <Box
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="space-between"
-                      mb={2}
-                    >
-                      <Box
-                        sx={{
-                          p: 1.5,
-                          borderRadius: BORDER_RADIUS.compact,
-                          backgroundColor: 'rgba(85, 107, 47, 0.1)',
-                          color: '#556B2F',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <SessionsIcon size={40} />
-                      </Box>
-                    </Box>
-                    <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      {loadingStats ? '...' : stats.completedSessionsCount}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Dokončených sezení
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </Grid>
-
-            {/* Stat 2: Příští sezení */}
-            <Grid item xs={12} sm={6} md={3}>
-              <motion.div variants={staggerItem}>
-                <Card
-                  onClick={() => navigate('/client/sessions')}
-                  sx={{
-                    height: '100%',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease-in-out',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: (theme) => theme.shadows[4],
-                    },
-                  }}
-                >
-                  <CardContent>
-                    <Box
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="space-between"
-                      mb={2}
-                    >
-                      <Box
-                        sx={{
-                          p: 1.5,
-                          borderRadius: BORDER_RADIUS.compact,
-                          backgroundColor: 'rgba(34, 139, 34, 0.1)',
-                          color: '#228B22',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <SessionsIcon size={40} />
-                      </Box>
-                    </Box>
-                    <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      {loadingStats ? '...' : stats.scheduledSessionsCount}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Naplánované sezení
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </Grid>
-
-            {/* Stat 3: Materiály */}
+            {/* Stat 1: Materiály */}
             <Grid item xs={12} sm={6} md={3}>
               <motion.div variants={staggerItem}>
                 <Card
@@ -300,7 +447,7 @@ const ClientDashboard = () => {
               </motion.div>
             </Grid>
 
-            {/* Stat 4: Programy */}
+            {/* Stat 2: Programy */}
             <Grid item xs={12} sm={6} md={3}>
               <motion.div variants={staggerItem}>
                 <Card
@@ -421,7 +568,28 @@ const ClientDashboard = () => {
                       animate="visible"
                       transition={{ delay: 0.05 + index * 0.05 }}
                     >
-                      <CoachCard coach={coach} compact={false} />
+                      <Box
+                        onClick={() => {
+                          // Create slug from coach name
+                          const slug = coach.name
+                            .toLowerCase()
+                            .normalize('NFD')
+                            .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+                            .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with -
+                            .replace(/^-+|-+$/g, ''); // Remove leading/trailing -
+
+                          navigate(`/client/coach/${slug}`, { state: { coachId: coach.id } });
+                        }}
+                        sx={{
+                          cursor: 'pointer',
+                          transition: 'transform 0.2s',
+                          '&:hover': {
+                            transform: 'translateY(-4px)',
+                          },
+                        }}
+                      >
+                        <CoachCard coach={coach} compact={false} />
+                      </Box>
                       {/* Show what services this coach provides */}
                       <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                         {coach.activities?.hasSessions && (

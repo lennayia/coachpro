@@ -78,7 +78,7 @@ const ClientSessions = () => {
           {/* Header with back button */}
           <Box display="flex" alignItems="center" gap={2} mb={4}>
             <IconButton
-              onClick={() => navigate('/client/dashboard')}
+              onClick={() => navigate(-1)}
               sx={{
                 color: 'text.secondary',
                 '&:hover': {
