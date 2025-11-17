@@ -13,6 +13,8 @@
 2. ✅ Vytvořit veřejný Landing Page pro Google OAuth verification
 3. ✅ Přidat booking_url pole pro kouče
 4. ✅ Moderní efekty na Landing Page
+5. ✅ **Refaktorovat ClientDashboard pro zobrazení více kouček**
+6. ✅ **4 karty pro každou koučku (profil, stats, položky, sezení)**
 
 ---
 
@@ -117,7 +119,88 @@ Kompletní přepracování Landing Page (`src/modules/coach/pages/LandingPage.js
 
 ---
 
-### 3. **Moderní Efekty & Animace** ✨
+### 3. **ClientDashboard - Kompletní Refaktoring** 🎨
+
+#### Problém:
+Dashboard klienta nebyl optimalizovaný pro zobrazení více kouček a jejich obsahu.
+
+#### Řešení:
+Kompletní refaktoring ClientDashboard.jsx (1087 řádků) - nový design s kartami pro koučky.
+
+#### Nová struktura:
+
+**SEKCE 1: Vaše koučky** (První sekce - nejvýše)
+Pro každou koučku **4 karty**:
+
+**Karta 1: Profil koučky**
+- Avatar s fotkou
+- Jméno koučky
+- Specializace (chipy - max 3 viditelné)
+- Clickable → navigace na `/client/coach/{slug}`
+- Gradient border v primary barvě
+- Hover efekt: scale + shadow
+
+**Karta 2: Statistiky**
+- Počet programů
+- Počet materiálů
+- Počet sezení
+- Ikony pro každou statistiku
+- Zelené accent karty
+
+**Karta 3: Otevřené položky**
+- "Na čem právě pracujete"
+- Seznam otevřených programů (s progress barem)
+- Poslední materiály
+- Nadcházející sezení
+- Pokud nic: "Začněte nový program"
+
+**Karta 4: Další sezení**
+- Datum a čas
+- Typ sezení (online/osobně)
+- Lokace/link
+- Countdown "za X dní"
+- Pokud nic: "Naplánujte si sezení"
+
+**Technické detaily:**
+
+1. **Helper funkce pro filtrování**:
+```javascript
+const getCoachItems = (coachId) => {
+  return {
+    programs: openItems.openPrograms.filter(p => p.coachId === coachId),
+    materials: openItems.recentMaterials?.filter(m => m.coachId === coachId) || [],
+    sessions: openItems.upcomingSessions?.filter(s => s.coach_id === coachId) || [],
+  };
+};
+```
+
+2. **Načítání statistik pro každou koučku**:
+```javascript
+const statsPromises = clientCoaches.map(async (coach) => {
+  const programs = await getSharedPrograms(coach.id, profile.email);
+  const materials = await getSharedMaterials(coach.id, profile.email);
+  const { data: sessions } = await supabase
+    .from('coachpro_sessions')
+    .select('id')
+    .eq('client_id', profile.id)
+    .eq('coach_id', coach.id);
+
+  return { coachId: coach.id, stats: { programs, materials, sessions } };
+});
+```
+
+3. **CoachCard update**:
+- Přidány specializace jako chipy (max 3 viditelné)
+- Styling: zelené pozadí, primary barva textu
+- Size: small (0.7rem font, 22px height)
+
+#### Navigace změny:
+- Kliknutí na profil koučky → `/client/coach/{slug}` (slug z jména)
+- Zachována state s `coachId` pro detail page
+
+---
+
+### 4. **Moderní Efekty & Animace** ✨
 
 #### Implementované efekty:
 
@@ -173,14 +256,38 @@ Kompletní přepracování Landing Page (`src/modules/coach/pages/LandingPage.js
 7. `docs/supabase_scopes_screenshot_guide.md` (návod)
 
 ### Upravené soubory (8):
-1. `src/modules/coach/pages/LandingPage.jsx` (~420 řádků, kompletní přepis)
-2. `src/modules/coach/pages/CoachDashboard.jsx` (+2 řádky - route)
-3. `src/modules/coach/pages/ProfilePage.jsx` (+1 pole)
-4. `src/shared/components/GoogleSignInButton.jsx` (+3 řádky - scopes)
-5. `src/shared/components/ProfileScreen.jsx` (+15 řádků - booking_url pole)
-6. `src/modules/coach/pages/ClientDashboard.jsx` (kontext z předchozí session)
-7. `src/shared/components/CoachCard.jsx` (kontext z předchozí session)
+1. `src/modules/coach/pages/ClientDashboard.jsx` (**1087 řádků TOTAL, masivní refaktoring**)
+   - Nová struktura s kartami pro koučky
+   - Helper funkce pro filtrování dat
+   - Načítání statistik pro každou koučku
+   - 4 karty pro každou koučku (profil, stats, položky, další sezení)
+
+2. `src/modules/coach/pages/LandingPage.jsx` (**652 řádků TOTAL, kompletní přepis**)
+   - Hero sekce s CTA
+   - 4 features karty
+   - Jak to funguje (2 karty)
+   - Benefits sekce
+   - Moderní animace a efekty
+
+3. `src/shared/components/CoachCard.jsx` (+22 řádků)
+   - Přidány specializace jako chipy (max 3)
+   - Zelené pozadí, primary text
+
+4. `src/modules/coach/pages/CoachDashboard.jsx` (+2 řádky)
+   - Přidána route `/coach/sessions`
+
+5. `src/shared/components/GoogleSignInButton.jsx` (+2 řádky)
+   - Přidán scope `calendar.readonly`
+   - Access type offline pro refresh token
+
+6. `src/modules/coach/pages/ProfilePage.jsx` (+1 řádek)
+   - Přidáno editovatelné pole `booking_url`
+
+7. `src/shared/components/ProfileScreen.jsx` (+20 řádků)
+   - UI input pro booking_url
+
 8. `supabase_database_schema.sql` (+2 sloupce)
+   - google_event_id, booking_url
 
 ---
 
@@ -306,12 +413,28 @@ Vercel automaticky deployne novou verzi.
 
 ## 📊 Statistiky
 
-- **Přidáno řádků:** ~850
-- **Upraveno řádků:** ~300
-- **Nové soubory:** 7
+### Změny kódu:
+- **Přidáno řádků:** ~2,391 (podle git diff --stat)
+- **Odstraněno řádků:** ~393
+- **Netto přírůstek:** ~2,000 řádků
+- **Nové soubory:** 8 (7 dokumentů + 1 utility)
+- **Nové komponenty:** 1 (CoachSessions.jsx - 255 řádků)
 - **Upravené soubory:** 8
-- **Migrace:** 2
-- **Čas:** ~4 hodiny
+- **Migrace:** 2 SQL soubory
+
+### Hlavní změny:
+- **ClientDashboard.jsx:** 1087 řádků TOTAL (masivní refaktoring)
+- **LandingPage.jsx:** 652 řádků TOTAL (kompletní přepis)
+- **googleCalendar.js:** 200 řádků (nový utility)
+- **CoachSessions.jsx:** 255 řádků (nová stránka)
+
+### Čas:
+- **Plánování:** ~30 min
+- **Google Calendar implementace:** ~2 hodiny
+- **Landing Page redesign:** ~3 hodiny (+ iterace s uživatelem)
+- **ClientDashboard refaktoring:** ~2 hodiny
+- **Dokumentace:** ~1 hodina
+- **Total:** ~8-9 hodin
 
 ---
 

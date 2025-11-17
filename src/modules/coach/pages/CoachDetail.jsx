@@ -13,8 +13,9 @@ import {
   Tabs,
   Tab,
   LinearProgress,
+  Button,
 } from '@mui/material';
-import { Calendar, FileText, FolderOpen, CreditCard } from 'lucide-react';
+import { Calendar, FileText, FolderOpen, CreditCard, Lock, Gift, ShoppingCart } from 'lucide-react';
 import { ArrowBack } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { fadeIn, fadeInUp, staggerContainer, staggerItem } from '@shared/styles/animations';
@@ -22,7 +23,9 @@ import BORDER_RADIUS from '@styles/borderRadius';
 import { useClientAuth } from '@shared/context/ClientAuthContext';
 import { getCoachById } from '@shared/utils/coaches';
 import { getSharedPrograms, getSharedMaterials, setCurrentClient, saveClient } from '../utils/storage';
+import { getEnrichedCatalog } from '@shared/utils/publicCatalog';
 import CoachCard from '@shared/components/CoachCard';
+import PayWithContactModal from '@shared/components/PayWithContactModal';
 
 const CoachDetail = () => {
   const { coachId: coachSlug } = useParams(); // This is now a slug (name), not ID
@@ -36,6 +39,8 @@ const CoachDetail = () => {
   const [materials, setMaterials] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [cards, setCards] = useState([]);
+  const [payModalOpen, setPayModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
     loadCoachData();
@@ -77,13 +82,10 @@ const CoachDetail = () => {
 
       if (!profile?.email) return;
 
-      // Load programs from this coach
-      const allPrograms = await getSharedPrograms(coachId, profile.email);
-      setPrograms(allPrograms || []);
-
-      // Load materials from this coach
-      const allMaterials = await getSharedMaterials(coachId, profile.email);
-      setMaterials(allMaterials || []);
+      // Load PUBLIC catalog with access status
+      const catalog = await getEnrichedCatalog(coachId, profile.email);
+      setMaterials(catalog.materials || []);
+      setPrograms(catalog.programs || []);
 
       // TODO: Load sessions from this coach
       // TODO: Load cards from this coach
@@ -95,32 +97,26 @@ const CoachDetail = () => {
     }
   };
 
-  const handleProgramClick = async (program) => {
-    try {
-      const clientData = {
-        id: profile.id,
-        name: profile.displayName || profile.name || profile.email,
-        programCode: program.shareCode,
-        programId: program.programId,
-        coachId: program.coachId,
-        currentDay: 1,
-        completedDays: [],
-        moodChecks: [],
-        streak: 0,
-        longestStreak: 0,
-        startedAt: new Date().toISOString(),
-        completedAt: null,
-        certificateGenerated: false,
-        auth_user_id: profile.authUserId,
-        _previewProgram: program.program,
-      };
-
-      setCurrentClient(clientData);
-      await saveClient(clientData);
-      navigate('/client/daily');
-    } catch (error) {
-      console.error('Error opening program:', error);
+  const handleItemClick = (item, type) => {
+    // If user has access, open it
+    if (item.hasAccess) {
+      if (type === 'program') {
+        // Navigate to program (existing logic)
+        navigate('/client/daily'); // TODO: proper program navigation
+      } else {
+        // Navigate to material
+        navigate(`/client/materials`); // TODO: navigate to specific material
+      }
+    } else {
+      // No access - open payment modal
+      setSelectedItem({ ...item, type });
+      setPayModalOpen(true);
     }
+  };
+
+  const handlePurchaseSuccess = () => {
+    // Reload catalog to update access status
+    loadCoachData();
   };
 
   if (loading) {
@@ -235,15 +231,16 @@ const CoachDetail = () => {
           <Grid container spacing={2}>
             {materials.length === 0 ? (
               <Grid item xs={12}>
-                <Alert severity="info">Žádné materiály od této koučky</Alert>
+                <Alert severity="info">Tato koučka zatím nemá veřejné materiály</Alert>
               </Grid>
             ) : (
-              materials.map((material, index) => (
+              materials.map((material) => (
                 <Grid item xs={12} sm={6} md={4} key={material.id}>
                   <Card
-                    onClick={() => navigate(`/client/material/${material.shareCode}`)}
                     sx={{
-                      cursor: 'pointer',
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
                       transition: 'all 0.3s',
                       '&:hover': {
                         transform: 'translateY(-4px)',
@@ -251,18 +248,59 @@ const CoachDetail = () => {
                       },
                     }}
                   >
-                    <CardContent>
-                      <Typography variant="h6" fontWeight={600} mb={1}>
-                        {material.material?.name || 'Materiál'}
+                    <CardContent sx={{ flexGrow: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                        <Typography variant="h6" fontWeight={600}>
+                          {material.title}
+                        </Typography>
+                        {material.is_lead_magnet && (
+                          <Gift size={20} style={{ color: '#4caf50' }} />
+                        )}
+                      </Box>
+
+                      <Typography variant="body2" color="text.secondary" mb={2} sx={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                      }}>
+                        {material.description || 'Bez popisu'}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary" mb={2}>
-                        {material.material?.category || 'Kategorie'}
-                      </Typography>
-                      <Chip
-                        label={material.shareCode}
-                        size="small"
-                        sx={{ fontSize: '0.75rem' }}
-                      />
+
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                        <Chip
+                          label={material.category || material.type}
+                          size="small"
+                          sx={{ fontSize: '0.75rem' }}
+                        />
+                        {material.is_lead_magnet ? (
+                          <Chip
+                            label="Zdarma za kontakt"
+                            size="small"
+                            color="success"
+                            icon={<Gift size={14} />}
+                            sx={{ fontSize: '0.75rem' }}
+                          />
+                        ) : material.price > 0 ? (
+                          <Chip
+                            label={`${material.price} ${material.currency}`}
+                            size="small"
+                            color="primary"
+                            sx={{ fontSize: '0.75rem' }}
+                          />
+                        ) : null}
+                      </Box>
+
+                      <Button
+                        fullWidth
+                        variant={material.hasAccess ? 'outlined' : 'contained'}
+                        startIcon={material.hasAccess ? <FileText size={18} /> : material.is_lead_magnet ? <Gift size={18} /> : <ShoppingCart size={18} />}
+                        onClick={() => handleItemClick(material, 'material')}
+                        sx={{ mt: 'auto' }}
+                      >
+                        {material.hasAccess ? 'Otevřít' : material.is_lead_magnet ? 'Získat zdarma' : `Koupit za ${material.price} ${material.currency}`}
+                      </Button>
                     </CardContent>
                   </Card>
                 </Grid>
@@ -281,6 +319,17 @@ const CoachDetail = () => {
           <Alert severity="info">Karty budou dostupné brzy</Alert>
         )}
       </motion.div>
+
+      {/* Pay with Contact Modal */}
+      {selectedItem && (
+        <PayWithContactModal
+          open={payModalOpen}
+          onClose={() => setPayModalOpen(false)}
+          item={selectedItem}
+          coach={coach}
+          onSuccess={handlePurchaseSuccess}
+        />
+      )}
     </Box>
   );
 };

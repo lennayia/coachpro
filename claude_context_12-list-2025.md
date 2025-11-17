@@ -1,12 +1,88 @@
 # CoachPro - Architecture & Context Overview
 
-**Aktualizováno:** Session #17 (16.11.2025) - Client Coach Profiles & Selection
+**Aktualizováno:** Session #20 (17.01.2025) - Lead Magnets & Multi-tenant Architecture
 
 ---
 
-## 🏗️ Architektura Projektu
+## 🏗️ Multi-tenant Architecture (Session #20)
 
-### Modular Design Pattern (Session #14-16)
+### ProApp Structure
+
+```
+ProApp (Supabase projekt)
+│
+├── public (schema) - Sdílené pro všechny aplikace
+│   ├── user_profiles (extends auth.users)
+│   ├── subscriptions (per-app subscriptions)
+│   ├── payments (transaction log)
+│   ├── notifications (cross-app)
+│   ├── organizations (multi-tenant)
+│   └── audit_logs (security)
+│
+├── coachpro (schema) - CoachPro specifické
+│   ├── coachpro_coaches
+│   ├── coachpro_client_profiles
+│   ├── coachpro_materials (+ pricing fields)
+│   ├── coachpro_programs (+ pricing fields)
+│   ├── coachpro_sessions
+│   ├── coachpro_shared_materials
+│   ├── coachpro_shared_programs
+│   ├── coachpro_purchases (NEW Session #20)
+│   └── ... 13 tabulek celkem
+│
+├── lifepro (schema) - Future
+│   └── life_goals, milestones, reflections
+│
+└── digipro (schema) - Future
+```
+
+**Schema Alias (Zero Code Changes):**
+```javascript
+// src/supabaseClient.js
+export const supabase = createClient(url, key, {
+  db: { schema: 'coachpro' }
+});
+```
+
+---
+
+## 📋 Lead Magnet System (Session #20)
+
+### 3-tier Access Model
+
+1. **🔒 Private** - Shared via code/club only
+2. **🎁 Lead Magnet** - Free for contact (beta)
+3. **💰 Paid** - Stripe payments (future)
+
+### Purchase Flow
+
+```
+Client → CoachDetail (public catalog)
+  ↓
+Clicks "Získat zdarma"
+  ↓
+PayWithContactModal (name, email, phone)
+  ↓
+INSERT coachpro_purchases
+  ↓
+Trigger auto_share_after_purchase()
+  ↓
+INSERT coachpro_shared_materials
+  ↓
+Material appears in ClientMaterials
+```
+
+### Key Components (Session #20)
+
+- **PayWithContactModal.jsx** (265 lines) - Contact form for "purchase"
+- **publicCatalog.js** (180 lines) - Public catalog utilities
+- **CoachDetail.jsx** - Enhanced with pricing chips & buy buttons
+
+---
+
+## 🏛️ Modular Design Pattern
+
+### Architecture Layers
 
 ```
 Utils (reusable functions)
@@ -16,586 +92,309 @@ Shared Components (universal, props-based)
 Page Components (specific implementations)
 ```
 
-**Příklad Session #16 - FlipCard System:**
+**Example Session #20 - Lead Magnets:**
+```
+publicCatalog.js (utils) → getEnrichedCatalog, hasAccess
+  ↓
+PayWithContactModal.jsx (shared component) → Contact form
+  ↓
+CoachDetail.jsx (page) → Public catalog display
+```
+
+**Example Session #16 - FlipCard:**
 ```
 FlipCard.jsx (shared component) → 3D flip animation
   ↓
 WelcomeScreen.jsx (universal component) → FlipCard integration
   ↓
-ClientWelcome.jsx, TesterWelcome.jsx → specific implementations
-```
-
-**Příklad Session #15 - Validation:**
-```
-validation.js (utils) → isValidEmail, formatPhone, formatSocialUrl
-  ↓
-ProfileScreen.jsx (universal component) → validace + auto-formátování
-  ↓
-ProfilePage.jsx (coach/tester), ClientProfile.jsx (client) → specific implementations
-```
-
-**Příklad Session #14 - Photo Upload:**
-```
-imageCompression.js + photoStorage.js (utils)
-  ↓
-PhotoUpload.jsx (shared component)
-  ↓
-ClientProfile.jsx, ProfilePage.jsx (pages)
+ClientWelcome.jsx → Specific implementation
 ```
 
 ---
 
-## 📂 Struktura Souborů (Session #16 Update)
+## 📂 File Structure (Session #20 Update)
 
 ```
 src/
 ├── modules/
 │   ├── coach/
 │   │   ├── pages/
-│   │   │   ├── Tester.jsx                  # Registrace testerů
-│   │   │   ├── TesterWelcome.jsx           # Welcome screen (uses WelcomeScreen)
-│   │   │   ├── CoachLogin.jsx              # Login (3 auth methods)
-│   │   │   ├── ClientWelcome.jsx           # Client welcome (uses WelcomeScreen + FlipCard)
-│   │   │   ├── ClientWelcomeEnhanced.jsx   # ⭐ NEW Session #16 - Proof of concept
-│   │   │   ├── ClientProfile.jsx           # Client profile
-│   │   │   ├── ClientPrograms.jsx          # ⭐ NEW Session #16B - Programs list (680 lines)
-│   │   │   ├── ClientCoachSelection.jsx    # ⭐ UPDATED Session #17 - Dual-purpose
-│   │   │   ├── ProfilePage.jsx             # Coach profile
-│   │   │   └── ...
+│   │   │   ├── Tester.jsx
+│   │   │   ├── TesterWelcome.jsx
+│   │   │   ├── CoachLogin.jsx
+│   │   │   ├── ClientWelcome.jsx
+│   │   │   ├── ClientProfile.jsx
+│   │   │   ├── ClientPrograms.jsx        # Session #16B
+│   │   │   ├── ClientCoachSelection.jsx  # Session #17, #20 (fixed)
+│   │   │   ├── CoachSessions.jsx         # Session #19
+│   │   │   ├── LandingPage.jsx           # Session #19
+│   │   │   ├── ClientDashboard.jsx       # Session #19
+│   │   │   ├── ProfilePage.jsx
+│   │   │   └── CoachDetail.jsx           # Session #17, #20 (enhanced)
 │   │   └── components/
-│   │       └── SessionCard.jsx             # Session display
+│   │       └── SessionCard.jsx
 │   │
 │   └── client/
 │       └── pages/
-│           └── CoachDetail.jsx         # ⭐ NEW Session #17 - Coach profile detail (580 lines)
 │
 └── shared/
     ├── components/
-    │   ├── WelcomeScreen.jsx           # ⭐ UPGRADED Session #16 - FlipCard integration
-    │   ├── FloatingMenu.jsx            # Settings menu (Rozcestník)
-    │   ├── NavigationFloatingMenu.jsx  # Navigation menu
-    │   ├── RegisterForm.jsx            # Universal registration
-    │   ├── PhotoUpload.jsx             # Universal photo upload
-    │   ├── ClientAuthGuard.jsx         # Client auth protection
-    │   ├── TesterAuthGuard.jsx         # Tester auth protection
+    │   ├── WelcomeScreen.jsx
+    │   ├── FloatingMenu.jsx
+    │   ├── NavigationFloatingMenu.jsx
+    │   ├── RegisterForm.jsx
+    │   ├── PhotoUpload.jsx
+    │   ├── PayWithContactModal.jsx    # ⭐ NEW Session #20 (265 lines)
     │   │
     │   ├── cards/
-    │   │   ├── FlipCard.jsx            # ⭐ NEW Session #16 - 3D flip animation
-    │   │   ├── CoachCard.jsx           # ⭐ REFACTORED Session #17 - Full profiles
-    │   │   └── BaseCard.jsx            # Foundation for all cards
+    │   │   ├── FlipCard.jsx           # Session #16
+    │   │   ├── CoachCard.jsx          # Session #17
+    │   │   └── BaseCard.jsx
     │   │
     │   └── effects/
-    │       └── AnimatedGradient.jsx    # ⭐ NEW Session #16 - Animated backgrounds
+    │       └── AnimatedGradient.jsx   # Session #16
     │
     ├── context/
-    │   ├── TesterAuthContext.jsx       # Tester authentication state
-    │   ├── ClientAuthContext.jsx       # Client authentication state
-    │   └── NotificationContext.jsx     # Notifications
+    │   ├── TesterAuthContext.jsx      # Auto-sync Google photo
+    │   ├── ClientAuthContext.jsx
+    │   └── NotificationContext.jsx
     │
     ├── utils/
-    │   ├── sessions.js                 # Session management (402 lines)
-    │   ├── photoStorage.js             # Supabase Storage operations
-    │   ├── imageCompression.js         # WebP compression
-    │   ├── czechGrammar.js             # getVocative(), getFirstName()
-    │   ├── storage.js                  # Programs, materials, cards
-    │   └── generateCode.js             # Share code generation
+    │   ├── sessions.js
+    │   ├── googleCalendar.js          # Session #19
+    │   ├── publicCatalog.js           # ⭐ NEW Session #20 (180 lines)
+    │   ├── photoStorage.js
+    │   ├── imageCompression.js
+    │   ├── storage.js                 # Enhanced with getSharedPrograms
+    │   └── validation.js
     │
     ├── hooks/
-    │   ├── useSoundFeedback.js         # ⭐ NEW Session #16 - Web Audio API sounds
-    │   └── useModernEffects.js         # useGlassCard()
+    │   └── useSoundFeedback.js        # Session #16
     │
     ├── styles/
-    │   ├── animations.js               # ⭐ UPDATED Session #16 - Added glow
-    │   ├── borderRadius.js             # BORDER_RADIUS constants
-    │   └── modernEffects.js            # Glass card effects
+    │   ├── animations.js              # Framer Motion variants
+    │   ├── modernEffects.js
+    │   └── borderRadius.js
     │
     └── constants/
-        └── icons.js                    # ⭐ UPDATED Session #16 - Signpost icon
+        └── icons.js                   # Lucide React icons
 ```
 
 ---
 
-## 🎴 FlipCard Architecture (Session #16)
+## 🗄️ Database Schema (Session #20)
 
-### Component Hierarchy
+### Core Tables (coachpro schema)
 
-```
-FlipCard.jsx (3D animation logic)
-  ↓ props: frontContent, backContent, gradient, onFlip
-WelcomeScreen.jsx (universal welcome)
-  ↓ uses FlipCard for action cards
-ClientWelcome.jsx / TesterWelcome.jsx
-  ↓ provide actionCards data
-```
+**coachpro_coaches** (17 columns)
+- Basic: id, name, email, phone, photo_url
+- Profile: bio, education, certifications, specializations, years_of_experience
+- Social: linkedin, instagram, facebook, website, whatsapp, telegram
+- Auth: auth_user_id, created_at
 
-### FlipCard Props API
+**coachpro_client_profiles** (8 columns)
+- id, name, email, photo_url
+- **coach_id** (Session #20 - Primary coach)
+- auth_user_id, created_at, updated_at
 
+**coachpro_materials** (11 columns)
+- id, title, description, content (JSONB)
+- coach_id, category, tags, created_at
+- **is_public, price, currency, is_lead_magnet** (Session #20)
+
+**coachpro_programs** (11 columns)
+- Same as materials + pricing fields
+
+**coachpro_purchases** (13 columns) - ⭐ NEW Session #20
+- id, item_type, item_id
+- client_id, client_name, client_email, client_phone, client_message
+- coach_id
+- payment_method, payment_status, amount, currency
+- access_granted, purchased_at
+
+**coachpro_sessions** (9 columns)
+- id, title, description, datetime, duration
+- coach_id, client_id
+- google_calendar_id (Session #19)
+- created_at
+
+**coachpro_shared_materials** (7 columns)
+- id, coach_id, material_id, client_email
+- share_code, qr_code
+- material (JSONB - nullable)
+
+**coachpro_shared_programs** (7 columns)
+- Same as shared_materials
+
+**coachpro_card_decks, coachpro_cards, coachpro_shared_card_decks**
+**coachpro_program_sessions, coachpro_daily_programs**
+
+### Shared Tables (public schema) - Session #20
+
+**user_profiles** - Cross-app user data
+**subscriptions** - Per-app subscriptions
+**payments** - Transaction log
+**notifications** - Cross-app notifications
+**organizations** - Multi-tenant support
+**audit_logs** - Security/compliance
+
+---
+
+## 🔑 Key Technical Patterns
+
+### 1. Progressive Enhancement (Session #20)
+- Build infrastructure FIRST
+- Integrate LATER when needed
+- Example: Shared tables created but not integrated yet
+
+### 2. Schema Isolation (Session #20)
+- Each app has own PostgreSQL schema
+- Shared resources in public schema
+- Zero namespace conflicts
+
+### 3. Defensive Error Handling
 ```javascript
-<FlipCard
-  frontContent={ReactNode}     // Přední strana
-  backContent={ReactNode}      // Zadní strana
-  clickToFlip={boolean}        // default: true
-  flipDuration={number}        // default: 0.6s
-  gradient={string}            // optional gradient
-  minHeight={number}           // default: 200px
-  onFlip={(isFlipped) => {}}   // callback
-  sx={object}                  // MUI sx styles
-/>
+if (error.code === '23505') {
+  // Duplicate purchase
+  showError('Již máte přístup');
+  return;
+}
 ```
 
-### Technical Pattern
-
-**CSS-based (NOT Framer Motion for flip):**
-```jsx
-<Box sx={{ perspective: '1000px' }}>
-  <Box sx={{
-    transformStyle: 'preserve-3d',
-    transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
-  }}>
-    <Box sx={{ backfaceVisibility: 'hidden' }}>{front}</Box>
-    <Box sx={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>{back}</Box>
-  </Box>
-</Box>
-```
-
-**Why CSS over Framer Motion?**
-- Better performance (60fps)
-- Simpler debugging
-- No complex motion variants
-- Proven by CardFlipView.jsx
-
----
-
-## 🎨 Interactive Features (Session #16)
-
-### 1. Sound Feedback System
-
-**Architecture:**
-```
-useSoundFeedback.js (Web Audio API)
-  ↓ provides: playClick, playFlip, playHover, etc.
-WelcomeScreen.jsx
-  ↓ uses sounds on interactions
-```
-
-**Sounds Generated:**
-- `playClick()` - 800Hz, 0.05s
-- `playFlip()` - 400→800Hz sweep, 0.3s
-- `playSuccess()` - C major chord
-- `playHover()` - 600Hz, 0.03s
-
-**Benefits:**
-- No audio files needed
-- ~2KB bundle impact
-- Instant playback (<50ms latency)
-
-### 2. Animated Gradients
-
-**AnimatedGradient.jsx:**
-```jsx
-<AnimatedGradient
-  colors={['#0a0f0a', '#1a2410', '#0f140a']}
-  animation="wave"
-  duration={8}
-  opacity={1}
-/>
-```
-
-**Animations:** pulse, wave, rotate, shimmer
-
-### 3. Avatar Glow Effect
-
-**Pattern:**
-```javascript
-import { glow } from '@shared/styles/animations';
-
-<Box component={motion.div} animate={glow}>
-  <Avatar />
-</Box>
-```
-
-**Effect:** Continuous pulsating shadow (2s loop)
-
----
-
-## 🗄️ Database Architecture
-
-### Core Tables
-
+### 4. Auto-sync with Triggers (Session #20)
 ```sql
-auth.users (Supabase Auth)
-  ↓
-├── testers (beta testers)
-│     ↓
-│   coachpro_coaches (is_tester = true)
-│
-└── coachpro_client_profiles (clients)
-      ↓
-    coachpro_sessions (coaching sessions)
+CREATE TRIGGER trigger_auto_share_after_purchase
+AFTER INSERT ON coachpro_purchases
+FOR EACH ROW
+EXECUTE FUNCTION auto_share_after_purchase();
 ```
 
-### Key Relationships
-
-```
-coachpro_client_profiles.coach_id → coachpro_coaches.id
-coachpro_sessions.client_id → coachpro_client_profiles.id
-coachpro_sessions.coach_id → coachpro_coaches.id
-coachpro_coaches.tester_id → testers.id (optional)
-```
+### 5. Iterative Debugging (Session #20)
+- Fix errors one by one
+- Test after each fix
+- Document all fixes
+- Example: 6 trigger fixes for nullable columns
 
 ---
 
-## 🔐 Autentizace Flow
+## 🎨 Design System
 
-### User Types & Auth Methods
+### Color Palette
+- **Primary:** Olive/Earth (85, 107, 47)
+- **Secondary:** Light Green/Sage (139, 188, 143)
+- **Usage:** Gradients with 35%→25% opacity
 
-```
-┌─────────────────────────────────────────────────────┐
-│                  CoachPro Users                      │
-├─────────────────────────────────────────────────────┤
-│                                                       │
-│  Testers (Beta testers)                              │
-│    → RegisterForm (Tester.jsx)                       │
-│    → Email+Password + Google OAuth                   │
-│    → Has: TesterWelcome with FlipCards (Session #16)│
-│                                                       │
-│  Clients (End users)                                 │
-│    → Register via /client/signup                     │
-│    → Email+Password                                  │
-│    → Has: ClientWelcome with FlipCards (Session #16)│
-│                                                       │
-│  Coaches (Future - not yet implemented)              │
-│    → Will use RegisterForm                           │
-│    → Full coach functionality                        │
-│                                                       │
-└─────────────────────────────────────────────────────┘
-```
+### Component Patterns
+- **FlipCard:** CSS 3D transforms (60fps)
+- **AnimatedGradient:** Framer Motion backgrounds
+- **Sound Feedback:** Web Audio API
+- **Photo Upload:** Client-side compression
+- **Validation:** Real-time with auto-formatting
 
 ---
 
-## 🧩 Component Reusability Matrix (Session #16)
+## 📊 Session Timeline
 
-### WelcomeScreen (Universal + FlipCards)
+### Session #20 (17.01.2025) - Lead Magnets & Multi-tenant
+- Lead magnet system (purchases table, auto-share trigger)
+- Multi-tenant architecture (PostgreSQL schemas)
+- Client-coach connection fix
+- 10 bugs fixed iteratively
+- 15 files created, 3 modified
 
-| User Type | Uses WelcomeScreen | FlipCard Support | Sounds |
-|-----------|-------------------|------------------|--------|
-| Tester | ✅ TesterWelcome.jsx | ✅ Session #16 | ✅ |
-| Client | ✅ ClientWelcome.jsx | ✅ Session #16 | ✅ |
-| Coach | 🚧 Future | 🚧 TBD | 🚧 |
+### Session #19 (16-17.01.2025) - Google Calendar & Dashboard
+- Google Calendar sync integration
+- Landing page redesign (OAuth verification)
+- ClientDashboard refactor (4 cards per coach)
 
-### FlipCard (Universal)
+### Session #18 (15-16.01.2025) - Multiple Coaches
+- Multiple coaches support
+- Lead magnet concept design
+- Slug-based routing
 
-| Used In | Purpose | Gradient |
-|---------|---------|----------|
-| WelcomeScreen | Action cards (dashboard, materials...) | Soft 35%→25% |
-| CoachingCardsPage | Card deck (existing, different pattern) | None |
-| Future | Material cards, program cards | TBD |
+### Session #17 (16.11.2025) - Coach Profiles
+- 12 new profile columns
+- CoachCard refactor with accordion
+- Google OAuth photo auto-sync
+- Social media integration
 
-### RegisterForm (Universal)
+### Session #16B (15.11.2025) - Dashboard Gamification
+- ClientPrograms page
+- Gamification "Semínka růstu"
+- 3-level motivational messaging
+- Clickable stats cards
 
-| User Type | Page | onSuccess Callback |
-|-----------|------|-------------------|
-| Tester | Tester.jsx | Insert testers + coaches |
-| Client | ClientSignup.jsx | Insert client_profiles |
-| Coach | 🚧 Future | Insert coaches |
-
----
-
-## 🎯 Design System (Session #16 Update)
-
-### 1. Border Radius
-
-```javascript
-import BORDER_RADIUS from '@styles/borderRadius';
-
-BORDER_RADIUS.minimal   // 8px - Progress bars
-BORDER_RADIUS.small     // 12px - Menu items
-BORDER_RADIUS.compact   // 16px - Buttons, inputs
-BORDER_RADIUS.card      // 20px - Cards (default)
-BORDER_RADIUS.premium   // 24px - Large elements
-BORDER_RADIUS.dialog    // 24px - Dialogs
-```
-
-### 2. Icons (Modular System)
-
-```javascript
-import { NAVIGATION_ICONS, SETTINGS_ICONS } from '@shared/constants/icons';
-
-// Session #16: Changed welcome from Home to Signpost
-SETTINGS_ICONS.welcome  // Signpost (rozcestník)
-NAVIGATION_ICONS.dashboard  // Home
-```
-
-**Důvod změny:** Eliminace duplicity Home ikony v Dashboard a Rozcestníku
-
-### 3. Gradients (Soft Pattern)
-
-**Session #16 Discovery:** Standard gradients moc silné na velkých plochách
-
-```javascript
-const createSoftGradient = (color1, color2, angle = 135) => {
-  const hexToRgba = (hex, opacity) => {
-    // Conversion logic
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-  };
-  return `linear-gradient(${angle}deg,
-    ${hexToRgba(color1, 0.35)} 0%,
-    ${hexToRgba(color2, 0.25)} 100%)`;
-};
-```
-
-**Použití:**
-```jsx
-gradient={createSoftGradient(
-  theme.palette.primary.main,
-  theme.palette.secondary.main
-)}
-```
-
-### 4. Animations
-
-```javascript
-import { glow, fadeIn, fadeInUp, staggerContainer, staggerItem } from '@shared/styles/animations';
-
-// Session #16: NEW glow animation
-<Box component={motion.div} animate={glow}>
-  {/* Continuous pulsating shadow */}
-</Box>
-```
-
-### 5. Sound Feedback
-
-```javascript
-import useSoundFeedback from '@shared/hooks/useSoundFeedback';
-
-const { playClick, playFlip, enabled, setEnabled } = useSoundFeedback({
-  volume: 0.3,
-  enabled: true
-});
-```
+### Session #16 (12.11.2025) - FlipCard
+- FlipCard component (CSS 3D)
+- useSoundFeedback hook
+- AnimatedGradient component
+- WelcomeScreen enhancements
 
 ---
 
-## 🚧 Known Patterns & Best Practices
+## 🚀 Best Practices
 
-### 1. FlipCard Integration Pattern
+### Code Organization
+✅ Modular components (shared → pages)
+✅ Utility functions (reusable logic)
+✅ Context for state management
+✅ Constants for centralized config
 
-**✅ CORRECT:**
-```jsx
-// WelcomeScreen - reusable component
-<FlipCard
-  frontContent={<CardFront icon={item.icon} title={item.title} />}
-  backContent={<CardBack button={<Button onClick={item.onClick} />} />}
-  gradient={createSoftGradient(...)}
-  onFlip={(flipped) => playFlip()}
-/>
-```
+### Database
+✅ RLS policies for security
+✅ Triggers for automation
+✅ UNIQUE constraints for integrity
+✅ Indexes for performance
 
-**❌ WRONG:**
-```jsx
-// Don't hardcode UI in specific pages
-const [isFlipped, setIsFlipped] = useState(false);
-// 50 lines of flip animation logic here...
-```
+### Performance
+✅ CSS animations (60fps)
+✅ Image compression before upload
+✅ Lazy loading for routes
+✅ Schema alias (zero overhead)
 
-### 2. Sound Feedback Pattern
-
-**✅ CORRECT:**
-```jsx
-const { playClick } = useSoundFeedback({ volume: 0.3 });
-
-<Button onClick={() => {
-  playClick();
-  handleAction();
-}}>
-```
-
-**❌ WRONG:**
-```jsx
-// Don't load audio files
-<audio ref={audioRef} src="/sounds/click.mp3" />
-```
-
-### 3. Gradient Opacity Pattern
-
-**✅ CORRECT:**
-```jsx
-// Soft gradients for large surfaces (35%→25%)
-gradient={createSoftGradient(primary, secondary)}
-```
-
-**❌ WRONG:**
-```jsx
-// Too strong for cards
-background: `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`
-```
-
-### 4. Icon Modularity Pattern
-
-**✅ CORRECT:**
-```jsx
-import { SETTINGS_ICONS } from '@shared/constants/icons';
-<SETTINGS_ICONS.welcome size={20} />
-```
-
-**❌ WRONG:**
-```jsx
-import { Signpost } from 'lucide-react';
-<Signpost size={20} />
-```
+### User Experience
+✅ Sound feedback (optional)
+✅ Loading states everywhere
+✅ Error messages user-friendly
+✅ Theme-aware styling
 
 ---
 
-## 🔄 Data Flow Examples (Session #16 Update)
+## 📚 Documentation
 
-### Client Journey with FlipCards
+### Main Files
+- **CLAUDE.md** - Complete project instructions (1787 lines)
+- **master_todo.md** - TODO list & session summaries (473 lines)
+- **docs/sessions/summary20.md** - Session #20 details (500+ lines)
 
-```
-1. ClientWelcome.jsx (uses WelcomeScreen)
-   ↓ (FlipCard: "Vstup do klientské zóny")
-2. FlipCard.jsx handles 3D animation
-   ↓ (playFlip() on flip)
-3. useSoundFeedback generates audio
-   ↓ (onClick → navigate)
-4. ClientAuthContext validates
-   ↓
-5. ClientAuthGuard protects routes
-   ↓
-6. ClientDashboard.jsx
-```
+### Migration Guides
+- **APPLY_SCHEMA_MIGRATIONS.md** - Schema migration guide
+- **APPLY_LEAD_MAGNET_MIGRATIONS.md** - Lead magnet setup
+- **UPDATE_CODE_FOR_SCHEMAS.md** - Code update instructions
 
-### Tester Journey with Enhanced Welcome
-
-```
-1. TesterWelcome.jsx (uses WelcomeScreen)
-   ↓ (AnimatedGradient background)
-2. Avatar with glow animation
-   ↓ (FlipCard action cards)
-3. Sound feedback on interactions
-   ↓ (Rozcestník via FloatingMenu)
-4. Navigate to dashboard/materials/etc.
-```
+### Database
+- **supabase/migrations/** - All migration files
+- **supabase_database_schema.sql** - Complete schema
 
 ---
 
-## 📊 Code Metrics (Session #16)
+## 🎯 Current Status
 
-### Files Created (4)
-- FlipCard.jsx: 127 lines
-- AnimatedGradient.jsx: 95 lines
-- useSoundFeedback.js: 158 lines
-- ClientWelcomeEnhanced.jsx: 124 lines
+**Branch:** main
+**Production:** Ready (after schema migrations)
+**Sessions Completed:** 20
+**Total Lines Added:** ~7,400+
+**Files Created:** 40+
+**Bugs Fixed:** 20+
 
-**Total:** 504 new lines
-
-### Files Modified (6)
-- WelcomeScreen.jsx: +180 lines (FlipCard integration)
-- ClientWelcome.jsx: +12 lines (backTitle prop)
-- FloatingMenu.jsx: +8 lines (Rozcestník button)
-- ClientView.jsx: +5 lines (welcome without layout)
-- icons.js: 1 change (Home → Signpost)
-- animations.js: +8 lines (glow animation)
-
-**Total Changes:** ~213 lines modified/added
-
-### Code Quality
-- ✅ Zero console.log
-- ✅ Zero TODO/DEBUG comments
-- ✅ Zero duplication (extracted cardStyles)
-- ✅ 100% modular
+**Pending:**
+- [ ] Apply schema migrations 01-03
+- [ ] Update supabaseClient.js
+- [ ] Test after migration
+- [ ] Coach UI for pricing
+- [ ] Purchase flow testing
 
 ---
 
-## 📚 Session History
-
-- **Session #12:** Sessions management, triggers, views
-- **Session #13:** Icon system, auth troubleshooting
-- **Session #14:** Complete auth overhaul
-  - Removed access codes
-  - Added RegisterForm, WelcomeScreen
-  - Email confirmation, Google OAuth
-- **Session #15:** Universal ProfileScreen, validation system
-- **Session #16:** FlipCard Implementation & Interactive Enhancements ✨
-  - FlipCard component (3D CSS animations)
-  - useSoundFeedback hook (Web Audio API)
-  - AnimatedGradient component
-  - WelcomeScreen enhancements (sounds, gradients, glow effects)
-  - Icon system improvements (Signpost for Rozcestník)
-  - Soft gradient helper (35%→25% opacity)
-- **Session #16B:** Client Dashboard Redesign & Gamification 🎮
-  - ClientPrograms.jsx page (680 lines - was completely missing!)
-  - Clickable statistical cards (eliminate redundancy)
-  - Gamification system "Semínka růstu" (Materials +5, Sessions +10)
-  - Dynamic 3-level motivational messaging (Heart/Sparkles/Compass)
-  - Navigation menu reordered (Programs below Materials)
-  - Dashboard reorganization (removed duplicate cards)
-- **Session #17:** Client Coach Profiles & Selection System 👥
-  - Database expansion (12 new columns for coach profiles)
-  - CoachCard complete refactor (accordion, fixed heights, social media)
-  - Dual-purpose ClientCoachSelection (assignment vs browsing)
-  - CoachDetail page (580 lines, slug-based routing)
-  - Google OAuth photo auto-sync
-  - Social media integration with branded colors
-  - Universal specializations parser (string/array support)
-
----
-
-## 🎯 Design Principles (Updated Session #16)
-
-### 1. Modularita
-- Utils first, then components, then pages
-- No logic duplication across files
-- Props-based configuration
-
-### 2. Interaktivita (NEW Session #16)
-- 3D animations for engagement
-- Sound feedback for actions
-- Animated backgrounds
-- Smooth transitions (0.6s flip, 0.3s hover)
-
-### 3. Performance
-- CSS > Framer Motion for simple animations
-- Web Audio API > audio files
-- Low opacity gradients to reduce GPU load
-- Refs in hooks to avoid re-renders
-
-### 4. Czech First
-- All UI in Czech
-- date-fns with `cs` locale
-- Vocative case (5. pád) for greetings
-
-### 5. Security
-- RLS on all tables
-- Email confirmation required
-- auth_user_id always populated
-
-### 6. User Experience
-- Glassmorphism effects
-- Dark mode support
-- Responsive mobile-first
-- Accessibility (needs reduced-motion support)
-
----
-
-## 🔗 Related Docs
-
-- `summary.md` - Session #16 complete summary
-- `master_todo.md` - All tasks and future work
-- `claude_quick_08-12-list-2025.md` - Quick reference
-- `claude.md` - Detailed documentation
-- `CLAUDE.md` - Complete project instructions (archived)
-- `MASTER_TODO_V4.md` - All pending tasks (archived)
-
----
-
-**Architecture Motto:** Utils → Components → Pages. Always.
-
-**Session #16 Motto:** Interactivity Wins. Sound + Animation = Engagement.
-
-**Session #16B Motto:** Stats as Navigation. Gamification = Engagement. Personalization Wins.
-
-**Session #17 Motto:** Profiles Matter. Uniform Heights = Professional. Auto-Sync = Fresh Data.
-
----
-
-**Poslední update:** 16. listopadu 2025 - Session #17: Client Coach Profiles & Selection
+*Last Updated: 17.01.2025*
+*Status: ✅ Production-Ready (pending schema migrations)*

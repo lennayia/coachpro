@@ -53,21 +53,33 @@ const ClientCoachSelection = () => {
   const loadCoaches = async () => {
     setLoading(true);
     try {
-      // Check if client has any coaches assigned
-      const clientCoaches = await getClientCoaches(profile?.id);
-      const hasManyCoaches = clientCoaches && clientCoaches.length > 0;
+      // Check if client has PRIMARY coach assigned (coach_id field)
+      const hasPrimaryCoach = profile?.coach_id != null;
 
-      setBrowsingMode(hasManyCoaches);
+      // Check if client has any coaches via sessions/materials
+      const clientCoaches = await getClientCoaches(profile?.id);
+      const hasRelatedCoaches = clientCoaches && clientCoaches.length > 0;
+
+      console.log('🔍 [ClientCoachSelection] Debug:', {
+        profileCoachId: profile?.coach_id,
+        hasPrimaryCoach,
+        clientCoaches,
+        hasRelatedCoaches,
+        browsingMode: hasPrimaryCoach || hasRelatedCoaches,
+      });
+
+      // Browsing mode ONLY if client has primary coach OR has related coaches
+      setBrowsingMode(hasPrimaryCoach || hasRelatedCoaches);
 
       // If browsing mode, load all coaches and get counts
-      if (hasManyCoaches) {
+      if (hasPrimaryCoach || hasRelatedCoaches) {
         const allCoaches = await getActiveCoaches({ excludeTesters: false });
         setCoaches(allCoaches);
 
         // Load counts for each coach
         await loadCoachCounts(allCoaches);
       } else {
-        // Assignment mode - load all coaches
+        // Assignment mode - load all coaches (no primary coach yet)
         const data = await getActiveCoaches({ excludeTesters: false });
         setCoaches(data);
       }
@@ -109,8 +121,11 @@ const ClientCoachSelection = () => {
   };
 
   const handleCoachSelect = (coach) => {
+    console.log('🎯 [handleCoachSelect] Clicked coach:', coach.name, 'browsingMode:', browsingMode);
+
     if (browsingMode) {
       // Browsing mode - navigate to coach detail
+      console.log('📂 Navigating to coach detail page');
       const slug = coach.name
         .toLowerCase()
         .normalize('NFD')
@@ -121,6 +136,7 @@ const ClientCoachSelection = () => {
       navigate(`/client/coach/${slug}`, { state: { coachId: coach.id } });
     } else {
       // Assignment mode - show confirmation dialog
+      console.log('✅ Opening confirmation dialog');
       setSelectedCoach(coach);
       setConfirmOpen(true);
     }

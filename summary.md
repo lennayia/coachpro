@@ -525,5 +525,183 @@ const specializations = coach?.specializations
 
 ---
 
+---
+
+## Session #19: Google Calendar Sync & Landing Page Redesign (16.11.2025)
+
+### Overview
+Implemented Google Calendar synchronization for coaches, redesigned landing page for Google OAuth verification, and refactored client dashboard for multiple coaches display.
+
+### Key Features
+
+**1. Google Calendar Synchronization**
+- **Manual sync approach** - Button-triggered, user-controlled
+- **Files created:**
+  - `src/shared/utils/googleCalendar.js` (200 lines) - API integration
+  - `src/modules/coach/pages/CoachSessions.jsx` (255 lines) - UI page
+  - `migrations/add_google_event_id_to_sessions.sql` - Duplicate prevention
+  - `migrations/add_booking_url_to_coaches.sql` - External booking URLs
+
+**Features:**
+- Fetch up to 50 events from Google Calendar
+- Auto-detect session type (online/in-person based on location)
+- Extract client email from attendees
+- Prevent duplicates via `google_event_id` column
+- Dialog with results (created/skipped/errors)
+
+**OAuth Scope Added:**
+```javascript
+scopes: 'email profile https://www.googleapis.com/auth/calendar.readonly'
+queryParams: { access_type: 'offline' } // For refresh token
+```
+
+**2. Landing Page Complete Redesign** (652 lines TOTAL)
+- **Reason:** Google rejected OAuth verification - "Your homepage does not explain the purpose of your application"
+- **Solution:** Complete rewrite with SEO-friendly structure
+
+**Structure:**
+1. **Hero Section:** Logo (80px) + "Platforma pro kouče a jejich klienty" + CTA button
+2. **Features Grid:** 4 cards (Programs, Calendar Sync, Clients/Coaches, Gamification)
+3. **How It Works:** 2 cards (For Coaches / For Clients)
+4. **Benefits:** 6 key benefits in glassmorphism card
+5. **CTA Section:** "Připraveni začít?" with bouncing arrow
+6. **Role Selector:** Original preserved (Coach/Client cards)
+7. **Footer:** Privacy Policy, Terms, Contact
+
+**Modern Effects:**
+- Feature cards: Stagger animation, 3D hover (scale + rotateY), icon rotation
+- CTA button: Shimmer effect (light wave), gradient, scale on hover
+- Background: Subtle radial gradients + dashboard mockup with pulse
+- Glassmorphism: `backdrop-filter: blur(10px)`
+- Smooth scroll to anchor on "Začít zdarma" click
+
+**3. ClientDashboard Complete Refactor** (1087 lines TOTAL)
+- **Problem:** Dashboard not optimized for displaying multiple coaches
+- **Solution:** New structure with 4 cards per coach
+
+**4 Cards Per Coach:**
+
+**Card 1: Coach Profile**
+- Avatar + Name (2 lines max)
+- Specializations (chips, max 3 visible)
+- Clickable → Navigate to `/client/coach/{slug}`
+
+**Card 2: Statistics**
+- Programs count
+- Materials count
+- Sessions count
+- Green accent cards with icons
+
+**Card 3: Open Items**
+- "Na čem právě pracujete"
+- Open programs with progress bars
+- Recent materials
+- Upcoming sessions
+- Empty state: "Začněte nový program"
+
+**Card 4: Next Session**
+- Date & time
+- Session type (online/in-person)
+- Location/link
+- Countdown "za X dní"
+- Empty state: "Naplánujte si sezení"
+
+**Technical Implementation:**
+```javascript
+// Helper functions for filtering
+const getCoachItems = (coachId) => ({
+  programs: openItems.openPrograms.filter(p => p.coachId === coachId),
+  materials: openItems.recentMaterials?.filter(m => m.coachId === coachId) || [],
+  sessions: openItems.upcomingSessions?.filter(s => s.coach_id === coachId) || [],
+});
+
+// Load stats for each coach
+const statsPromises = clientCoaches.map(async (coach) => {
+  const programs = await getSharedPrograms(coach.id, profile.email);
+  const materials = await getSharedMaterials(coach.id, profile.email);
+  const { data: sessions } = await supabase
+    .from('coachpro_sessions')
+    .select('id')
+    .eq('client_id', profile.id)
+    .eq('coach_id', coach.id);
+  return { coachId: coach.id, stats: { programs, materials, sessions } };
+});
+```
+
+**4. CoachCard Enhancement**
+- Added specializations display (chips, max 3)
+- Styling: `rgba(85, 107, 47, 0.1)` background, primary color text
+- Font size: 0.7rem, height: 22px
+
+### Files Created (8)
+1. `src/shared/utils/googleCalendar.js` (200 lines)
+2. `src/modules/coach/pages/CoachSessions.jsx` (255 lines)
+3. `migrations/add_google_event_id_to_sessions.sql`
+4. `migrations/add_booking_url_to_coaches.sql`
+5. `docs/google_calendar_setup.md` (113 lines)
+6. `docs/google_oauth_verification_texts.md` (293 lines)
+7. `docs/supabase_scopes_screenshot_guide.md` (100 lines)
+8. `docs/session_19_summary.md` (361+ lines)
+
+### Files Modified (8)
+1. `ClientDashboard.jsx` (1087 lines TOTAL - massive refactor)
+2. `LandingPage.jsx` (652 lines TOTAL - complete rewrite)
+3. `CoachCard.jsx` (+22 lines - specializations chips)
+4. `CoachDashboard.jsx` (+2 lines - /coach/sessions route)
+5. `GoogleSignInButton.jsx` (+2 lines - calendar scope)
+6. `ProfilePage.jsx` (+1 line - booking_url field)
+7. `ProfileScreen.jsx` (+20 lines - booking_url UI)
+8. `supabase_database_schema.sql` (+2 columns)
+
+### Statistics
+- **Added:** ~2,391 lines
+- **Removed:** ~393 lines
+- **Net gain:** ~2,000 lines
+- **Time:** ~8-9 hours
+- **Status:** ⚠️ Waiting for Google OAuth Verification
+
+### Pending Actions (User Must Do)
+1. **Google Cloud Console:**
+   - Enable Google Calendar API
+   - Update OAuth Consent Screen with homepage URL
+   - Add test users for testing before approval
+
+2. **Respond to Google:**
+   - Email with updated homepage link
+   - Wait for approval (2-7 days estimated)
+
+3. **Deploy to Production:**
+   - `git push` → Vercel auto-deploy
+
+4. **Optional:**
+   - Add dashboard screenshot to `/public/screenshots/dashboard.png`
+   - Uncomment backgroundImage in LandingPage.jsx
+
+### Known Issues
+1. **Google OAuth Requires Re-Authentication:**
+   - New scope requires users to sign out + sign in again
+   - Clear cookies if needed
+   - Wait for Google verification approval
+
+2. **Glassmorphism Background:**
+   - Effects subtle without screenshot underneath
+   - Ready for real dashboard image integration
+
+### Technical Decisions
+1. **Manual Sync vs Webhooks:** Manual sync chosen for simplicity, user control
+2. **CSS Transitions:** Already proven in FlipCard, continue using CSS for landing page
+3. **Soft Gradients:** 35%→25% opacity for large surfaces (from Session #16)
+4. **4 Cards Per Coach:** Provides comprehensive overview without overwhelming
+
+### Success Metrics
+- ✅ 100% features implemented
+- ✅ Google Calendar sync ready for testing
+- ✅ Landing page meets Google requirements
+- ✅ Database migrations successful
+- ✅ Modern UI effects implemented
+- ⏳ Waiting for Google verification approval
+
+---
+
 *Generated: November 2025*
-*Sessions: #16 FlipCard, #16B Dashboard Gamification, #17 Coach Profiles*
+*Sessions: #16 FlipCard, #16B Dashboard Gamification, #17 Coach Profiles, #19 Google Calendar & Landing Page*
