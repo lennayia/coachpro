@@ -1,14 +1,164 @@
-# Claude Quick Reference - Recent Sessions
+# Claude Quick Reference - Sessions #16-20
 
-**Datum:** 16.11.2025
+**Datum:** 17.01.2025
 **Branch:** `main`
-**Sessions:** #16 FlipCard | #16B Dashboard | #17 Coach Profiles
+**Latest:** Session #20 - Lead Magnets & Multi-tenant Architecture
 
 ---
 
-## 🎯 Co jsme vytvořili
+## 🆕 Session #20 - Lead Magnets & Multi-tenant
 
-### 1. FlipCard Component
+### PayWithContactModal Component
+**Cesta:** `/src/shared/components/PayWithContactModal.jsx` (265 lines)
+
+```jsx
+<PayWithContactModal
+  open={payModalOpen}
+  onClose={() => setPayModalOpen(false)}
+  item={{ id, type, title }}
+  coach={{ id, name }}
+  onSuccess={(purchase) => {
+    console.log('Purchase created:', purchase);
+    // Reload catalog
+  }}
+/>
+```
+
+**Features:**
+- Auto-fill z user profilu
+- Validace (name, email required)
+- Duplicate purchase detection (error 23505)
+- Success/error notifications
+
+### Public Catalog Utilities
+**Cesta:** `/src/shared/utils/publicCatalog.js` (180 lines)
+
+```javascript
+import { getEnrichedCatalog, hasAccess } from '@shared/utils/publicCatalog';
+
+// Load public materials with access info
+const catalog = await getEnrichedCatalog(coachId, clientEmail);
+// { materials: [...], programs: [...] }
+
+// Check if client has access
+const hasAccess = await hasAccess(clientEmail, 'material', materialId);
+// true/false
+```
+
+### CoachDetail Enhancement
+
+```jsx
+// Public catalog with pricing
+{materials.map((material) => (
+  <Card>
+    {material.is_lead_magnet ? (
+      <Chip label="Zdarma za kontakt" color="success" icon={<Gift />} />
+    ) : material.price > 0 ? (
+      <Chip label={`${material.price} ${material.currency}`} />
+    ) : null}
+
+    <Button
+      onClick={() => material.hasAccess
+        ? navigate(`/material/${material.id}`)
+        : setPayModalOpen(true)
+      }
+    >
+      {material.hasAccess ? 'Otevřít' : 'Získat zdarma'}
+    </Button>
+  </Card>
+))}
+```
+
+### Database Schema (Multi-tenant)
+
+**Schema Alias (Zero Code Changes):**
+```javascript
+// src/supabaseClient.js
+export const supabase = createClient(url, key, {
+  db: { schema: 'coachpro' }
+});
+```
+
+**Purchases Table:**
+```sql
+CREATE TABLE coachpro_purchases (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_type TEXT CHECK (item_type IN ('material', 'program', 'card-deck')),
+  item_id TEXT NOT NULL,
+  client_name TEXT NOT NULL,
+  client_email TEXT NOT NULL,
+  client_phone TEXT,
+  coach_id TEXT REFERENCES coachpro_coaches(id),
+  payment_method TEXT DEFAULT 'contact',
+  amount DECIMAL(10, 2) DEFAULT 0,
+  access_granted BOOLEAN DEFAULT true,
+  CONSTRAINT unique_purchase UNIQUE(client_email, item_type, item_id)
+);
+```
+
+**Pricing Fields:**
+```sql
+ALTER TABLE coachpro_materials
+ADD COLUMN is_public BOOLEAN DEFAULT false,
+ADD COLUMN price DECIMAL(10, 2),
+ADD COLUMN is_lead_magnet BOOLEAN DEFAULT false;
+```
+
+**Auto-share Trigger:**
+```sql
+CREATE FUNCTION auto_share_after_purchase() RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.access_granted = true THEN
+    INSERT INTO coachpro_shared_materials (
+      id, coach_id, material_id, client_email
+    ) VALUES (
+      gen_random_uuid()::text,
+      NEW.coach_id,
+      NEW.item_id,
+      NEW.client_email
+    )
+    ON CONFLICT DO NOTHING;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+## 📚 Session #19 - Google Calendar
+
+### Google Calendar Sync
+**Cesta:** `/src/shared/utils/googleCalendar.js` (200 lines)
+
+```javascript
+import { syncGoogleCalendarToSessions } from '@shared/utils/googleCalendar';
+
+// Sync calendar events to database
+const result = await syncGoogleCalendarToSessions(coachId, accessToken);
+// { created: 5, skipped: 2, errors: [] }
+```
+
+### CoachSessions Page
+**Cesta:** `/src/modules/coach/pages/CoachSessions.jsx` (255 lines)
+
+```jsx
+<Button onClick={handleSyncCalendar}>
+  Synchronizovat Google Calendar
+</Button>
+
+{/* Results dialog */}
+<Dialog open={showResults}>
+  <Typography>Vytvořeno: {syncResults.created}</Typography>
+  <Typography>Přeskočeno: {syncResults.skipped}</Typography>
+</Dialog>
+```
+
+---
+
+## 🎯 Session #16-17 - FlipCard & Profiles
+
+### FlipCard Component
 **Cesta:** `/src/shared/components/cards/FlipCard.jsx`
 
 ```jsx
@@ -21,23 +171,12 @@
 />
 ```
 
-**Props:**
-- `frontContent` - Obsah přední strany
-- `backContent` - Obsah zadní strany
-- `clickToFlip` - Otočit kliknutím (default: true)
-- `flipDuration` - Délka animace v sekundách (default: 0.6)
-- `gradient` - Gradient pozadí (optional)
-- `minHeight` - Minimální výška v px (default: 200)
-- `onFlip` - Callback při otočení
-- `sx` - MUI sx styly
-
-### 2. Sound Feedback Hook
+### Sound Feedback Hook
 **Cesta:** `/src/shared/hooks/useSoundFeedback.js`
 
 ```jsx
-const { playClick, playFlip, playHover, enabled, setEnabled } = useSoundFeedback({
-  volume: 0.3,
-  enabled: true
+const { playClick, playFlip, enabled, setEnabled } = useSoundFeedback({
+  volume: 0.3
 });
 
 <Button onClick={() => { playClick(); /* akce */ }}>
@@ -45,15 +184,7 @@ const { playClick, playFlip, playHover, enabled, setEnabled } = useSoundFeedback
 </Button>
 ```
 
-**Dostupné zvuky:**
-- `playClick()` - Krátké kliknutí
-- `playFlip()` - Zvuk otočení karty
-- `playSuccess()` - Úspěšná akce
-- `playError()` - Chyba
-- `playHover()` - Hover efekt
-- `playWhoosh()` - Rychlý pohyb
-
-### 3. AnimatedGradient
+### AnimatedGradient
 **Cesta:** `/src/shared/components/effects/AnimatedGradient.jsx`
 
 ```jsx
@@ -61,80 +192,57 @@ const { playClick, playFlip, playHover, enabled, setEnabled } = useSoundFeedback
   colors={['#0a0f0a', '#1a2410', '#0f140a']}
   animation="wave"
   duration={8}
-  opacity={1}
+/>
+```
+
+### CoachCard with Profiles
+**Cesta:** `/src/shared/components/cards/CoachCard.jsx`
+
+```jsx
+<CoachCard
+  coach={{
+    name: "Lenka Roubalová",
+    photo_url: "...",
+    bio: "...",
+    specializations: ["Mindfulness", "Life Coaching"],
+    linkedin: "lenka-roubalova",
+    instagram: "@lenka.coach"
+  }}
+  showFullProfile={true}
+  onNavigate={(slug) => navigate(`/client/coach/${slug}`)}
 />
 ```
 
 ---
 
-## 🔧 Hlavní změny v existujících souborech
+## 🛠️ Common Patterns
 
-### WelcomeScreen.jsx
-- ✓ Integrované FlipCard pro akční karty
-- ✓ AnimatedGradient pozadí s vlnovou animací
-- ✓ Zvuková zpětná vazba na všechny interakce
-- ✓ Glow efekt na avataru (kontinuální pulzování)
-- ✓ Sparkles ikona u uvítacího textu
-- ✓ maxWidth fixní na 900px
-- ✓ createSoftGradient helper s optimalizovanou průhledností (35%→25%)
-
-### FloatingMenu.jsx
-- ✓ Přidáno tlačítko "Rozcestník" pro klienty
-- ✓ Ikona změněna z Home na Signpost (rozcestník)
-- ✓ Navigace na /client/welcome pro klienty
-
-### ClientView.jsx
-- ✓ Welcome stránky se renderují bez Layout (bez hlavičky)
-- ✓ Fullscreen zážitek pro onboarding
-
-### icons.js
-- ✓ SETTINGS_ICONS.welcome změněno z Home na Signpost
-
-### animations.js
-- ✓ Přidána glow animace pro avatar
-
----
-
-## 💡 Klíčové technické poznatky
-
-### 3D Flip Animace
-**Důležité:** Jednoduché CSS transitions fungují lépe než složité Framer Motion varianty.
-
-```jsx
-// Parent Box - perspektiva
-<Box sx={{ perspective: '1000px' }}>
-
-  // Rotating container
-  <Box sx={{
-    transformStyle: 'preserve-3d',
-    transition: 'transform 0.6s',
-    transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
-  }}>
-
-    // Přední strana
-    <Box sx={{ backfaceVisibility: 'hidden' }}>
-      <Card>{frontContent}</Card>
-    </Box>
-
-    // Zadní strana
-    <Box sx={{
-      backfaceVisibility: 'hidden',
-      transform: 'rotateY(180deg)' // Statické!
-    }}>
-      <Card>{backContent}</Card>
-    </Box>
-
-  </Box>
-</Box>
+### Error Handling (Duplicate Purchase)
+```javascript
+try {
+  await supabase.from('coachpro_purchases').insert(data);
+} catch (error) {
+  if (error.code === '23505') {
+    showError('Již máte přístup', 'Tento materiál už máte.');
+    return;
+  }
+  throw error;
+}
 ```
 
-**Klíčové vlastnosti:**
-- `perspective: 1000px` na rodiči pro 3D prostor
-- `transformStyle: 'preserve-3d'` na otáčejícím se kontejneru
-- `backfaceVisibility: 'hidden'` na obou stranách
-- Zadní strana má **statický** `rotateY(180deg)`
+### Theme-aware Styling
+```jsx
+sx={{
+  color: (theme) =>
+    theme.palette.mode === 'dark' ? '#fff' : theme.palette.text.primary,
+  background: (theme) =>
+    theme.palette.mode === 'dark'
+      ? 'rgba(143, 188, 143, 0.03)'
+      : 'rgba(143, 188, 143, 0.05)'
+}}
+```
 
-### Jemné gradienty
+### Soft Gradients
 ```javascript
 const createSoftGradient = (color1, color2, angle = 135) => {
   const hexToRgba = (hex, opacity) => {
@@ -143,378 +251,142 @@ const createSoftGradient = (color1, color2, angle = 135) => {
     const b = parseInt(hex.slice(5, 7), 16);
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   };
-  return `linear-gradient(${angle}deg, ${hexToRgba(color1, 0.35)} 0%, ${hexToRgba(color2, 0.25)} 100%)`;
+
+  return `linear-gradient(${angle}deg,
+    ${hexToRgba(color1, 0.35)} 0%,
+    ${hexToRgba(color2, 0.25)} 100%)`;
 };
 ```
 
-**Použití:**
-```jsx
-gradient={createSoftGradient(theme.palette.primary.main, theme.palette.secondary.main)}
+---
+
+## 🗄️ Database Quick Reference
+
+### Client-Coach Relationship
+```sql
+-- Primary coach
+ALTER TABLE coachpro_client_profiles
+ADD COLUMN coach_id TEXT REFERENCES coachpro_coaches(id);
+
+-- Check in code
+const hasPrimaryCoach = profile?.coach_id != null;
+```
+
+### Public Materials
+```sql
+-- Query public materials
+SELECT * FROM coachpro_materials
+WHERE coach_id = ? AND is_public = true;
+
+-- Check access
+SELECT EXISTS (
+  SELECT 1 FROM coachpro_shared_materials
+  WHERE client_email = ? AND material_id = ?
+  UNION
+  SELECT 1 FROM coachpro_purchases
+  WHERE client_email = ? AND item_id = ? AND access_granted = true
+);
 ```
 
 ---
 
-## 🐛 Vyřešené problémy
+## 📁 File Locations
 
-### 1. Karty mizí při otočení
-**Problém:** Karta začne rotovat a zmizí v půlce animace.
-**Řešení:** Zkopírována struktura z fungující `CardFlipView.jsx` - čisté CSS transitions bez složitých motion.div vrstev.
+### Session #20 Files
+- `src/shared/components/PayWithContactModal.jsx` (265 lines)
+- `src/shared/utils/publicCatalog.js` (180 lines)
+- `src/modules/coach/pages/CoachDetail.jsx` (enhanced)
+- `supabase/migrations/20250116_02_create_material_purchases.sql`
+- `supabase/migrations/20250116_03_add_pricing_to_materials_programs.sql`
+- `supabase/migrations/20250117_01_create_schema_structure.sql`
+- `supabase/migrations/20250117_02_move_tables_to_coachpro_schema.sql`
+- `supabase/migrations/20250117_03_create_shared_tables.sql`
 
-### 2. Příliš silné gradienty
-**Problém:** Primary/secondary gradienty na 70% opacity příliš výrazné.
-**Řešení:** Sníženo na 35%→25% opacity pomocí createSoftGradient helperu.
+### Session #19 Files
+- `src/shared/utils/googleCalendar.js` (200 lines)
+- `src/modules/coach/pages/CoachSessions.jsx` (255 lines)
+- `src/modules/coach/pages/LandingPage.jsx` (652 lines)
+- `src/modules/coach/pages/ClientDashboard.jsx` (1087 lines)
 
-### 3. Nečitelný text
-**Problém:** Světlý text na světlých gradientech v light mode.
-**Řešení:** Theme-aware barvy - tmavý text v light mode, bílý v dark mode.
-
-### 4. Duplicitní Home ikony
-**Problém:** Rozcestník i Dashboard používaly Home ikonu.
-**Řešení:** Rozcestník změněn na Signpost ikonu.
-
-### 5. Layout nesrovnalosti
-**Problém:** Různé maxWidth hodnoty mezi Enhanced a běžným WelcomeScreen.
-**Řešení:** Fixní maxWidth 900px napříč všemi welcome obrazovkami.
-
-### 6. Welcome stránky s hlavičkou
-**Problém:** Welcome stránky zobrazovaly navigační hlavičku.
-**Řešení:** Upravený routing v ClientView.jsx - welcome stránky bez Layout.
-
----
-
-## 📦 Vytvořené soubory (4)
-
-1. `/src/shared/components/cards/FlipCard.jsx` - 3D otáčitelná karta
-2. `/src/shared/components/effects/AnimatedGradient.jsx` - Animované gradienty
-3. `/src/shared/hooks/useSoundFeedback.js` - Systém zvukové zpětné vazby
-4. `/src/modules/coach/pages/ClientWelcomeEnhanced.jsx` - Proof of concept
-
-## 📝 Upravené soubory (6)
-
-1. `/src/shared/components/WelcomeScreen.jsx` - FlipCard, zvuky, animace
-2. `/src/modules/coach/pages/ClientWelcome.jsx` - backTitle prop
-3. `/src/shared/components/FloatingMenu.jsx` - Rozcestník tlačítko
-4. `/src/modules/coach/pages/ClientView.jsx` - Welcome bez Layout
-5. `/src/shared/constants/icons.js` - Signpost ikona
-6. `/src/shared/styles/animations.js` - Glow animace
+### Session #16-17 Files
+- `src/shared/components/cards/FlipCard.jsx`
+- `src/shared/components/cards/CoachCard.jsx` (refactored)
+- `src/shared/hooks/useSoundFeedback.js`
+- `src/shared/components/effects/AnimatedGradient.jsx`
+- `src/modules/client/pages/CoachDetail.jsx` (580 lines)
+- `src/modules/client/pages/ClientPrograms.jsx` (680 lines)
 
 ---
 
-## ⚡ Performance tipy
+## 🚀 Quick Commands
 
-1. **CSS > Framer Motion** pro jednoduché flip animace
-2. **Web Audio API** efektivnější než audio soubory
-3. **Nízká opacity** gradientů šetří GPU
-4. **Refs v sound hooku** zamezují zbytečným re-renderům
-
----
-
-## 🎨 Design System
-
-### Barvy
-- **Primary:** Olivová/zemité tóny (#556B2F)
-- **Secondary:** Světle zelená/šalvějová (#8BBC8F)
-- **Použití:** Vždy míchat primary + secondary v gradientech
-
-### Border Radius
-- `BORDER_RADIUS.card` - Pro karty
-- `BORDER_RADIUS.compact` - Pro tlačítka
-- `BORDER_RADIUS.dialog` - Pro dialogy
-
-### Animace
-- **Flip Duration:** 0.6s (default)
-- **Hover Transitions:** 0.3s cubic-bezier(0.4, 0, 0.2, 1)
-- **Sound Duration:** 0.03s-0.5s podle typu zvuku
-
-### Ikony
-- **Knihovna:** Lucide React
-- **Import:** Z `/src/shared/constants/icons.js`
-- **NIKDY** neimportovat přímo z lucide-react
-
----
-
-## ✅ Checklist před mergem
-
-- [x] Všechen kód commitnutý
-- [x] Žádné console.log
-- [x] Žádné TODO/DEBUG komentáře
-- [x] Žádná duplicita kódu
-- [x] Dokumentace vytvořena
-- [ ] Testováno na více zařízeních
-- [ ] Testováno v různých prohlížečích
-- [ ] User acceptance testing
-- [ ] Merge do main
-
----
-
-## 🚀 Příští kroky
-
-### Testování
-1. Test na mobilních zařízeních (iOS, Android)
-2. Test v různých prohlížečích (Safari, Firefox, Edge)
-3. Test zvuků na mobilech
-4. Ověření accessibility (reduced motion)
-
-### Budoucí vylepšení
-1. Haptická zpětná vazba pro mobily
-2. Více zvukových témat
-3. Více variant flip animací
-4. Předpřipravené card šablony
-
----
-
-## 📞 Quick Commands
-
+### Apply Schema Migrations
 ```bash
-# Spuštění dev serveru
-npm run dev
-
-# Build
-npm run build
-
-# Kontrola TypeScript
-npm run type-check
-
-# Lint
-npm run lint
+# In Supabase SQL Editor
+-- 1. Run 20250117_01_create_schema_structure.sql
+-- 2. Run 20250117_02_move_tables_to_coachpro_schema.sql
+-- 3. Run 20250117_03_create_shared_tables.sql
 ```
 
----
-
-## 🔍 Kde hledat
-
-**FlipCard problém?** → `CardFlipView.jsx` (fungující reference)
-**Zvuky nefungují?** → Web Audio API potřebuje user interaction
-**Gradienty moc silné?** → Použij `createSoftGradient` helper
-**Ikony?** → `/src/shared/constants/icons.js`
-**Animace?** → `/src/shared/styles/animations.js`
-
----
-
-## 🎯 Session #16B: Dashboard & Gamification (15.11.2025)
-
-### ClientPrograms Page
-**Cesta:** `/src/modules/coach/pages/ClientPrograms.jsx` (680 lines)
-
-```jsx
-// Filter tabs: All / Active / Completed
-<Tabs value={filterTab}>
-  <Tab label="Všechny programy" />
-  <Tab label="Aktivní" />
-  <Tab label="Dokončené" />
-</Tabs>
-
-// Progress tracking
-<LinearProgress variant="determinate" value={progress} />
-
-// Click to open
-onClick={() => navigate(`/client/daily-view/${program.id}`)}
-```
-
-### Gamification "Semínka růstu"
-```jsx
-const totalSeeds = (materialsCount * 5) + (sessionsCount * 10);
-
-// Green accent card
-<Card sx={{ background: 'linear-gradient(135deg, #8BC34A, #4CAF50)' }}>
-  <Sprout size={40} />
-  <Typography variant="h3">{totalSeeds}</Typography>
-  <Typography>Semínka růstu</Typography>
-</Card>
-```
-
-### 3-Level Motivational Messaging
+### Update Supabase Client
 ```javascript
-// High activity: 30+ seeds OR 3+ sessions
-{ icon: Heart, color: '#ec4899', message: 'Vedete si skvěle!' }
-
-// Medium activity: 10+ seeds OR active programs
-{ icon: Sparkles, color: '#f97316', message: 'Dobrá práce!' }
-
-// Low activity: starting
-{ icon: Compass, color: '#3b82f6', message: 'Vaše cesta začíná!' }
-```
-
-### Clickable Stats Pattern
-```jsx
-// Before: Stats + Navigation cards (duplicate)
-// After: Stats ARE navigation
-
-<Card onClick={() => navigate('/client/materials')} sx={{ cursor: 'pointer' }}>
-  <Typography variant="h4">{materialsCount}</Typography>
-  <Typography>Materiály</Typography>
-</Card>
-```
-
-### Navigation Reordering
-```javascript
-// New order (Programs moved below Materials):
-const clientItems = [
-  { label: 'Dashboard', path: '/client/dashboard' },
-  { label: 'Sezení', path: '/client/sessions' },
-  { label: 'Materiály', path: '/client/materials' },
-  { label: 'Programy', path: '/client/programs' },  // ← Moved here
-  { label: 'Karty', path: '/client/cards' },
-];
-```
-
----
-
-## 🎯 Session #17: Coach Profiles & Selection (16.11.2025)
-
-### CoachCard Refactor
-**Cesta:** `/src/shared/components/CoachCard.jsx`
-
-```jsx
-<CoachCard
-  coach={coach}
-  onClick={() => handleCoachSelect(coach)}
-  showFullProfile={true}
-  counts={{ programs: 5, materials: 12, sessions: 3 }}
-/>
-```
-
-**Fixed Heights Pattern:**
-```jsx
-// Name: 2 lines (2.6em)
-<Typography sx={{
-  minHeight: '2.6em',
-  maxHeight: '2.6em',
-  overflow: 'hidden',
-  display: '-webkit-box',
-  WebkitLineClamp: 2,
-  WebkitBoxOrient: 'vertical',
-}}>
-  {coach.name}
-</Typography>
-
-// Specializations: 1 line each (1.2em)
-{specs.slice(0, 3).map(spec => (
-  <Chip label={spec} sx={{ minHeight: '1.2em', maxHeight: '1.2em' }} />
-))}
-
-// Bio preview: 3 lines (3.2em)
-<Typography sx={{
-  minHeight: '3.2em',
-  maxHeight: '3.2em',
-  WebkitLineClamp: 3,
-}}>
-  {coach.bio}
-</Typography>
-```
-
-### Uniform Card Heights (Flexbox)
-```jsx
-<Grid item xs={12} md={6} lg={4} sx={{ display: 'flex' }}>
-  <motion.div style={{
-    width: '100%',
-    display: 'flex',
-    flexDirection: 'column'
-  }}>
-    <CoachCard ... />
-  </motion.div>
-</Grid>
-```
-
-### Dual-Purpose ClientCoachSelection
-```javascript
-// Assignment mode: First coach selection
-const clientCoaches = await getClientCoaches(profile?.id);
-const hasManyCoaches = clientCoaches && clientCoaches.length > 0;
-
-if (hasManyCoaches) {
-  // Browsing mode: Show counts, navigate to detail
-  navigate(`/client/coach/${slug}`, { state: { coachId: coach.id } });
-} else {
-  // Assignment mode: Confirm dialog → assign
-  await updateClientCoach(profile.id, selectedCoach.id);
-}
-```
-
-### Slug-Based Routing
-```javascript
-const slug = coach.name
-  .toLowerCase()
-  .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '')  // Remove diacritics
-  .replace(/[^a-z0-9]+/g, '-')
-  .replace(/^-+|-+$/g, '');
-
-// Result: "Lenka Roubalová" → "lenka-roubalova"
-```
-
-### Google OAuth Photo Auto-Sync
-**Cesta:** `/src/shared/context/TesterAuthContext.jsx`
-
-```javascript
-const googlePhotoUrl = authUser.user_metadata?.avatar_url ||
-                       authUser.user_metadata?.picture;
-
-if (googlePhotoUrl && googlePhotoUrl !== existingCoach.photo_url) {
-  await supabase
-    .from('coachpro_coaches')
-    .update({ photo_url: googlePhotoUrl })
-    .eq('id', existingCoach.id);
-}
-```
-
-### Social Media with Branded Colors
-```javascript
-const SOCIAL_COLORS = {
-  linkedin: '#0A66C2',
-  instagram: 'linear-gradient(45deg, #F58529, #DD2A7B, #8134AF)',
-  facebook: '#1877F2',
-  website: theme.palette.primary.main,
-  whatsapp: '#25D366',
-  telegram: '#0088cc',
-};
-
-// Smart URL builder
-const buildSocialUrl = (platform, value) => {
-  if (value.startsWith('http')) return value;
-  return `https://${platform}.com/${value}`;
-};
-```
-
-### Specializations Parser (Universal)
-```javascript
-const parseSpecializations = (specializations) => {
-  if (!specializations) return [];
-  if (Array.isArray(specializations)) return specializations;
-  if (typeof specializations === 'string') {
-    return specializations.split(',').map(s => s.trim()).filter(Boolean);
+// src/supabaseClient.js
+export const supabase = createClient(
+  process.env.REACT_APP_SUPABASE_URL,
+  process.env.REACT_APP_SUPABASE_ANON_KEY,
+  {
+    db: { schema: 'coachpro' }  // ✅ Add this
   }
-  return [];
-};
+);
+```
+
+### Test Purchase Flow
+```bash
+# 1. Mark material as public + lead magnet (in Supabase)
+UPDATE coachpro_materials
+SET is_public = true, is_lead_magnet = true
+WHERE id = 'material-id';
+
+# 2. Test as client
+# - Navigate to /client/coach/lenka-roubalova
+# - See material in Materials tab
+# - Click "Získat zdarma"
+# - Fill contact form
+# - Check coachpro_purchases table
+# - Check coachpro_shared_materials table (auto-shared by trigger)
 ```
 
 ---
 
-## 📦 Nové soubory
+## 📊 Session Statistics
 
-### Session #16B (1)
-1. `/src/modules/coach/pages/ClientPrograms.jsx` - 680 lines
+### Session #20
+- **Files created:** 15 (migrations, components, docs)
+- **Files modified:** 3
+- **Lines added:** ~2,080
+- **Bugs fixed:** 10 (iterative trigger fixes)
 
-### Session #17 (1)
-1. `/src/modules/client/pages/CoachDetail.jsx` - 580 lines
+### Sessions #16-19
+- **Total lines added:** ~5,300
+- **Components created:** 10+
+- **Pages created/refactored:** 8
 
----
-
-## 📝 Upravené soubory
-
-### Session #16B (3)
-1. `storage.js` - getSharedPrograms()
-2. `ClientDashboard.jsx` - Gamification + clickable stats
-3. `NavigationFloatingMenu.jsx` - Reordered menu
-
-### Session #17 (5)
-1. `CoachCard.jsx` - Complete refactor
-2. `ClientCoachSelection.jsx` - Dual-purpose logic
-3. `TesterAuthContext.jsx` - Google photo sync
-4. `ProfilePage.jsx` - Save profile fields
-5. `Breadcrumbs.jsx` - Coach detail labels
+### Total (20 sessions)
+- **Lines of code:** ~7,400+
+- **Files created:** 40+
+- **Bugs fixed:** 20+
 
 ---
 
-*Rychlá reference pro Sessions #16, #16B, #17*
-*Poslední aktualizace: 16.11.2025*
+## 🎯 Next Steps
+
+1. **Apply schema migrations** (immediate)
+2. **Update supabaseClient.js** (immediate)
+3. **Test CoachPro after migration** (immediate)
+4. **Coach UI for pricing** (next session)
+5. **Stripe integration** (future)
+
+---
+
+*Last Updated: 17.01.2025*
+*Quick Reference for Sessions #16-20*

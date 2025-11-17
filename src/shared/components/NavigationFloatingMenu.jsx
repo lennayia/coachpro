@@ -42,22 +42,28 @@ const NavigationFloatingMenu = ({ isOpen = false, onToggle, userType = 'coach' }
       gradient: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
     },
     {
+      icon: NAVIGATION_ICONS.sessions,
+      label: 'Správa sezení',
+      onClick: () => handleNavigate('/coach/sessions'),
+      gradient: `linear-gradient(120deg, ${theme.palette.secondary.light} 0%, ${theme.palette.primary.dark} 100%)`,
+    },
+    {
       icon: NAVIGATION_ICONS.materials,
       label: 'Knihovna materiálů',
       onClick: () => handleNavigate('/coach/materials'),
-      gradient: `linear-gradient(120deg, ${theme.palette.secondary.light} 0%, ${theme.palette.primary.dark} 100%)`,
+      gradient: `linear-gradient(150deg, ${theme.palette.primary.light} 0%, ${theme.palette.secondary.dark} 100%)`,
     },
     {
       icon: NAVIGATION_ICONS.programs,
       label: 'Programy',
       onClick: () => handleNavigate('/coach/programs'),
-      gradient: `linear-gradient(150deg, ${theme.palette.primary.light} 0%, ${theme.palette.secondary.dark} 100%)`,
+      gradient: `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.secondary.dark} 100%)`,
     },
     {
       icon: NAVIGATION_ICONS.cards,
       label: 'Koučovací karty',
       onClick: () => handleNavigate('/coach/cards'),
-      gradient: `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.secondary.light} 100%)`,
+      gradient: `linear-gradient(150deg, ${theme.palette.primary.light} 0%, ${theme.palette.secondary.light} 100%)`,
     },
     {
       icon: NAVIGATION_ICONS.clients,
