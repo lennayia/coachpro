@@ -1,0 +1,47 @@
+{
+  "name": "@proapp/shared",
+  "version": "1.0.0",
+  "description": "Shared components, hooks, and utilities for ProApp ecosystem (CoachPro, ContentPro, PaymentsPro, StudyPro, LifePro, DigiPro)",
+  "main": "src/index.js",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./styles": "./src/styles/index.js",
+    "./components": "./src/components/index.js",
+    "./hooks": "./src/hooks/index.js",
+    "./constants": "./src/constants/index.js",
+    "./utils": "./src/utils/index.js",
+    "./context": "./src/context/index.js",
+    "./themes": "./src/themes/index.js"
+  },
+  "scripts": {
+    "build": "echo 'No build step needed - ES modules'",
+    "test": "echo 'No tests yet'"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@mui/material": "^5.14.0",
+    "@emotion/react": "^11.11.0",
+    "@emotion/styled": "^11.11.0",
+    "framer-motion": "^10.16.0",
+    "lucide-react": "^0.263.0",
+    "@supabase/supabase-js": "^2.38.0"
+  },
+  "keywords": [
+    "proapp",
+    "shared",
+    "components",
+    "react",
+    "mui",
+    "hooks",
+    "utilities"
+  ],
+  "author": "ProApp Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lennayia/coachpro.git",
+    "directory": "packages/shared"
+  }
+}

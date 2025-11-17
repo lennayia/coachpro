@@ -11,6 +11,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@proapp/shared': path.resolve(__dirname, './packages/shared/src'),
       '@shared': path.resolve(__dirname, './src/shared'),
       '@modules': path.resolve(__dirname, './src/modules'),
       '@assets': path.resolve(__dirname, './src/assets'),

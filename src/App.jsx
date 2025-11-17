@@ -11,6 +11,7 @@ import AdminLogin from '@modules/coach/pages/AdminLogin';
 import PrivacyPolicy from '@modules/coach/pages/PrivacyPolicy';
 import TermsOfService from '@modules/coach/pages/TermsOfService';
 import RootRedirect from '@shared/components/RootRedirect';
+import TestSharedPackage from './TestSharedPackage';
 
 // Context pro theme mode
 import { createContext, useContext } from 'react';
@@ -48,6 +49,7 @@ function App() {
                 <Route path="/lenna" element={<AdminLogin />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/terms-of-service" element={<TermsOfService />} />
+                <Route path="/test-shared" element={<TestSharedPackage />} />
                 <Route path="/coach/*" element={<ErrorBoundary><CoachView /></ErrorBoundary>} />
                 <Route path="/client/*" element={<ErrorBoundary><ClientView /></ErrorBoundary>} />
                 <Route path="/tester/*" element={<ErrorBoundary><TesterView /></ErrorBoundary>} />
