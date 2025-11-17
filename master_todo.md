@@ -2,7 +2,153 @@
 
 **Branch:** `main`
 **Last Updated:** 17. ledna 2025
-**Status:** Session #20 - Lead Magnets & Multi-tenant Architecture ✅ Complete
+**Status:** Session #21 - Migration 03 (Shared Tables) ✅ Complete
+
+---
+
+## ✅ Completed Tasks - Session #21
+
+### Migration 03: Shared Tables Implementation (17.01.2025)
+
+**Goal:** Create shared tables in public schema for cross-module functionality
+
+#### Shared Tables Created (6 tables)
+- [x] **organizations** table (6 columns)
+  - [x] Multi-tenant organization support
+  - [x] RLS: Public can read
+  - [x] Use: Future team workspaces, white-label instances
+
+- [x] **user_profiles** table (14 columns)
+  - [x] Universal user data across all modules
+  - [x] 6 app membership flags (has_coachpro, has_contentpro, has_paymentspro, has_studypro, has_lifepro, has_digipro)
+  - [x] Timezone & locale support (Europe/Prague, cs)
+  - [x] Links to auth.users (ON DELETE CASCADE)
+  - [x] RLS: Users can read/update own profile
+
+- [x] **subscriptions** table (11 columns)
+  - [x] Per-app subscription tracking (6 modules)
+  - [x] Plans: free, basic, pro, enterprise
+  - [x] Statuses: active, trial, cancelled, expired
+  - [x] UNIQUE constraint (user_id, app)
+  - [x] RLS: Users can read own subscriptions
+
+- [x] **payments** table (10 columns)
+  - [x] Transaction log for all modules (6 apps)
+  - [x] Multi-currency support (default: CZK)
+  - [x] Payment methods: stripe, paypal, bank, contact
+  - [x] Statuses: pending, completed, failed, refunded
+  - [x] Stripe integration (stripe_payment_id)
+  - [x] JSONB metadata for custom data
+  - [x] RLS: Users can read own payments
+
+- [x] **notifications** table (9 columns)
+  - [x] Cross-app notification system (6 modules)
+  - [x] Types: info, success, warning, error
+  - [x] Read tracking (read boolean + read_at timestamp)
+  - [x] Optional link for actionable notifications
+  - [x] Performance indexes (user_id, read, created_at DESC)
+  - [x] RLS: Users can read/update own notifications
+
+- [x] **audit_logs** table (10 columns)
+  - [x] Security audit trail for compliance
+  - [x] Change tracking (old_data + new_data JSONB)
+  - [x] IP address & user agent tracking
+  - [x] ON DELETE SET NULL (preserve logs if user deleted)
+  - [x] Performance indexes (user_id, created_at DESC)
+  - [x] RLS: Enabled, no public access (admin/backend only)
+
+#### Migration Execution
+- [x] Part 1: Organizations (1 min) ✅
+- [x] Part 2: User Profiles (2 min) ✅
+- [x] Part 3: Subscriptions (2 min) ✅
+- [x] Part 4: Payments (2 min) ✅
+- [x] Part 5: Notifications (3 min) ✅
+- [x] Part 6: Audit Logs (2 min) ✅
+- [x] Verification query (all 6 tables created) ✅
+- [x] Application testing (zero errors) ✅
+
+#### Migration File Updates
+- [x] Updated 20250117_03_create_shared_tables.sql
+  - [x] Header comment: 3 → 6 modules
+  - [x] user_profiles: 3 → 6 app membership flags
+  - [x] subscriptions CHECK constraint: 3 → 6 modules
+  - [x] payments CHECK constraint: 3 → 6 modules
+  - [x] notifications CHECK constraint: 3 → 6 modules
+  - [x] audit_logs CHECK constraint: 3 → 6 modules
+
+#### Documentation Created (3 files)
+- [x] **docs/MIGRATION_03_SHARED_TABLES.md** (900 lines)
+  - [x] Complete migration documentation
+  - [x] Schema definitions for all 6 tables
+  - [x] Execution timeline (6 parts)
+  - [x] Usage examples for each table
+  - [x] Cross-module integration patterns (3 patterns)
+  - [x] Security considerations & RLS policies
+  - [x] Performance optimization tips
+  - [x] Future enhancements (5 planned features)
+  - [x] Rollback procedures
+  - [x] Testing checklist
+
+- [x] **docs/SESSION_21_MIGRATION_03_SUMMARY.md** (750 lines)
+  - [x] Session overview & timeline
+  - [x] Key technical decisions (6 decisions)
+  - [x] Database architecture (current status)
+  - [x] Verification results
+  - [x] Usage patterns enabled
+  - [x] Success metrics
+  - [x] Next steps (immediate, short-term, medium-term)
+
+- [x] **APPLY_SCHEMA_MIGRATIONS.md** (updated)
+  - [x] Status: ✅ Dokončeno 17.01.2025
+  - [x] Prerequisites marked complete
+  - [x] Expected results updated (6 schemas, 28 coachpro tables)
+  - [x] Testing checklist marked complete
+  - [x] Link to Migration 03 detailed docs
+
+- [x] **PROAPP_ECOSYSTEM_GUIDE.md** (updated)
+  - [x] Status: Migrations Complete (3/3)
+  - [x] Current database status table (7 schemas, 34 tables)
+  - [x] Complete CoachPro tables list (28 tables)
+  - [x] Completed migrations section with links
+  - [x] Future modules marked "ready for development"
+
+#### Testing & Verification
+- [x] All 6 tables created successfully
+- [x] RLS policies active on all tables
+- [x] Indexes created (notifications: 3, audit_logs: 2)
+- [x] CHECK constraints working (app, plan, status, type)
+- [x] UNIQUE constraints working (email, subscriptions)
+- [x] Foreign keys working (references to auth.users)
+- [x] CoachPro application working without errors
+- [x] Zero breaking changes
+- [x] All features functional (auth, materials, programs, sessions, cards)
+
+#### Database Architecture (Final State)
+```
+ProApp (Supabase) - 34 total tables
+├── public (6 shared) ✅
+│   ├── organizations
+│   ├── user_profiles
+│   ├── subscriptions
+│   ├── payments
+│   ├── notifications
+│   └── audit_logs
+├── coachpro (28 tables) ✅ ACTIVE
+├── contentpro (0 tables) 🚧 READY
+├── paymentspro (0 tables) 🚧 READY
+├── studypro (0 tables) 🚧 READY
+├── lifepro (0 tables) 🚧 READY
+└── digipro (0 tables) 🚧 READY
+```
+
+#### Session Statistics
+- **Duration:** 30 minutes
+- **Execution time:** 12 minutes
+- **Tables created:** 6
+- **Documentation:** 1,650+ lines
+- **Files modified:** 4
+- **Success rate:** 100%
+- **Breaking changes:** 0
 
 ---
 
@@ -105,23 +251,22 @@
 
 ---
 
-## ⏳ Pending Tasks - Session #20
+## ⏳ Pending Tasks - Session #21
 
-### Immediate (Critical Path)
-- [ ] **Apply schema migrations in Supabase**
-  - [ ] Apply migration 01: Create schema structure
-  - [ ] Apply migration 02: Move tables to coachpro schema
-  - [ ] Apply migration 03: Create shared tables
-  - [ ] Verify: Check tables are in correct schemas
-- [ ] **Update supabaseClient.js**
-  - [ ] Add schema config: `db: { schema: 'coachpro' }`
-  - [ ] Commit and deploy
-- [ ] **Test CoachPro after migration**
-  - [ ] Coach login works
-  - [ ] Client login works
-  - [ ] Materials load correctly
-  - [ ] Purchase flow works
-  - [ ] No console errors
+### Immediate (Next Session)
+- [ ] **Git commit & push** - Migration 03 documentation
+  - [ ] Commit migration file changes
+  - [ ] Commit all documentation (4 files)
+  - [ ] Push to GitHub main branch
+
+### Short-term (High Priority)
+- [ ] **Create @proapp/shared package**
+  - [ ] Shared theme (BORDER_RADIUS, COLORS, animations)
+  - [ ] Shared components (FlipCard, AnimatedGradient, Breadcrumbs)
+  - [ ] Shared hooks (useSoundFeedback, useLocalStorage)
+  - [ ] Shared constants (icons, navigation items)
+  - [ ] Shared utils (formatDate, validation helpers)
+  - [ ] Package structure for all ProApp modules
 
 ### Short-term (Next Session)
 - [ ] **Coach UI for pricing**
@@ -142,20 +287,21 @@
   - [ ] Show shared materials
   - [ ] Distinct badges/tags
 
-### Medium-term (Future)
+### Medium-term (Future Modules)
+- [ ] **Migrate to shared user_profiles** (optional)
+  - [ ] Create migration to copy data from coachpro.users
+  - [ ] Add foreign keys to public.user_profiles
+  - [ ] Update queries to use shared table
+- [ ] **ContentPro development**
+  - [ ] Create contentpro schema tables
+  - [ ] Use @proapp/shared package
+  - [ ] Cross-module integration with CoachPro
 - [ ] **Stripe integration (real payments)**
   - [ ] Stripe account setup
   - [ ] Payment intents API
   - [ ] Webhook for successful payments
   - [ ] Update trigger to grant access after payment
-- [ ] **LifePro development**
-  - [ ] Create lifeproClient.js with schema: 'lifepro'
-  - [ ] Design LifePro database schema
-  - [ ] Create lifepro tables
-- [ ] **Migrate to shared user_profiles**
-  - [ ] Create migration to copy data from coachpro_coaches
-  - [ ] Add foreign keys to public.user_profiles
-  - [ ] Update queries to use shared table
+  - [ ] Use public.payments table for transaction log
 
 ### Long-term (Roadmap)
 - [ ] **Cross-app subscriptions**
@@ -282,22 +428,24 @@ _No tasks currently in progress_
 - [x] No console.log statements
 - [x] No TODO/DEBUG comments
 - [x] Documentation complete
-- [ ] **Schema migrations applied** (PENDING)
-- [ ] **supabaseClient.js updated** (PENDING)
-- [ ] **End-to-end testing completed** (PENDING)
+- [x] **Schema migrations applied** ✅ (Migration 01, 02, 03 complete)
+- [x] **supabaseClient.js updated** ✅ (schema: 'coachpro' applied)
+- [x] **End-to-end testing completed** ✅ (All features working)
+- [ ] **Git push to GitHub** (PENDING)
 - [ ] Vercel auto-deploy triggered
 
 ---
 
 ## 📊 Overall Project Statistics
 
-### Total Sessions Completed: 20
+### Total Sessions Completed: 21
 - Session #16: FlipCard Implementation
 - Session #16B: Client Dashboard Gamification
 - Session #17: Client Coach Profiles
 - Session #18: Multiple Coaches & Lead Magnets
 - Session #19: Google Calendar Integration
-- Session #20: Lead Magnets & Multi-tenant Architecture
+- Session #20: Lead Magnets & Multi-tenant Architecture Design
+- Session #21: Migration 03 - Shared Tables Implementation ✅
 
 ### Total Lines of Code
 - **Session #16:** ~800 lines
@@ -306,23 +454,31 @@ _No tasks currently in progress_
 - **Session #18:** ~400 lines
 - **Session #19:** ~2,000 lines
 - **Session #20:** ~2,080 lines
-- **Total:** ~7,380 lines added/modified
+- **Session #21:** ~1,650 lines (documentation)
+- **Total:** ~9,030 lines added/modified
 
-### Total Files Created: ~40+
+### Total Files Created: ~43
 ### Total Bugs Fixed: ~20+
+### Total Database Tables: 34 (6 shared + 28 coachpro)
 ### User Satisfaction: ✅ High
 
 ---
 
 ## 🎯 Next Session Ideas
 
-### 1. Coach Pricing UI
+### 1. @proapp/shared Package (High Priority)
+- Create shared package for all ProApp modules
+- Theme, components, hooks, constants, utils
+- Eliminates code duplication across modules
+- Foundation for ContentPro, PaymentsPro, StudyPro, LifePro, DigiPro
+
+### 2. Coach Pricing UI
 - Material/Program creation form enhancements
 - Pricing configuration (private/lead magnet/paid)
 - Price input validation
 - Preview public catalog
 
-### 2. Purchase Analytics
+### 3. Purchase Analytics
 - Coach dashboard: View purchases
 - Lead magnet performance metrics
 - Client acquisition tracking

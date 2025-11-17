@@ -2,7 +2,7 @@
 -- Shared Tables for ProApp Multi-tenant Architecture
 -- =====================================================
 -- Tables in public schema shared across all applications
--- (CoachPro, LifePro, DigiPro, etc.)
+-- (CoachPro, ContentPro, PaymentsPro, StudyPro, LifePro, DigiPro)
 
 -- =====================================================
 -- 1. Organizations (optional - for future multi-org support)
@@ -45,6 +45,9 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
 
   -- App memberships (which apps user has access to)
   has_coachpro BOOLEAN DEFAULT false,
+  has_contentpro BOOLEAN DEFAULT false,
+  has_paymentspro BOOLEAN DEFAULT false,
+  has_studypro BOOLEAN DEFAULT false,
   has_lifepro BOOLEAN DEFAULT false,
   has_digipro BOOLEAN DEFAULT false
 );
@@ -69,7 +72,7 @@ USING (auth.uid() = id);
 CREATE TABLE IF NOT EXISTS public.subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  app TEXT NOT NULL CHECK (app IN ('coachpro', 'lifepro', 'digipro')),
+  app TEXT NOT NULL CHECK (app IN ('coachpro', 'contentpro', 'paymentspro', 'studypro', 'lifepro', 'digipro')),
   plan TEXT NOT NULL CHECK (plan IN ('free', 'basic', 'pro', 'enterprise')),
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'cancelled', 'expired', 'trial')),
   trial_ends_at TIMESTAMPTZ,
@@ -97,7 +100,7 @@ USING (auth.uid() = user_id);
 CREATE TABLE IF NOT EXISTS public.payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  app TEXT NOT NULL CHECK (app IN ('coachpro', 'lifepro', 'digipro')),
+  app TEXT NOT NULL CHECK (app IN ('coachpro', 'contentpro', 'paymentspro', 'studypro', 'lifepro', 'digipro')),
   amount DECIMAL(10, 2) NOT NULL,
   currency TEXT DEFAULT 'CZK',
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed', 'refunded')),
@@ -124,7 +127,7 @@ USING (auth.uid() = user_id);
 CREATE TABLE IF NOT EXISTS public.notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  app TEXT NOT NULL CHECK (app IN ('coachpro', 'lifepro', 'digipro')),
+  app TEXT NOT NULL CHECK (app IN ('coachpro', 'contentpro', 'paymentspro', 'studypro', 'lifepro', 'digipro')),
   type TEXT NOT NULL CHECK (type IN ('info', 'success', 'warning', 'error')),
   title TEXT NOT NULL,
   message TEXT NOT NULL,
@@ -159,7 +162,7 @@ USING (auth.uid() = user_id);
 CREATE TABLE IF NOT EXISTS public.audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  app TEXT NOT NULL CHECK (app IN ('coachpro', 'lifepro', 'digipro')),
+  app TEXT NOT NULL CHECK (app IN ('coachpro', 'contentpro', 'paymentspro', 'studypro', 'lifepro', 'digipro')),
   action TEXT NOT NULL,
   table_name TEXT,
   record_id TEXT,
