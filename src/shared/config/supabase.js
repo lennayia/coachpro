@@ -7,6 +7,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase credentials not found. File uploads will not work.');
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
+  db: {
+    schema: 'coachpro'  // Default schema for CoachPro tables
+  }
+});
 
 export default supabase;
